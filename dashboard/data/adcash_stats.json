@@ -1,0 +1,73 @@
+{
+  "zone_id": "suhf5fqztw",
+  "zone_name": "Blog em Dolar - Main",
+  "site_url": "https://tech-tips.byethost4.com",
+  "status": "active",
+  "format": "Display Banner",
+  "daily_stats": [
+    {
+      "date": "2026-08-25",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 0,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    },
+    {
+      "date": "2026-09-01",
+      "impressions": 1,
+      "clicks": 0,
+      "revenue": 0.0,
+      "ecpm": 0.0
+    }
+  ],
+  "total_impressions": 1,
+  "total_clicks": 0,
+  "total_revenue": 0.0,
+  "ctr": 0.0,
+  "currency": "USD",
+  "last_updated": "2026-09-01T22:58:00.458296",
+  "api_connected": true,
+  "avg_ecpm": 0.0
+}

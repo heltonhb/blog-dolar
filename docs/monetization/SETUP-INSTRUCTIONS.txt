@@ -1,0 +1,66 @@
+
+============================================================
+  INSTRUÇÕES PARA CONFIGURAR MONETIZAÇÃO NO WORDPRESS
+============================================================
+
+1. ACESSAR O WORDPRESS
+   URL: https://tech-tips.byethost4.com/wp-admin
+   Usuário: heltonhb
+   Senha: (sua senha)
+
+2. INSTALAR PLUGIN DE ANÚNCIOS
+   a) Vá em Plugins > Adicionar Novo
+   b) Pesquise: "Ad Inserter"
+   c) Clique em "Instalar Agora" > "Ativar"
+   
+3. CONFIGURAR AD INSERTEE
+   a) Vá em Settings > Ad Inserter
+   b) Configure cada bloco:
+   
+   BLOCO 1 (Header):
+   - Activation: ✅
+   - Alignment: Center
+   - Posts: Home, Posts
+   - Pages: Static
+   - Code:
+     <div style="text-align:center; margin:10px 0;">
+       <script async data-cfasync="false" src="https://cdn.ad-cash.com/adcash.js"></script>
+     </div>
+   
+   BLOCO 2 (Sidebar):
+   - Ative no widget area do tema
+   
+   BLOCO 3 (In-Content):
+   - After paragraph: 2
+   - Posts: ✅
+   
+   BLOCO 4 (Footer):
+   - Before </body>
+   
+4. CRIAR PÁGINAS OBRIGATÓRIAS
+   a) Vá em Pages > Adicionar Novo
+   b) Crie:
+      - Privacy Policy
+      - About Us
+      - Terms of Service
+      - Contact
+   
+5. ADICIONAR PÁGINAS AO MENU
+   a) Vá em Appearance > Menus
+   b) Adicione as páginas criadas
+   c) Salve o menu
+
+6. CRIAR CONTA ADCASH
+   a) Acesse: https://adcash.com/publishers/signup
+   b) Cadastre-se com email real
+   c) Adicione seu site
+   d) Copie o código de rastreamento
+   e) Cole no Ad Inserter (BLOCO 1)
+
+7. TESTAR
+   a) Visite o site
+   b) Verifique se os anúncios aparecem
+   c) Teste em mobile e desktop
+   d) Verifique no console do navegador (F12)
+
+============================================================

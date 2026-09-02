@@ -1,0 +1,57 @@
+[
+  {
+    "title": "How to Protect Your Digital Privacy Online: A Comprehensive Guide",
+    "keyword": "how to protect your digital privacy online",
+    "outline": [
+      "Understanding the current state of digital privacy and data collection",
+      "Securing your web browsing with the right tools and settings",
+      "Best practices for creating and managing strong passwords",
+      "Recognizing and avoiding common phishing and social engineering attacks",
+      "Setting up two-factor authentication across all major accounts"
+    ]
+  },
+  {
+    "title": "A Beginner's Guide to Understanding Cloud Computing Basics",
+    "keyword": "cloud computing basics for beginners",
+    "outline": [
+      "What is cloud computing and how does it actually work?",
+      "The three main service models: IaaS, PaaS, and SaaS",
+      "Public vs. private vs. hybrid cloud deployment models",
+      "Key benefits of moving to the cloud for individuals and businesses",
+      "Security considerations and myths in cloud computing"
+    ]
+  },
+  {
+    "title": "The Ultimate Guide to Mechanical Keyboards: Switches, Sizes, and Layouts",
+    "keyword": "mechanical keyboards for beginners guide",
+    "outline": [
+      "Why use a mechanical keyboard instead of a membrane keyboard?",
+      "Breaking down switch types: linear, tactile, and clicky",
+      "Understanding keyboard sizes from full-size to 60 percent",
+      "Keycap materials and profile differences",
+      "How to choose the right mechanical keyboard for your workflow"
+    ]
+  },
+  {
+    "title": "How to Troubleshoot Slow Wi-Fi Connections at Home",
+    "keyword": "how to troubleshoot slow wi-fi at home",
+    "outline": [
+      "Running speed tests to diagnose the actual performance bottleneck",
+      "Finding the optimal physical placement for your wireless router",
+      "Changing Wi-Fi channels to avoid network congestion and interference",
+      "Updating router firmware and managing connected devices",
+      "When to upgrade your hardware or switch your internet service provider"
+    ]
+  },
+  {
+    "title": "Solid State Drives vs Hard Disk Drives: Which One Do You Need?",
+    "keyword": "solid state drive vs hard disk drive comparison",
+    "outline": [
+      "The fundamental technological differences between SSDs and HDDs",
+      "Comparing speed, performance, and boot times",
+      "Durability, reliability, and lifespan in everyday use",
+      "Cost per gigabyte and storage capacity considerations",
+      "Making the right choice for your specific computing needs"
+    ]
+  }
+]

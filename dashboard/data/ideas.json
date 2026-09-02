@@ -1,0 +1,92 @@
+[
+  {
+    "id": 12,
+    "title": "NVMe SSD vs SATA SSD vs HDD: Ultimate Speed and Performance Comparison",
+    "keyword": "NVMe SSD vs SATA SSD",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549775",
+    "cpm_estimate": "$15-25",
+    "source": "ai"
+  },
+  {
+    "id": 13,
+    "title": "How to Fix High Ping and Packet Loss While Gaming on Wi-Fi",
+    "keyword": "how to fix high ping and packet loss",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549785",
+    "cpm_estimate": "$10-18",
+    "source": "ai"
+  },
+  {
+    "id": 14,
+    "title": "Top 5 VPNs for Streaming and Torrenting Safely Without Speed Loss",
+    "keyword": "best VPN for streaming",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549793",
+    "cpm_estimate": "$18-28",
+    "source": "ai"
+  },
+  {
+    "id": 15,
+    "title": "Ultimate Guide: How to Build a High-End Gaming PC on a Budget",
+    "keyword": "how to build a gaming PC on a budget",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549803",
+    "cpm_estimate": "$14-22",
+    "source": "ai"
+  },
+  {
+    "id": 16,
+    "title": "Best Noise-Canceling Headphones for Remote Work and Travel in 2024",
+    "keyword": "best noise-canceling headphones for remote work",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549809",
+    "cpm_estimate": "$12-19",
+    "source": "ai"
+  },
+  {
+    "id": 17,
+    "title": "Ultrawide vs Dual Monitors for Productivity: Which Setup is Better?",
+    "keyword": "ultrawide vs dual monitors productivity",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549823",
+    "cpm_estimate": "$15-24",
+    "source": "ai"
+  },
+  {
+    "id": 18,
+    "title": "Windows 11 Optimization Guide: How to Speed Up Your PC Instantly",
+    "keyword": "how to speed up Windows 11 PC",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549830",
+    "cpm_estimate": "$8-15",
+    "source": "ai"
+  },
+  {
+    "id": 19,
+    "title": "Best Gaming Mice with High DPI and Low Latency for Competitive Play",
+    "keyword": "best gaming mice for competitive play",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549837",
+    "cpm_estimate": "$11-17",
+    "source": "ai"
+  },
+  {
+    "id": 20,
+    "title": "MacBook Pro vs Windows Laptops for Software Engineers in 2024",
+    "keyword": "MacBook Pro vs Windows for software engineers",
+    "category": "technology",
+    "status": "pending",
+    "created_at": "2026-09-01T23:28:20.549844",
+    "cpm_estimate": "$16-26",
+    "source": "ai"
+  }
+]

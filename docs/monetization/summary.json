@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-09-01T09:50:32.766434",
+  "files_created": [
+    "docs/monetization/ad_header_banner.html",
+    "docs/monetization/ad_sidebar_rectangle.html",
+    "docs/monetization/ad_in_content.html",
+    "docs/monetization/ad_footer_banner.html",
+    "docs/monetization/privacy-policy.md",
+    "docs/monetization/about-us.md",
+    "docs/monetization/terms-of-service.md",
+    "docs/monetization/SETUP-INSTRUCTIONS.txt"
+  ],
+  "next_steps": [
+    "1. Verificar se o site est\u00e1 acess\u00edvel",
+    "2. Criar conta no AdCash",
+    "3. Seguir instru\u00e7\u00f5es em SETUP-INSTRUCTIONS.txt",
+    "4. Integrar c\u00f3digos de an\u00fancios",
+    "5. Criar p\u00e1ginas obrigat\u00f3rias",
+    "6. Monitorar primeiros ganhos"
+  ]
+}
