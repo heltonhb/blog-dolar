@@ -20,13 +20,15 @@ __pycache__/
 *.log
 logs/
 
-# Environment variables
+# Environment variables - NEVER COMMIT
 .env
 .env.local
+.env.production
 
 # Sensitive data
 dashboard/data/adcash_config.json
 dashboard/data/pinterest_config.json
+dashboard/data/adcash_stats.json
 
 # Images (large files)
 images/pins/*.png

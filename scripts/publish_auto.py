@@ -15,8 +15,8 @@ import httpx
 
 # Config
 FTP_HOST = "ftpupload.net"
-FTP_USER = "b4_42799195"
-FTP_PASS = "Picard170!"
+FTP_USER = os.environ.get('FTP_USER', '')
+FTP_PASS = os.environ.get('FTP_PASS', '')
 DB_HOST = "sql310.byetcluster.com"
 DB_USER = "42799195_1"
 DB_PASS = "p6S(09[v77"

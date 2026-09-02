@@ -11,8 +11,8 @@ from pathlib import Path
 
 # Config FTP
 FTP_HOST = 'ftpupload.net'
-FTP_USER = 'b4_42799195'
-FTP_PASS = 'Picard170!'
+FTP_USER = os.environ.get('FTP_USER', '')
+FTP_PASS = os.environ.get('FTP_PASS', '')
 
 # URL do plugin Ad Inserter (última versão estável)
 ADINSERTER_URL = 'https://downloads.wordpress.org/plugin/ad-inserter.2.8.4.zip'

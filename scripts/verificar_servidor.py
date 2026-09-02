@@ -11,8 +11,8 @@ from ftplib import FTP
 
 SITE_URL = "https://tech-tips.byethost4.com"
 FTP_HOST = "ftpupload.net"
-FTP_USER = "b4_42799195"
-FTP_PASS = "Picard170!"
+FTP_USER = os.environ.get('FTP_USER', '')
+FTP_PASS = os.environ.get('FTP_PASS', '')
 
 def check_server():
     """Verifica se o servidor está respondendo"""

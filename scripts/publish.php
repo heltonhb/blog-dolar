@@ -1,5 +1,5 @@
 <?php
-$conn = new mysqli('sql310.byetcluster.com', '42799195_1', 'p6S(09[v77', 'b442799195_wp909');
+$conn = new mysqli(getenv('WP_DB_HOST'), getenv('WP_DB_USER'), getenv('WP_DB_PASS'), getenv('WP_DB_NAME'));
 if ($conn->connect_error) { die('ERRO: ' . $conn->connect_error); }
 
 $title = $conn->real_escape_string('A Beginner's Guide to Understanding Cloud Computing Basics');
