@@ -573,7 +573,7 @@ def _scheduled_pipeline_job(keyword: str):
                 "source": "scheduler",
             })
             history = history[-100:]
-            _save_json("pipeline_history.json", history)
+            save_pipeline_history({"keyword": keyword, "article": article_filename, "title": title, "image": pin_filename, "image_url": public_image_url, "post_url": post_url, "steps": steps, "completed_at": datetime.now().isoformat()})
 
 
 # ---------------------------------------------------------------------------
@@ -810,7 +810,7 @@ Return ONLY JSON:
                                           "article": article_filename,
                                           "created_at": datetime.now().isoformat()})
                         config["published_pins"] = published[-50:]
-                        _save_json("pinterest_config.json", config)
+                        save_config("pinterest_config", config)
                         _save_checkpoint(pipeline_slug, "pinterest", pin_id)
                         steps[-1] = {"step": "pinterest", "status": "ok", "pin_id": pin_id}
                     else:
@@ -1301,7 +1301,7 @@ Return ONLY JSON (no markdown):
         history = get_verify_history()
         history.append(result)
         history = history[-50:]
-        _save_json("verify_history.json", history)
+        save_verify_history(history[-1] if history else {})
 
         return jsonify({"success": True, "result": result})
     except Exception as e:
@@ -1316,7 +1316,7 @@ def api_delete_verify_history(index):
         if index < 0 or index >= len(history):
             return jsonify({"success": False, "error": f"Índice inválido: {index}"}), 404
         removed = history.pop(index)
-        _save_json("verify_history.json", history)
+        save_verify_history(history[-1] if history else {})
         return jsonify({"success": True, "deleted": removed})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1484,7 +1484,7 @@ def api_delete_pipeline_history(index):
         if index < 0 or index >= len(history):
             return jsonify({"success": False, "error": f"Índice inválido: {index}"}), 404
         removed = history.pop(index)
-        _save_json("pipeline_history.json", history)
+        save_pipeline_history({"keyword": keyword, "article": article_filename, "title": title, "image": pin_filename, "image_url": public_image_url, "post_url": post_url, "steps": steps, "completed_at": datetime.now().isoformat()})
         return jsonify({"success": True, "deleted": removed})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1594,7 +1594,7 @@ def api_pinterest_create():
             published.append({"pin_id": pin.get("id", ""), "title": data.get("title", ""),
                                "created_at": datetime.now().isoformat()})
             config["published_pins"] = published[-50:]
-            _save_json("pinterest_config.json", config)
+            save_config("pinterest_config", config)
             return jsonify({"success": True, "pin_id": pin.get("id"), "url": pin.get("link")})
         return jsonify({"success": False, "error": f"Erro Pinterest API: {resp.status_code} - {resp.text[:200]}"})
     except Exception as e:
