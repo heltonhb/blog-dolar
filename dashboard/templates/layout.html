@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Blog Dolar">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
     <meta name="google-site-verification" content="N5uiqqaN6K3LCfK63sPxeIRfBapOQOdcOHIHl6sF-0c" />
     <title>Blog em Dolar - AI Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -120,6 +128,12 @@
             .catch(err => {
                 if(terminal) terminal.innerHTML += `<br>> Erro: ${err}<br>`;
             });
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js').catch(() => {});
         }
     </script>
 </body>
