@@ -57,6 +57,38 @@ from image_generator import (
 )
 
 # ---------------------------------------------------------------------------
+#  Database initialization
+# ---------------------------------------------------------------------------
+
+def _init_dashboard_db():
+    """Initialize SQLite database and seed with defaults if empty."""
+    from db import init_db, get_ideas, save_idea, get_config, save_config
+    init_db()
+    
+    # If no ideas exist, seed with default tech topics
+    if not get_ideas():
+        default_ideas = [
+            {"id": 1, "title": "How to Build a PC: Complete Step-by-Step Guide", "keyword": "how to build a pc", "category": "technology", "status": "pending", "cpm_estimate": "$12-20", "source": "seed"},
+            {"id": 2, "title": "Best Laptops for Programming in 2026", "keyword": "best laptops for programming", "category": "technology", "status": "pending", "cpm_estimate": "$15-25", "source": "seed"},
+            {"id": 3, "title": "WiFi 7 Explained: What You Need to Know", "keyword": "wifi 7 explained", "category": "technology", "status": "pending", "cpm_estimate": "$10-18", "source": "seed"},
+            {"id": 4, "title": "NVMe SSD vs SATA SSD: Which One Should You Buy?", "keyword": "nvme vs sata ssd", "category": "technology", "status": "pending", "cpm_estimate": "$15-25", "source": "seed"},
+            {"id": 5, "title": "Best Noise-Canceling Headphones for Remote Work", "keyword": "best noise canceling headphones", "category": "technology", "status": "pending", "cpm_estimate": "$12-19", "source": "seed"},
+        ]
+        for idea in default_ideas:
+            save_idea(idea)
+        print(f"  ✅ Database seeded with {len(default_ideas)} default ideas")
+    
+    # Ensure config entries exist
+    if not get_config("pinterest_config"):
+        save_config("pinterest_config", {"access_token": "", "board_id": "", "published_pins": []})
+    if not get_config("adcash_config"):
+        save_config("adcash_config", {"api_token": "", "zone_id": "", "site_url": ""})
+    if not get_config("adcash_stats"):
+        save_config("adcash_stats", {"daily_stats": []})
+
+_init_dashboard_db()
+
+# ---------------------------------------------------------------------------
 #  APScheduler setup
 # ---------------------------------------------------------------------------
 try:
