@@ -801,6 +801,15 @@ Return ONLY JSON:
                     image_step = next((s for s in steps if s.get("step") == "image"), {})
                     pin_files = image_step.get("files", [pin_filename])
                     
+                    # Ensure public_image_url is a WordPress URL
+                    if not public_image_url or "tech-tips.byethost4.com" not in public_image_url:
+                        # Upload main pin to WordPress
+                        main_pin_path = images_dir / pin_filename
+                        if main_pin_path.exists():
+                            wp_media = _wp_upload_media(main_pin_path.read_bytes(), pin_filename, alt_text=title)
+                            if wp_media.get("success"):
+                                public_image_url = wp_media["url"]
+                    
                     pin_ids = []
                     for pf in pin_files:
                         pf_path = images_dir / pf
@@ -808,7 +817,7 @@ Return ONLY JSON:
                             continue
                         # Upload to WP to get public URL
                         pf_media = _wp_upload_media(pf_path.read_bytes(), pf, alt_text=title)
-                        pf_url = pf_media.get("url", "") if pf_media.get("success") else public_image_url
+                        pf_url = pf_media.get("url", public_image_url) if pf_media.get("success") else public_image_url
                         
                         pin_payload = {
                             "board_id": board_id,
