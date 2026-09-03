@@ -2034,10 +2034,10 @@ def api_adsterra():
     
     try:
         resp = _httpx.get(
-            "https://api3.adsterratools.com/publisher/stats",
+            "https://api3.adsterratools.com/publisher/stats.json",
             params={
-                "date_from": month_start,
-                "date_to": today,
+                "start_date": month_start,
+                "finish_date": today,
                 "group_by": "date",
             },
             headers={"X-API-Key": token},
@@ -2046,10 +2046,10 @@ def api_adsterra():
         
         if resp.status_code == 200:
             data = resp.json()
-            stats_list = data if isinstance(data, list) else data.get("stats", data.get("data", []))
+            stats_list = data.get("items", [])
             
-            total_revenue = sum(float(s.get("revenue", s.get("earnings", 0))) for s in stats_list)
-            total_impressions = sum(int(s.get("impressions", 0)) for s in stats_list)
+            total_revenue = sum(float(s.get("revenue", 0)) for s in stats_list)
+            total_impressions = sum(int(s.get("impression", 0)) for s in stats_list)
             total_clicks = sum(int(s.get("clicks", 0)) for s in stats_list)
             avg_ecpm = (total_revenue / total_impressions * 1000) if total_impressions > 0 else 0
             
@@ -2057,10 +2057,10 @@ def api_adsterra():
             for s in stats_list:
                 daily.append({
                     "date": s.get("date", ""),
-                    "impressions": int(s.get("impressions", 0)),
+                    "impressions": int(s.get("impression", 0)),
                     "clicks": int(s.get("clicks", 0)),
-                    "revenue": float(s.get("revenue", s.get("earnings", 0))),
-                    "ecpm": float(s.get("ecpm", 0)),
+                    "revenue": float(s.get("revenue", 0)),
+                    "ecpm": float(s.get("cpm", 0)),
                 })
             
             result = {
