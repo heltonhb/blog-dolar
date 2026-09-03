@@ -682,6 +682,13 @@ Return ONLY JSON:
         pin_filename = ckpt_image
         image_bytes = (images_dir / pin_filename).read_bytes()
         provider = "checkpoint"
+        # Upload checkpoint image to WordPress if not already there
+        try:
+            wp_ckpt = _wp_upload_media(image_bytes, pin_filename, alt_text=title or pin_filename)
+            if wp_ckpt.get("success"):
+                public_image_url = wp_ckpt["url"]
+        except Exception:
+            pass
         steps.append({"step": "image", "status": "ok", "filename": pin_filename,
                       "size_kb": round(len(image_bytes) / 1024, 1), "provider": provider,
                       "from_checkpoint": True})
@@ -700,6 +707,13 @@ Return ONLY JSON:
         except Exception:
             pass
         save_checkpoint(pipeline_slug, "image", pin_filename)
+        # Immediately upload to WordPress for public URL
+        try:
+            wp_media = _wp_upload_media(image_bytes, pin_filename, alt_text=title or pin_filename)
+            if wp_media.get("success"):
+                public_image_url = wp_media["url"]
+        except Exception:
+            pass
         steps.append({"step": "image", "status": "ok", "filename": pin_filename,
                       "size_kb": round(len(image_bytes) / 1024, 1), "provider": provider})
 
