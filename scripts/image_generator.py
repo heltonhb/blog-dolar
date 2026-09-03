@@ -151,7 +151,7 @@ def generate_image_gemini(
     api_key: str,
     prompt: str,
     aspect_ratio: str = "3:4",
-    model: str = "imagen-3.0-generate-002",
+    model: str = "gemini-2.5-flash-image",
 ) -> bytes:
     """Generate an image using Google Gemini Imagen API (free tier).
 
@@ -167,7 +167,7 @@ def generate_image_gemini(
     Raises:
         RuntimeError: If image generation fails after retries
     """
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:predict?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
     payload = {
         "instances": [{"prompt": prompt}],
