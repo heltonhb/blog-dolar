@@ -2,97 +2,87 @@
 
 {% block content %}
 <div class="header">
-    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-sack-dollar" style="color: var(--accent-green);"></i> Relatórios AdCash</h1>
-    <p>Monitoramento de ganhos e impressões</p>
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-sack-dollar" style="color: var(--accent-green);"></i> AdCash</h1>
+    <p>Informações da conta e acesso rápido ao painel</p>
 </div>
 
-<!-- Info Cards -->
-<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+<div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
     <div class="stat-card">
         <div class="stat-card-header">
             <span>Zone ID</span>
             <i class="fa-solid fa-fingerprint"></i>
         </div>
         <h2 style="font-size: 1.3rem; word-break: break-all;">suhf5fqztw</h2>
-        <p>tech-tips.byethost4.com</p>
+        <p>Zona ativa no site</p>
     </div>
     <div class="stat-card">
         <div class="stat-card-header">
-            <span>Plugin WP</span>
-            <i class="fa-solid fa-puzzle-piece"></i>
+            <span>Status</span>
+            <i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i>
         </div>
-        <h2 style="font-size: 1.3rem;">adcash-ads.php</h2>
-        <p>wp_head + wp_footer</p>
+        <h2 style="font-size: 1.3rem; color: var(--accent-green);">Ativo</h2>
+        <p>Plugin instalado no WordPress</p>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-header">
-            <span>Acesso</span>
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </div>
-        <a href="https://publisher.adcash.com" target="_blank" class="btn btn-green" style="display: inline-block; margin-top: 8px; text-decoration: none;">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Painel AdCash
+</div>
+
+<!-- Acesso rápido -->
+<div class="stat-card" style="margin-top: 20px;">
+    <h3 style="margin-bottom: 15px; color: var(--accent-green);">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Acesso ao Painel
+    </h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        O painel do AdCash não pode ser exibido aqui (bloqueado por segurança).<br>
+        Clique nos links abaixo para acessar diretamente.
+    </p>
+    
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <a href="https://publisher.adcash.com" target="_blank" class="btn btn-green" style="padding: 12px 24px; font-size: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-chart-line"></i> Painel de Estatísticas
         </a>
-        <p style="margin-top: 8px;">Ganho por impressão (CPM)</p>
+        <a href="https://publisher.adcash.com" target="_blank" class="btn btn-blue" style="padding: 12px 24px; font-size: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-wallet"></i> Saldo e Pagamentos
+        </a>
+        <a href="https://publisher.adcash.com" target="_blank" class="btn btn-orange" style="padding: 12px 24px; font-size: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-gear"></i> Configurações
+        </a>
     </div>
 </div>
 
-<!-- Iframe do painel AdCash -->
-<div style="margin-top: 20px;">
-    <div class="stat-card" style="padding: 0; overflow: hidden;">
-        <div style="background: var(--sidebar-bg); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
-            <span style="color: var(--accent-green); font-weight: bold;">
-                <i class="fa-solid fa-chart-bar"></i> Painel AdCash em Tempo Real
-            </span>
-            <a href="https://publisher.adcash.com" target="_blank" style="color: var(--info); text-decoration: none; font-size: 0.85rem;">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir em nova aba
-            </a>
+<!-- Configuração do site -->
+<div class="stat-card" style="margin-top: 20px;">
+    <h3 style="margin-bottom: 15px; color: var(--accent-green);">
+        <i class="fa-solid fa-circle-info"></i> Configuração no WordPress
+    </h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Plugin:</strong></p>
+            <p>adcash-ads.php</p>
         </div>
-        <div style="position: relative; width: 100%; height: 70vh; min-height: 500px;">
-            <iframe 
-                src="https://publisher.adcash.com" 
-                style="width: 100%; height: 100%; border: none; background: #1a1a2e;"
-                title="Painel AdCash"
-                loading="lazy"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                referrerpolicy="no-referrer"
-                id="adcash-iframe"
-            ></iframe>
-            <!-- Fallback message -->
-            <div id="iframe-fallback" style="display: none; position: absolute; inset: 0; background: var(--card-bg); padding: 40px; text-align: center;">
-                <i class="fa-solid fa-lock" style="font-size: 3rem; color: var(--warning); margin-bottom: 15px;"></i>
-                <h3 style="margin-bottom: 10px;">Painel AdCash</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                    O painel do AdCash não pode ser exibido aqui porque bloqueia iframes.<br>
-                    Clique no botão abaixo para acessar diretamente.
-                </p>
-                <a href="https://publisher.adcash.com" target="_blank" class="btn btn-green" style="padding: 12px 24px; font-size: 1rem; text-decoration: none;">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Painel AdCash
-                </a>
-            </div>
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Localização:</strong></p>
+            <p>wp_head + wp_footer</p>
+        </div>
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Site:</strong></p>
+            <a href="https://tech-tips.byethost4.com" target="_blank" style="color: var(--info);">tech-tips.byethost4.com</a>
+        </div>
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Formato:</strong></p>
+            <p>Display Banner</p>
         </div>
     </div>
 </div>
 
-<script>
-// Detect if iframe failed to load (CSP blocked)
-document.getElementById('adcash-iframe').addEventListener('error', function() {
-    document.getElementById('iframe-fallback').style.display = 'block';
-    this.style.display = 'none';
-});
-
-// Fallback: show after timeout if iframe is blank
-setTimeout(function() {
-    const iframe = document.getElementById('adcash-iframe');
-    try {
-        // Try to access iframe content - if blocked, show fallback
-        if (!iframe.contentDocument || !iframe.contentDocument.body) {
-            document.getElementById('iframe-fallback').style.display = 'block';
-            iframe.style.display = 'none';
-        }
-    } catch(e) {
-        // Cross-origin blocked = iframe is loading but we can't check content
-        // Don't show fallback in this case - it might still work
-    }
-}, 3000);
-</script>
+<!-- Dicas -->
+<div class="stat-card" style="margin-top: 20px; border-left: 3px solid var(--info);">
+    <h3 style="margin-bottom: 10px; color: var(--info);">
+        <i class="fa-solid fa-lightbulb"></i> Dicas para Maximizar Ganhos
+    </h3>
+    <ul style="color: var(--text-secondary); line-height: 1.8; padding-left: 20px;">
+        <li>Mantenha o conteúdo original e de alta qualidade</li>
+        <li>Foco em tráfego de países Tier 1 (US, UK, CA, AU)</li>
+        <li>Publique regularmente para aumentar visitas</li>
+        <li>Monitore as estatísticas semanalmente no painel</li>
+    </ul>
+</div>
 {% endblock %}
