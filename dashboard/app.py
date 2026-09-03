@@ -788,18 +788,31 @@ Return ONLY JSON:
                     steps[-1] = {"step": "pinterest", "status": "error",
                                  "error": "Pinterest não configurado (ACCESS_TOKEN ou BOARD_ID ausente)"}
                 else:
-                    pin_payload = {
-                        "board_id": board_id,
-                        "title": title[:100],
-                        "description": (meta_desc or f"Read about {title}")[:500],
-                        "link": post_url or _env("SITE_URL", "https://tech-tips.byethost4.com"),
-                        "image_source_url": public_image_url,
-                    }
-                    resp_pin = _httpx.post(
-                        "https://api.pinterest.com/v5/pins",
-                        json=pin_payload,
-                        headers={"Authorization": f"Bearer {access_token}"},
-                        timeout=30,
+                    # Get pin files from image step
+                    image_step = next((s for s in steps if s.get("step") == "image"), {})
+                    pin_files = image_step.get("files", [pin_filename])
+                    
+                    pin_ids = []
+                    for pf in pin_files:
+                        pf_path = images_dir / pf
+                        if not pf_path.exists():
+                            continue
+                        # Upload to WP to get public URL
+                        pf_media = _wp_upload_media(pf_path.read_bytes(), pf, alt_text=title)
+                        pf_url = pf_media.get("url", "") if pf_media.get("success") else public_image_url
+                        
+                        pin_payload = {
+                            "board_id": board_id,
+                            "title": title[:100],
+                            "description": (meta_desc or f"Read about {title}")[:500],
+                            "link": post_url or _env("SITE_URL", "https://tech-tips.byethost4.com"),
+                            "image_source_url": pf_url,
+                        }
+                        resp_pin = _httpx.post(
+                            "https://api.pinterest.com/v5/pins",
+                            json=pin_payload,
+                            headers={"Authorization": f"Bearer {access_token}"},
+                            timeout=30,
                     )
                     if resp_pin.status_code in (200, 201):
                         pin_data = resp_pin.json()
@@ -1953,6 +1966,76 @@ def api_run_script():
 # ---------------------------------------------------------------------------
 #  Run
 # ---------------------------------------------------------------------------
+
+
+
+# ---------------------------------------------------------------------------
+#  Sitemap XML (for Google Search Console)
+# ---------------------------------------------------------------------------
+
+@app.route("/sitemap.xml")
+def sitemap():
+    """Generate XML sitemap for Google."""
+    from flask import Response
+    import pymysql
+    
+    site_url = _env("SITE_URL", "https://tech-tips.byethost4.com")
+    
+    # Try to get posts from WordPress database
+    posts_xml = ""
+    try:
+        env = _load_env_dict()
+        conn = pymysql.connect(
+            host=env.get("WP_DB_HOST", "sql310.byetcluster.com"),
+            user=env.get("WP_DB_USER", ""),
+            password=env.get("WP_DB_PASS", ""),
+            database=env.get("WP_DB_NAME", ""),
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT post_name, post_date, post_modified 
+                FROM wpq9_posts 
+                WHERE post_status = 'publish' AND post_type = 'post'
+                ORDER BY post_date DESC
+                LIMIT 500
+            """)
+            for row in cur.fetchall():
+                slug = row["post_name"]
+                date = row["post_date"].strftime("%Y-%m-%d") if row["post_date"] else ""
+                mod = row["post_modified"].strftime("%Y-%m-%d") if row["post_modified"] else date
+                posts_xml += f"""  <url>
+    <loc>{site_url}/?p={slug}</loc>
+    <lastmod>{mod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+\n"""
+        conn.close()
+    except Exception:
+        # Fallback: list articles from local directory
+        articles_dir = Path(__file__).parent.parent / "articles"
+        if articles_dir.exists():
+            for f in sorted(articles_dir.glob("*.md"), reverse=True)[:200]:
+                slug = f.stem
+                posts_xml += f"""  <url>
+    <loc>{site_url}/?p={slug}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+\n"""
+    
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{site_url}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+{posts_xml}</urlset>"""
+    
+    return Response(xml, mimetype="application/xml")
 
 if __name__ == "__main__":
     env_path = Path(app.root_path).parent / ".env"
