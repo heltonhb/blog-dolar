@@ -1048,10 +1048,11 @@ def _generate_ideas_from_trends() -> list:
 def api_add_idea():
     try:
         data = request.json
-        existing = _load_json("ideas.json", [])
-        max_id = max((i.get("id", 0) for i in existing), default=0)
+        ideas = get_ideas()
+        max_id = max((i.get("idea_id", 0) for i in ideas), default=0)
         new_idea = {
             "id": max_id + 1,
+            "idea_id": max_id + 1,
             "title": data.get("title", ""),
             "keyword": data.get("keyword", ""),
             "category": data.get("category", "technology"),
@@ -1060,9 +1061,7 @@ def api_add_idea():
             "created_at": datetime.now().isoformat(),
             "source": "manual",
         }
-        existing.append(new_idea)
-        existing = existing[-200:]
-        _save_json("ideas.json", existing)
+        save_idea(new_idea)
         return jsonify({"success": True, "idea": new_idea})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1071,9 +1070,9 @@ def api_add_idea():
 @login_required
 def api_delete_idea(idea_id):
     try:
-        existing = _load_json("ideas.json", [])
-        existing = [i for i in existing if i.get("id") != idea_id]
-        _save_json("ideas.json", existing)
+        from db import get_conn
+        with get_conn() as conn:
+            conn.execute("DELETE FROM ideas WHERE idea_id=?", (idea_id,))
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
