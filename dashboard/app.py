@@ -980,18 +980,15 @@ def api_generate_ideas():
         else:
             ideas = _generate_ideas_from_gemini()
 
-        existing = _load_json("ideas.json", [])
-        max_id = max((i.get("id", 0) for i in existing), default=0)
+        existing = get_ideas()
+        max_id = max((i.get("idea_id", 0) for i in existing), default=0)
         for idx, idea in enumerate(ideas):
-            idea["id"] = max_id + idx + 1
+            idea["idea_id"] = max_id + idx + 1
             idea["status"] = "pending"
             idea["created_at"] = datetime.now().isoformat()
             idea["source"] = source
+            save_idea(idea)
 
-        existing.extend(ideas)
-        # Limit: keep last 200 ideas to avoid unbounded growth
-        existing = existing[-200:]
-        _save_json("ideas.json", existing)
         return jsonify({"success": True, "ideas": ideas, "count": len(ideas)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
