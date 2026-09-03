@@ -188,7 +188,7 @@ function runPipeline() {
             const pinDesc = 'Read this guide on our blog!';
 
             // Build Pinterest share URL
-            const pinterestUrl = 'https://pinterest.com/pin/create/button/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl.startsWith('http') ? pinUrl : window.location.origin + pinUrl) + '&description=' + encodeURIComponent(pinTitle);
+            const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl.startsWith('http') ? pinUrl : window.location.origin + pinUrl) + '&description=' + encodeURIComponent(pinTitle);
 
             let links = '';
             if (data.post_url) links += '<a href="' + esc(data.post_url) + '" target="_blank" class="btn btn-blue" style="margin-right: 8px;"><i class="fa-solid fa-external-link"></i> Ver no WordPress</a>';
@@ -287,7 +287,7 @@ function loadPins() {
             // Build Pinterest share URL
             const wpLink = 'https://tech-tips.byethost4.com';
             const pinUrl = pin.image_url || (window.location.origin + '/static/images/' + pin.filename);
-            const pinterestUrl = 'https://pinterest.com/pin/create/button/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title);
+            const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title);
 
             return `
             <div class="stat-card" style="text-align: center; padding: 15px;">
