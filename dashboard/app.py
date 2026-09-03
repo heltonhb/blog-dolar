@@ -330,7 +330,7 @@ def _build_pin_prompt(article_info: dict, usage: str = "pinterest") -> str:
 #  Gemini API helper
 # ---------------------------------------------------------------------------
 
-def _gemini_call(prompt: str, api_key: str = "", model: str = "gemini-flash-lite-latest",
+def _gemini_call(prompt: str, api_key: str = "", model: str = "gemini-3.5-flash-lite",
                  temperature: float = 0.7, max_tokens: int = 8192) -> str:
     import httpx
     api_key = api_key or _env("GEMINI_API_KEY")
