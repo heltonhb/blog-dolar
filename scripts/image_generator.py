@@ -245,10 +245,12 @@ def generate_image_pollinations(
     if seed is None:
         seed = random.randint(1, 999999)
 
-    encoded_prompt = urllib.parse.quote(prompt)
-    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
+    # Enhance prompt for better quality
+    enhanced = f"professional, high quality, detailed, sharp focus, 4k, {prompt}"
+    encoded_prompt = urllib.parse.quote(enhanced)
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
 
-    with httpx.Client(timeout=90, follow_redirects=True) as client:
+    with httpx.Client(timeout=120, follow_redirects=True) as client:
         resp = client.get(url)
         resp.raise_for_status()
 
@@ -256,6 +258,52 @@ def generate_image_pollinations(
         raise ValueError(f"Pollinations returned too-small image ({len(resp.content)} bytes)")
 
     return resp.content
+
+
+def generate_image_together(
+    prompt: str,
+    api_key: str = "",
+    width: int = 1024,
+    height: int = 1024,
+    **kwargs,
+) -> bytes:
+    """Generate an image using Together AI FLUX model (high quality).
+
+    Args:
+        prompt: Image generation prompt
+        api_key: Together AI API key
+        width: Image width in pixels
+        height: Image height in pixels
+
+    Returns:
+        Raw image bytes (PNG)
+    """
+    import base64 as _b64
+
+    url = "https://api.together.xyz/v1/images/generations"
+    payload = {
+        "model": "black-forest-labs/FLUX.1-schnell-Free",
+        "prompt": prompt,
+        "width": width,
+        "height": height,
+        "steps": 4,
+        "n": 1,
+        "response_format": "b64_json",
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    resp = httpx.post(url, json=payload, headers=headers, timeout=60)
+    resp.raise_for_status()
+
+    data = resp.json()
+    images = data.get("data", [])
+    if images and "b64_json" in images[0]:
+        return _b64.b64decode(images[0]["b64_json"])
+
+    raise ValueError("Together AI returned no image data")
 
 
 # ---------------------------------------------------------------------------
@@ -282,7 +330,16 @@ def generate_image(
     """
     providers = []
 
-    # Gemini Imagen (best quality) - needs API key
+    # Together AI FLUX (high quality) - needs TOGETHER_API_KEY
+    together_key = os.environ.get("TOGETHER_API_KEY", "")
+    if together_key:
+        w, h = DIMENSIONS.get(usage, (1024, 1024))
+        providers.append({
+            "name": "together-flux",
+            "fn": lambda p: generate_image_together(p, api_key=together_key, width=w, height=h),
+        })
+
+    # Gemini Imagen (good quality) - needs API key
     if api_key:
         aspect = ASPECT_RATIOS.get(usage, "1:1")
         providers.append({
