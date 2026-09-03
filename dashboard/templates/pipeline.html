@@ -182,7 +182,7 @@ function runPipeline() {
         document.getElementById('steps-container').innerHTML = renderSteps(data.steps || []);
 
         if (data.success) {
-            const pinUrl = data.image_url || ('/static/images/' + esc(data.image));
+            const pinUrl = data.image_url || ('https://tech-tips.byethost4.com/wp-content/uploads/' + esc(data.image));
             const wpLink = data.post_url || 'https://tech-tips.byethost4.com';
             const pinTitle = esc(data.title || '');
             const pinDesc = 'Read this guide on our blog!';

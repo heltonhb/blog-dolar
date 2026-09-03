@@ -155,7 +155,7 @@ function renderPinGrid(results) {
         const articleFile = info ? info.article_file : '';
         const tags = info ? (info.tags || []) : [];
 
-        const pinUrl = window.location.origin + '/static/images/' + pin.filename;
+        const pinUrl = 'https://tech-tips.byethost4.com/wp-content/uploads/' + pin.filename;
         const pinterestUrl = 'https://pinterest.com/pin/create/button/?url=' + encodeURIComponent(link) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title + (tags.length ? ' #' + tags.join(' #') : ''));
 
         return `
