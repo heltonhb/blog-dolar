@@ -1982,6 +1982,39 @@ def api_run_script():
 #  Sitemap XML (for Google Search Console)
 # ---------------------------------------------------------------------------
 
+
+
+@app.route("/api/test-gemini")
+@login_required
+def api_test_gemini():
+    """Test Gemini API key."""
+    import httpx as _httpx
+    api_key = _env("GEMINI_API_KEY", "")
+    if not api_key:
+        return jsonify({"success": False, "error": "GEMINI_API_KEY não configurada"})
+    
+    # Test with a simple request
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    try:
+        resp = _httpx.get(url, timeout=10)
+        if resp.status_code == 200:
+            models = resp.json().get("models", [])
+            return jsonify({
+                "success": True,
+                "key_preview": api_key[:10] + "...",
+                "models_count": len(models),
+                "status": "OK"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": f"HTTP {resp.status_code}",
+                "key_preview": api_key[:10] + "...",
+                "detail": resp.text[:200]
+            })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @app.route("/sitemap.xml")
 def sitemap():
     """Generate XML sitemap for Google."""
