@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-gear" style="color: var(--text-secondary);"></i> Configurações do Sistema</h1>
+    <p>Chaves de API, credenciais e parâmetros (.env)</p>
+</div>
+
+<div id="settings-loading" style="color: var(--accent-green); margin-bottom: 15px;">
+    <i class="fa-solid fa-spinner fa-spin"></i> Carregando configurações...
+</div>
+
+<div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Security Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-shield-halved"></i> Segurança</h3>
+        <div class="form-group">
+            <label>Senha do Dashboard <span style="color:var(--danger);">*</span></label>
+            <input type="password" id="cfg-DASHBOARD_PASSWORD" class="form-control" placeholder="Defina uma senha forte">
+            <small style="color: var(--text-secondary);">Protege o acesso ao dashboard. Deixe vazio para desativar a autenticação.</small>
+        </div>
+        <div class="form-group">
+            <label>Flask Secret Key (auto-gerada se vazia)</label>
+            <input type="password" id="cfg-FLASK_SECRET_KEY" class="form-control" placeholder="Gerada automaticamente">
+        </div>
+        <button class="btn btn-green" onclick="saveSetting('DASHBOARD_PASSWORD')">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Senha
+        </button>
+    </div>
+
+    <!-- AI Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-robot"></i> Inteligência Artificial</h3>
+        <div class="form-group">
+            <label>Gemini API Key</label>
+            <input type="password" id="cfg-GEMINI_API_KEY" class="form-control" placeholder="Cole sua chave">
+        </div>
+        <button class="btn btn-green" onclick="saveSetting('GEMINI_API_KEY')">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar IA
+        </button>
+    </div>
+
+    <!-- WordPress Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-brands fa-wordpress"></i> WordPress</h3>
+        <div class="form-group">
+            <label>Site URL</label>
+            <input type="text" id="cfg-SITE_URL" class="form-control" placeholder="https://tech-tips.byethost4.com">
+        </div>
+        <div class="form-group">
+            <label>WP Username</label>
+            <input type="text" id="cfg-WP_USER" class="form-control" placeholder="heltonhb">
+        </div>
+        <div class="form-group">
+            <label>WP Application Password</label>
+            <input type="password" id="cfg-WP_APP_PASSWORD" class="form-control" placeholder="xxxx xxxx xxxx xxxx">
+        </div>
+        <button class="btn btn-blue" onclick="testWpConnection()">
+            <i class="fa-solid fa-plug"></i> Testar Conexão
+        </button>
+    </div>
+
+    <!-- FTP Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-server"></i> FTP</h3>
+        <div class="form-group">
+            <label>Host</label>
+            <input type="text" id="cfg-FTP_HOST" class="form-control" value="ftpupload.net">
+        </div>
+        <div class="form-group">
+            <label>User</label>
+            <input type="text" id="cfg-FTP_USER" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Pass</label>
+            <input type="password" id="cfg-FTP_PASS" class="form-control">
+        </div>
+    </div>
+
+    <!-- WordPress DB Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-database"></i> WordPress DB</h3>
+        <div class="form-group">
+            <label>Host</label>
+            <input type="text" id="cfg-WP_DB_HOST" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>User</label>
+            <input type="text" id="cfg-WP_DB_USER" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Pass</label>
+            <input type="password" id="cfg-WP_DB_PASS" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Database</label>
+            <input type="text" id="cfg-WP_DB_NAME" class="form-control">
+        </div>
+    </div>
+
+    <!-- Pinterest Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-brands fa-pinterest"></i> Pinterest</h3>
+        <div class="form-group">
+            <label>Access Token</label>
+            <input type="password" id="cfg-PINTEREST_ACCESS_TOKEN" class="form-control" placeholder="Token da API Pinterest">
+        </div>
+        <div class="form-group">
+            <label>Board ID</label>
+            <input type="text" id="cfg-PINTEREST_BOARD_ID" class="form-control" placeholder="ID do board">
+        </div>
+    </div>
+
+    <!-- AdCash Config -->
+    <div class="stat-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-sack-dollar"></i> AdCash</h3>
+        <div class="form-group">
+            <label>Zone ID</label>
+            <input type="text" id="cfg-ADCASH_ZONE_ID" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>API Token</label>
+            <input type="password" id="cfg-ADCASH_API_TOKEN" class="form-control">
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 20px;">
+    <button class="btn btn-green" onclick="saveAllSettings()" style="font-weight: bold; padding: 12px 24px; font-size: 1rem;">
+        <i class="fa-solid fa-floppy-disk"></i> Salvar Todas as Configurações
+    </button>
+    <span id="save-status" style="margin-left: 15px; color: var(--text-secondary);"></span>
+</div>
+
+<div id="wp-test-result" style="display:none; margin-top: 15px;"></div>
+
+<script>
+// Known keys
+const allKeys = ['DASHBOARD_PASSWORD', 'FLASK_SECRET_KEY',
+                 'GEMINI_API_KEY', 'SITE_URL', 'WP_USER', 'WP_APP_PASSWORD',
+                 'FTP_HOST', 'FTP_USER', 'FTP_PASS',
+                 'WP_DB_HOST', 'WP_DB_USER', 'WP_DB_PASS', 'WP_DB_NAME',
+                 'PINTEREST_ACCESS_TOKEN', 'PINTEREST_BOARD_ID',
+                 'ADCASH_ZONE_ID', 'ADCASH_API_TOKEN'];
+
+// Load current settings
+fetch('/api/settings')
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('settings-loading').style.display = 'none';
+        allKeys.forEach(k => {
+            const el = document.getElementById('cfg-' + k);
+            if (el && data[k] && !data[k].endsWith('...')) {
+                el.value = data[k];
+            }
+        });
+    });
+
+function saveSetting(key) {
+    const el = document.getElementById('cfg-' + key);
+    const value = el.value.trim();
+    if (!value || value.endsWith('...')) {
+        document.getElementById('save-status').textContent = 'Valor não alterado';
+        return;
+    }
+    const payload = {};
+    payload[key] = value;
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('save-status').textContent = data.success ? '✅ Salvo!' : '❌ ' + data.error;
+    });
+}
+
+function saveAllSettings() {
+    const payload = {};
+    let hasChange = false;
+    allKeys.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el) {
+            const v = el.value.trim();
+            if (v && !v.endsWith('...')) {
+                payload[k] = v;
+                hasChange = true;
+            }
+        }
+    });
+
+    if (!hasChange) {
+        document.getElementById('save-status').textContent = 'Nenhuma alteração detectada';
+        return;
+    }
+
+    document.getElementById('save-status').textContent = 'Salvando...';
+
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('save-status').textContent = data.success ? '✅ Todas as configurações salvas!' : '❌ ' + data.error;
+    });
+}
+
+function testWpConnection() {
+    const result = document.getElementById('wp-test-result');
+    result.innerHTML = '<div class="stat-card"><p><i class="fa-solid fa-spinner fa-spin"></i> Testando conexão...</p></div>';
+    result.style.display = 'block';
+
+    // Save first
+    saveAllSettings();
+
+    fetch('/api/settings/test_wp', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                result.innerHTML = '<div class="stat-card" style="border-color: var(--accent-green);"><p style="color: var(--accent-green);"><i class="fa-solid fa-check-circle"></i> ' + esc(data.message) + '</p></div>';
+            } else {
+                result.innerHTML = '<div class="stat-card" style="border-color: var(--danger);"><p style="color: var(--danger);"><i class="fa-solid fa-xmark-circle"></i> ' + esc(data.error) + '</p></div>';
+            }
+        })
+        .catch(err => {
+            result.innerHTML = '<div class="stat-card" style="border-color: var(--danger);"><p>Erro: ' + esc(String(err)) + '</p></div>';
+        });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

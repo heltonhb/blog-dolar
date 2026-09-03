@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1>AI Blog CMS Dashboard</h1>
+    <p>Pipeline completo de geração e publicação de artigos</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Artigos Locais</span>
+            <i class="fa-solid fa-file-lines"></i>
+        </div>
+        <h2 id="stat-articles">...</h2>
+        <p>no diretório</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Publicados</span>
+            <i class="fa-brands fa-wordpress"></i>
+        </div>
+        <h2 id="stat-published">...</h2>
+        <p>no WordPress</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Ideias Pendentes</span>
+            <i class="fa-regular fa-lightbulb"></i>
+        </div>
+        <h2 id="stat-ideas">...</h2>
+        <p>para produção</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Receita Estimada</span>
+            <i class="fa-solid fa-dollar-sign"></i>
+        </div>
+        <h2 id="stat-revenue">$0.00</h2>
+        <p>AdCash total</p>
+    </div>
+</div>
+
+<div class="workflow-container">
+    <a href="/ideas" class="workflow-step" style="text-decoration: none; color: inherit;">
+        <i class="fa-regular fa-lightbulb"></i>
+        <h3>1. Ideias</h3>
+        <p>Gerar tópicos com IA</p>
+    </a>
+    <div class="workflow-arrow">→</div>
+    <a href="/generate" class="workflow-step" style="text-decoration: none; color: inherit;">
+        <i class="fa-solid fa-file-contract"></i>
+        <h3>2. Gerar</h3>
+        <p>Artigo com Gemini</p>
+    </a>
+    <div class="workflow-arrow">→</div>
+    <a href="/verify" class="workflow-step" style="text-decoration: none; color: inherit;">
+        <i class="fa-solid fa-circle-check"></i>
+        <h3>3. Verificar</h3>
+        <p>Qualidade SEO</p>
+    </a>
+    <div class="workflow-arrow">→</div>
+    <a href="/publish" class="workflow-step" style="text-decoration: none; color: inherit;">
+        <i class="fa-brands fa-wordpress"></i>
+        <h3>4. Publicar</h3>
+        <p>WordPress FTP</p>
+    </a>
+    <div class="workflow-arrow">→</div>
+    <a href="/adcash" class="workflow-step" style="text-decoration: none; color: inherit;">
+        <i class="fa-solid fa-arrow-trend-up"></i>
+        <h3>5. Monitorar</h3>
+        <p>Ganhos AdCash</p>
+    </a>
+</div>
+
+<div style="text-align: center; margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+    <a href="/pipeline" class="btn btn-green" style="font-weight: bold; padding: 12px 24px; font-size: 1rem; text-decoration: none;">
+        <i class="fa-solid fa-robot"></i> Pipeline Automático
+    </a>
+    <a href="/scheduler" class="btn btn-blue" style="font-weight: bold; padding: 12px 24px; font-size: 1rem; text-decoration: none;">
+        <i class="fa-solid fa-clock"></i> Agendador
+        <span id="sched-badge" style="display:none; background:#000; border-radius:10px; padding:1px 7px; font-size:0.75rem; margin-left:6px;"></span>
+    </a>
+</div>
+
+<div class="terminal">
+    <div class="terminal-header">
+        <span>Atividade Recente</span>
+        <span style="color: var(--accent-green);" id="last-update"></span>
+    </div>
+    <div class="terminal-body" id="activity-log">
+        Carregando dados...
+    </div>
+</div>
+
+<script>
+// Load real stats
+fetch('/api/stats')
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('stat-articles').textContent = data.article_count || 0;
+        document.getElementById('stat-published').textContent = data.published_count || 0;
+        document.getElementById('stat-ideas').textContent = data.pending_ideas || 0;
+        document.getElementById('stat-revenue').textContent = '$' + (data.revenue || 0).toFixed(2);
+        // Scheduler badge
+        if (data.scheduler && data.scheduler.running && data.scheduler.jobs.length > 0) {
+            const badge = document.getElementById('sched-badge');
+            badge.textContent = data.scheduler.jobs.length + ' job' + (data.scheduler.jobs.length > 1 ? 's' : '');
+            badge.style.display = 'inline';
+        }
+    })
+    .catch(err => { console.error('Stats error:', err); });
+
+// Load recent verification history
+fetch('/api/ideas/list')
+    .then(r => r.json())
+    .then(ideas => {
+        const log = document.getElementById('activity-log');
+        let html = '';
+        if (ideas.length > 0) {
+            html += `> ${ideas.length} ideias carregadas<br>`;
+            ideas.slice(0, 5).forEach(i => {
+                html += `> [${i.source || 'manual'}] ${i.title}<br>`;
+            });
+        } else {
+            html += '> Nenhuma ideia ainda. Comece em /ideas<br>';
+        }
+        html += '<br>> Dashboard iniciado...';
+        log.innerHTML = html;
+    })
+    .catch(() => {});
+
+document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR');
+</script>
+{% endblock %}

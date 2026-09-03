@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog em Dolar - AI Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Hamburger (mobile only) -->
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <i class="fa-solid fa-bars"></i> <span style="font-size:0.85rem;">Menu</span>
+    </button>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-rocket" style="color: var(--accent-green);"></i>
+            Blog em Dolar
+        </div>
+
+        <nav>
+            <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <i class="fa-solid fa-chart-line"></i> Dashboard
+            </a>
+            <a href="/ideas" class="nav-item {% if request.path == '/ideas' %}active{% endif %}">
+                <i class="fa-regular fa-lightbulb"></i> Ideias
+            </a>
+            <a href="/generate" class="nav-item {% if request.path == '/generate' %}active{% endif %}">
+                <i class="fa-solid fa-robot"></i> Gerar Artigo
+            </a>
+            <a href="/articles" class="nav-item {% if request.path == '/articles' %}active{% endif %}">
+                <i class="fa-solid fa-layer-group"></i> Artigos
+            </a>
+            <a href="/images" class="nav-item {% if request.path == '/images' %}active{% endif %}">
+                <i class="fa-regular fa-image"></i> Imagens
+            </a>
+            <a href="/publish" class="nav-item {% if request.path == '/publish' %}active{% endif %}">
+                <i class="fa-solid fa-upload"></i> Publicar
+            </a>
+            <a href="/pinterest" class="nav-item {% if request.path == '/pinterest' %}active{% endif %}">
+                <i class="fa-brands fa-pinterest"></i> Pinterest
+            </a>
+            <a href="/verify" class="nav-item {% if request.path == '/verify' %}active{% endif %}">
+                <i class="fa-solid fa-magnifying-glass-check"></i> Verificar
+            </a>
+            <a href="/adcash" class="nav-item {% if request.path == '/adcash' %}active{% endif %}">
+                <i class="fa-solid fa-sack-dollar"></i> AdCash
+            </a>
+            <a href="/pipeline" class="nav-item {% if request.path == '/pipeline' %}active{% endif %}">
+                <i class="fa-solid fa-robot"></i> Pipeline
+            </a>
+            
+            <div style="flex-grow: 1;"></div>
+            
+            <a href="https://tech-tips.byethost4.com" target="_blank" class="nav-item" style="background: var(--accent-green-glow); border-left: 3px solid var(--accent-green); border-radius: 0 8px 8px 0; margin-right: 15px; color: var(--accent-green); font-weight: bold;">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Blog
+            </a>
+            <a href="/scheduler" class="nav-item {% if request.path == '/scheduler' %}active{% endif %}">
+                <i class="fa-solid fa-clock"></i> Agendador
+            </a>
+            <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+                <i class="fa-solid fa-gear"></i> Config
+            </a>
+            <a href="/logout" class="nav-item" style="color: var(--danger); margin-top: 4px;">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    <script>
+        // ─── Sidebar Toggle (mobile) ────────────────────────────────
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        // Close sidebar when clicking a nav link (mobile)
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+
+        // ─── Script Runner ──────────────────────────────────────────
+        function runScript(scriptName, args = [], terminalSelector = '.terminal-body') {
+            const terminal = document.querySelector(terminalSelector);
+            if(terminal) {
+                terminal.innerHTML += `<br>> Executando ${scriptName}... aguarde.<br>`;
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+            
+            fetch('/api/run_script', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({script_name: scriptName, args: args})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(terminal) {
+                    const output = data.output.replace(/\n/g, '<br>');
+                    terminal.innerHTML += `> Resultado:<br>${output}<br>`;
+                    terminal.scrollTop = terminal.scrollHeight;
+                }
+            })
+            .catch(err => {
+                if(terminal) terminal.innerHTML += `<br>> Erro: ${err}<br>`;
+            });
+        }
+    </script>
+</body>
+</html>

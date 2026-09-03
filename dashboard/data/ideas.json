@@ -88,5 +88,105 @@
     "created_at": "2026-09-01T23:28:20.549844",
     "cpm_estimate": "$16-26",
     "source": "ai"
+  },
+  {
+    "title": "How to Choose the Best Password Manager for Ultimate Digital Security",
+    "keyword": "best password manager for personal security",
+    "cpm_estimate": "$15-25",
+    "category": "technology",
+    "id": 21,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330942",
+    "source": "trends"
+  },
+  {
+    "title": "A Beginner's Guide to Understanding Cloud Storage vs Local Storage",
+    "keyword": "cloud storage vs local storage differences",
+    "cpm_estimate": "$12-20",
+    "category": "technology",
+    "id": 22,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330965",
+    "source": "trends"
+  },
+  {
+    "title": "How to Properly Clean and Maintain Your Mechanical Keyboard",
+    "keyword": "how to clean mechanical keyboard safely",
+    "cpm_estimate": "$8-15",
+    "category": "technology",
+    "id": 23,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330971",
+    "source": "trends"
+  },
+  {
+    "title": "The Ultimate Guide to Setting Up a Secure Home Wi-Fi Network",
+    "keyword": "how to secure home wifi network against hackers",
+    "cpm_estimate": "$18-30",
+    "category": "technology",
+    "id": 24,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330974",
+    "source": "trends"
+  },
+  {
+    "title": "Understanding Solid State Drives: NVMe vs SATA SSD Explained",
+    "keyword": "nvme vs sata ssd performance comparison",
+    "cpm_estimate": "$20-35",
+    "category": "technology",
+    "id": 25,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330978",
+    "source": "trends"
+  },
+  {
+    "title": "How to Recover Deleted Files from an External Hard Drive",
+    "keyword": "recover deleted files from external hard drive",
+    "cpm_estimate": "$15-25",
+    "category": "technology",
+    "id": 26,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330982",
+    "source": "trends"
+  },
+  {
+    "title": "The Basics of VPNs: Why You Need a Virtual Private Network",
+    "keyword": "why do you need a virtual private network",
+    "cpm_estimate": "$25-45",
+    "category": "technology",
+    "id": 27,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330986",
+    "source": "trends"
+  },
+  {
+    "title": "How to Extend Laptop Battery Life and Improve Performance",
+    "keyword": "how to extend laptop battery life windows mac",
+    "cpm_estimate": "$10-18",
+    "category": "technology",
+    "id": 28,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330989",
+    "source": "trends"
+  },
+  {
+    "title": "What is Two-Factor Authentication and How to Enable It",
+    "keyword": "what is two factor authentication and why use it",
+    "cpm_estimate": "$15-25",
+    "category": "technology",
+    "id": 29,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.330996",
+    "source": "trends"
+  },
+  {
+    "title": "How to Organize Your Digital Photos Across Multiple Devices",
+    "keyword": "best way to organize digital photos across devices",
+    "cpm_estimate": "$10-20",
+    "category": "technology",
+    "id": 30,
+    "status": "pending",
+    "created_at": "2026-09-02T23:30:11.331000",
+    "source": "trends"
   }
 ]

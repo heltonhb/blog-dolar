@@ -14,7 +14,63 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from gerar_artigos import BlogGenerator, save_article
-from publicar_wp import WordPressPublisher, load_config
+from publicar_wp import WordPressPublisher
+from image_generator import generate_article_image, extract_slug_from_filename
+
+
+def load_config() -> dict:
+    """Carrega configuração do .env e do config.yaml (se existir).
+
+    Prioridade: variáveis de ambiente > config.yaml > defaults.
+    O parser YAML suporta valores com ':' (ex: URLs).
+    """
+    config: dict = {}
+
+    # Tenta ler config.yaml se existir
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+    if config_path.exists():
+        with open(config_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    key, _, val = line.partition(':')
+                    config[key.strip()] = val.strip().strip('"\'')
+
+    # Variáveis de ambiente sobrescrevem o YAML
+    env_map = {
+        'gemini_api_key': 'GEMINI_API_KEY',
+        'wordpress_url': 'SITE_URL',
+        'wordpress_username': 'WP_USER',
+        'wordpress_app_password': 'WP_APP_PASSWORD',
+        'blog_niche': None,
+        'blog_posts_per_day': None,
+    }
+    for yaml_key, env_key in env_map.items():
+        if env_key and os.environ.get(env_key):
+            config[yaml_key] = os.environ[env_key]
+
+    # Carrega .env se ainda não estiver no ambiente
+    env_file = Path(__file__).parent.parent / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                k, _, v = line.partition('=')
+                k = k.strip()
+                v = v.strip()
+                os.environ.setdefault(k, v)
+                # Preenche config com as chaves mapeadas
+                for yaml_key, env_key in env_map.items():
+                    if env_key == k and yaml_key not in config:
+                        config[yaml_key] = v
+
+    # Defaults
+    config.setdefault('blog_niche', 'technology')
+    config.setdefault('blog_posts_per_day', '2')
+
+    return config
 
 
 def run_full_pipeline():
@@ -78,11 +134,55 @@ def run_full_pipeline():
         except Exception as e:
             print(f"    Erro: {e}")
     
+    # 5. Gera imagens para artigos
+    print(f"\n[5/5] Gerando imagens para {len(articles_saved)} artigo(s)...")
+    images_dir = Path(__file__).parent.parent / "images" / "generated"
+    images_dir.mkdir(parents=True, exist_ok=True)
+
+    for i, filepath in enumerate(articles_saved, 1):
+        try:
+            content = filepath.read_text(encoding="utf-8")
+            title = filepath.stem.replace("-", " ").title()
+            if content.startswith("---"):
+                parts = content.split("---", 2)
+                if len(parts) >= 3:
+                    for line in parts[1].strip().split("\n"):
+                        if line.strip().startswith("title:"):
+                            title = line.split(":", 1)[1].strip()
+
+            slug = extract_slug_from_filename(filepath.name)
+
+            # Generate Pinterest pin image
+            print(f"  [{i}] Pin para: {title[:50]}...")
+            img_bytes, provider, prompt = generate_article_image(
+                api_key=api_key,
+                article_title=title,
+                usage="pinterest",
+            )
+            pin_path = images_dir / f"pin-{slug}.png"
+            pin_path.write_bytes(img_bytes)
+            print(f"    OK Pin: {pin_path.name} ({len(img_bytes) // 1024}KB via {provider})")
+
+            # Generate featured image
+            print(f"  [{i}] Featured para: {title[:50]}...")
+            feat_bytes, provider2, _ = generate_article_image(
+                api_key=api_key,
+                article_title=title,
+                usage="featured",
+            )
+            feat_path = images_dir / f"featured-{slug}.png"
+            feat_path.write_bytes(feat_bytes)
+            print(f"    OK Featured: {feat_path.name} ({len(feat_bytes) // 1024}KB via {provider2})")
+
+        except Exception as e:
+            print(f"    Erro ao gerar imagem: {e}")
+
     # Resumo
     print("\n" + "=" * 60)
     print("  PIPELINE CONCLUIDO!")
     print("=" * 60)
     print(f"\n  Artigos gerados: {len(articles_saved)}")
+    print(f"  Imagens em: {images_dir}")
     print(f"  Local: {articles_dir}")
     
     if articles_saved:

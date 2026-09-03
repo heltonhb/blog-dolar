@@ -2,12 +2,17 @@
 """Upload artigo via FTP e criar script PHP para publicar no WordPress"""
 
 import ftplib
+import os
 from pathlib import Path
 
-# Config FTP
-ftp_host = 'ftpupload.net'
-ftp_user = 'if0_42797779'
-ftp_pass = 'S0Zn25uZthQ'
+# Config FTP — lidas do ambiente (nunca hardcode!)
+ftp_host = os.environ.get('FTP_HOST', 'ftpupload.net')
+ftp_user = os.environ.get('FTP_USER', '')
+ftp_pass = os.environ.get('FTP_PASS', '')
+
+if not ftp_user or not ftp_pass:
+    print("ERRO: configure FTP_USER e FTP_PASS no arquivo .env")
+    raise SystemExit(1)
 
 # Ler o artigo
 article_path = Path('articles/2026-08-31_how-to-protect-your-digital-privacy-online.md')
@@ -39,12 +44,12 @@ tags = article.get('tags', '')
 php_script = f"""<?php
 // Publicar artigo via API do WordPress (executar no servidor)
 $wp_load = dirname(__FILE__) . '/wp-load.php';
-if (file_exists($wp_load)) {
+if (file_exists($wp_load)) {{
     require_once($wp_load);
-} else {
+}} else {{
     echo 'wp-load.php not found';
     exit;
-}
+}}
 
 // Dados do artigo
 $post_data = array(
@@ -62,7 +67,7 @@ $post_id = wp_insert_post($post_data);
 if ($post_id) {{
     echo 'Post criado com sucesso! ID: ' . $post_id . PHP_EOL;
     echo 'Link: ' . get_permalink($post_id) . PHP_EOL;
-    
+
     // Adicionar tags se existirem
     $tags = '{tags}';
     if ($tags) {{

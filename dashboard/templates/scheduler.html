@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;">
+        <i class="fa-solid fa-clock" style="color: var(--accent-green);"></i> Agendador de Pipeline
+    </h1>
+    <p>Automatize a execução do pipeline em horários fixos — sem precisar de cron ou processo externo</p>
+</div>
+
+<!-- Status -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="stat-card">
+        <div class="stat-card-header"><span>Status</span><i class="fa-solid fa-circle-dot"></i></div>
+        <h2 id="sch-status" style="font-size: 1.2rem;">...</h2>
+        <p>APScheduler</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><span>Jobs Ativos</span><i class="fa-solid fa-list-check"></i></div>
+        <h2 id="sch-jobs-count">0</h2>
+        <p>agendamentos</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><span>Próxima Execução</span><i class="fa-regular fa-clock"></i></div>
+        <h2 id="sch-next" style="font-size: 0.95rem;">—</h2>
+        <p>próximo pipeline</p>
+    </div>
+</div>
+
+<!-- Add job form -->
+<div class="add-idea-form" style="margin-top: 0;">
+    <h2 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--accent-green);">
+        <i class="fa-solid fa-plus-circle"></i> Novo Agendamento
+    </h2>
+    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 15px; align-items: end;">
+        <div class="form-group">
+            <label>Palavra-chave / Tópico</label>
+            <input type="text" id="sch-keyword" class="form-control"
+                   placeholder="Ex: best gaming monitors 2026">
+        </div>
+        <div class="form-group">
+            <label>Horário (hora)</label>
+            <select id="sch-hour" class="form-control" style="appearance: none;">
+                {% for h in range(24) %}
+                <option value="{{ h }}" {% if h == 8 %}selected{% endif %}>{{ "%02d"|format(h) }}:00</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Minuto</label>
+            <select id="sch-minute" class="form-control" style="appearance: none;">
+                <option value="0">:00</option>
+                <option value="15">:15</option>
+                <option value="30">:30</option>
+                <option value="45">:45</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Dias da semana</label>
+            <select id="sch-days" class="form-control" style="appearance: none;">
+                <option value="mon-sun">Todos os dias</option>
+                <option value="mon-fri">Seg a Sex</option>
+                <option value="mon,wed,fri">Seg, Qua, Sex</option>
+                <option value="tue,thu">Ter e Qui</option>
+                <option value="sat,sun">Sáb e Dom</option>
+            </select>
+        </div>
+    </div>
+    <button class="btn btn-green" id="btn-add-job" onclick="addJob()"
+            style="font-weight: bold; padding: 10px 22px; margin-top: 5px;">
+        <i class="fa-solid fa-calendar-plus"></i> Agendar Pipeline
+    </button>
+    <span id="add-job-status" style="margin-left: 15px; color: var(--text-secondary);"></span>
+</div>
+
+<!-- Jobs list -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);">
+        <i class="fa-solid fa-calendar-days"></i> Agendamentos Ativos
+    </h2>
+    <div class="list-container" id="jobs-list">
+        <p style="color: var(--text-secondary); text-align: center;">Carregando...</p>
+    </div>
+</div>
+
+<!-- Info box -->
+<div class="stat-card" style="margin-top: 20px; border-color: var(--info);">
+    <h3 style="margin-bottom: 10px; color: var(--info);">
+        <i class="fa-solid fa-circle-info"></i> Como funciona
+    </h3>
+    <ul style="color: var(--text-secondary); line-height: 1.8; padding-left: 20px; font-size: 0.9rem;">
+        <li>Os jobs rodam <strong>dentro do servidor Flask</strong> — sem cron, sem processo externo</li>
+        <li>Cada execução roda o pipeline completo: artigo → imagem → WordPress → Pinterest</li>
+        <li>Os jobs são <strong>persistidos em JSON</strong> e restaurados automaticamente ao reiniciar o servidor</li>
+        <li>Para parar permanentemente, remova o job com o botão <i class="fa-solid fa-trash"></i></li>
+        <li>O botão <i class="fa-solid fa-play"></i> executa o job imediatamente sem alterar o agendamento</li>
+    </ul>
+</div>
+
+<script>
+function loadStatus() {
+    fetch('/api/scheduler/status')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.available) {
+                document.getElementById('sch-status').textContent = 'Indisponível';
+                document.getElementById('sch-status').style.color = 'var(--danger)';
+                document.getElementById('sch-jobs-count').textContent = '—';
+                document.getElementById('sch-next').textContent = data.error || '—';
+                return;
+            }
+
+            document.getElementById('sch-status').textContent = data.running ? '● Ativo' : '○ Parado';
+            document.getElementById('sch-status').style.color = data.running ? 'var(--accent-green)' : 'var(--danger)';
+            document.getElementById('sch-jobs-count').textContent = data.jobs.length;
+
+            const nextRuns = data.jobs.filter(j => j.next_run).map(j => j.next_run).sort();
+            document.getElementById('sch-next').textContent = nextRuns.length > 0 ? nextRuns[0] : '—';
+
+            renderJobs(data.jobs);
+        })
+        .catch(() => {
+            document.getElementById('sch-status').textContent = 'Erro ao carregar';
+        });
+}
+
+function renderJobs(jobs) {
+    const container = document.getElementById('jobs-list');
+    if (jobs.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">Nenhum job agendado. Adicione um acima.</p>';
+        return;
+    }
+    container.innerHTML = jobs.map(j => `
+        <div class="list-item">
+            <div>
+                <div class="list-item-title" style="color: var(--accent-green);">
+                    <i class="fa-solid fa-calendar-check"></i> ${esc(j.name || j.id)}
+                </div>
+                <div class="list-item-meta">
+                    Próxima execução: ${esc(j.next_run || '—')}
+                    &nbsp;|&nbsp; Trigger: <code style="font-size:0.8rem;">${esc(j.trigger)}</code>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-green" onclick="runNow('${esc(j.id)}')" title="Executar agora" style="font-size: 0.85rem;">
+                    <i class="fa-solid fa-play"></i> Agora
+                </button>
+                <button class="btn btn-red" onclick="removeJob('${esc(j.id)}')" title="Remover" style="font-size: 0.85rem;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addJob() {
+    const keyword = document.getElementById('sch-keyword').value.trim();
+    if (!keyword) { alert('Digite uma palavra-chave'); return; }
+
+    const btn = document.getElementById('btn-add-job');
+    const status = document.getElementById('add-job-status');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Agendando...';
+    status.textContent = '';
+
+    fetch('/api/scheduler/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            keyword,
+            hour: parseInt(document.getElementById('sch-hour').value),
+            minute: parseInt(document.getElementById('sch-minute').value),
+            days_of_week: document.getElementById('sch-days').value,
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Agendar Pipeline';
+        if (data.success) {
+            status.textContent = '✅ Agendado! Próxima execução: ' + (data.next_run || '—');
+            status.style.color = 'var(--accent-green)';
+            document.getElementById('sch-keyword').value = '';
+            loadStatus();
+        } else {
+            status.textContent = '❌ ' + data.error;
+            status.style.color = 'var(--danger)';
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Agendar Pipeline';
+        status.textContent = 'Erro: ' + err;
+    });
+}
+
+function removeJob(jobId) {
+    if (!confirm('Remover este agendamento?')) return;
+    fetch('/api/scheduler/remove/' + encodeURIComponent(jobId), {method: 'DELETE'})
+        .then(r => r.json())
+        .then(() => loadStatus());
+}
+
+function runNow(jobId) {
+    if (!confirm('Executar este pipeline agora?')) return;
+    fetch('/api/scheduler/run_now/' + encodeURIComponent(jobId), {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Pipeline iniciado!');
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        });
+}
+
+function showToast(msg) {
+    let toast = document.getElementById('toast-msg');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-msg';
+        toast.style.cssText = 'position:fixed;bottom:30px;right:30px;background:var(--accent-green);color:#000;padding:12px 24px;border-radius:8px;font-weight:bold;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadStatus();
+setInterval(loadStatus, 30000); // auto-refresh every 30s
+</script>
+{% endblock %}

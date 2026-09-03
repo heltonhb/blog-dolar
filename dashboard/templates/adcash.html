@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-sack-dollar" style="color: var(--accent-green);"></i> Relatórios AdCash</h1>
+    <p>Monitoramento de ganhos e impressões</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Saldo Atual</span>
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+        <h2 id="adcash-revenue">$0.00</h2>
+        <p>Total de ganhos (USD)</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Impressões Totais</span>
+            <i class="fa-solid fa-eye"></i>
+        </div>
+        <h2 id="adcash-impressions">0</h2>
+        <p>desde o início</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Cliques</span>
+            <i class="fa-solid fa-hand-pointer"></i>
+        </div>
+        <h2 id="adcash-clicks">0</h2>
+        <p>total</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>eCPM Médio</span>
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <h2 id="adcash-ecpm">$0.00</h2>
+        <p>por 1000 impressões</p>
+    </div>
+</div>
+
+<div class="add-idea-form" style="margin-top: 0;">
+    <button class="btn btn-green" id="btn-refresh" onclick="refreshAdCash()" style="font-weight: bold; padding: 10px 20px;">
+        <i class="fa-solid fa-rotate-right"></i> Atualizar Dados
+    </button>
+    <span id="adcash-status" style="margin-left: 15px; color: var(--text-secondary);"></span>
+</div>
+
+<!-- Daily stats table -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-solid fa-calendar-days"></i> Estatísticas Diárias</h2>
+    <table class="data-table" id="adcash-table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Impressões</th>
+                <th>Cliques</th>
+                <th>Receita</th>
+                <th>eCPM</th>
+            </tr>
+        </thead>
+        <tbody id="adcash-tbody">
+            <tr><td colspan="5" style="text-align: center; padding: 20px;">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Zone info -->
+<div style="margin-top: 20px;">
+    <div class="stat-card">
+        <h3 style="margin-bottom: 10px;"><i class="fa-solid fa-circle-info"></i> Zona AdCash</h3>
+        <p><strong>Zone ID:</strong> <span style="color: var(--accent-green);">suhf5fqztw</span></p>
+        <p><strong>Site:</strong> <a href="https://tech-tips.byethost4.com" target="_blank" style="color: var(--info);">tech-tips.byethost4.com</a></p>
+        <p><strong>Plugin:</strong> adcash-ads.php (wp_head + wp_footer)</p>
+    </div>
+</div>
+
+<script>
+function loadAdCash() {
+    fetch('/api/adcash')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('adcash-revenue').textContent = '$' + (data.total_revenue || 0).toFixed(2);
+            document.getElementById('adcash-impressions').textContent = data.total_impressions || 0;
+            document.getElementById('adcash-clicks').textContent = data.total_clicks || 0;
+            document.getElementById('adcash-ecpm').textContent = '$' + (data.avg_ecpm || 0).toFixed(2);
+            document.getElementById('adcash-status').textContent = 'Atualizado: ' + (data.last_updated || 'nunca');
+
+            const daily = data.daily_stats || [];
+            const tbody = document.getElementById('adcash-tbody');
+            if (daily.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Sem dados ainda</td></tr>';
+                return;
+            }
+            tbody.innerHTML = daily.reverse().map(d => `
+                <tr>
+                    <td>${esc(d.date)}</td>
+                    <td>${d.impressions}</td>
+                    <td>${d.clicks}</td>
+                    <td>$${(d.revenue || 0).toFixed(4)}</td>
+                    <td>$${(d.ecpm || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        });
+}
+
+function refreshAdCash() {
+    const btn = document.getElementById('btn-refresh');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Atualizando...';
+    btn.disabled = true;
+
+    fetch('/api/adcash/refresh', {method: 'POST'})
+        .then(r => r.json())
+        .then(() => {
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Atualizar Dados';
+            btn.disabled = false;
+            loadAdCash();
+        })
+        .catch(() => {
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Atualizar Dados';
+            btn.disabled = false;
+        });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+loadAdCash();
+</script>
+{% endblock %}

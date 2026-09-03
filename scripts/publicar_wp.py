@@ -54,6 +54,37 @@ class WordPressPublisher:
             )
             return resp.json().get('id', 0)
     
+    def upload_media(self, image_bytes: bytes, filename: str, title: str = "", alt_text: str = "") -> int | None:
+        """Upload image to WordPress media library, returns media ID."""
+        try:
+            with httpx.Client(timeout=60) as client:
+                resp = client.post(
+                    f"{self.base_url}/media",
+                    auth=self.auth,
+                    content=image_bytes,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"',
+                        "Content-Type": "image/png",
+                    },
+                )
+                if resp.status_code in (200, 201):
+                    media = resp.json()
+                    media_id = media.get("id")
+                    if alt_text and media_id:
+                        client.post(
+                            f"{self.base_url}/media/{media_id}",
+                            auth=self.auth,
+                            json={"alt_text": alt_text},
+                        )
+                    print(f"  Media uploaded: ID={media_id}")
+                    return media_id
+                else:
+                    print(f"  Media upload failed: HTTP {resp.status_code}")
+                    return None
+        except Exception as e:
+            print(f"  Media upload error: {e}")
+            return None
+
     def publish_post(self, article: dict, status: str = "draft") -> dict:
         """
         Publica artigo no WordPress
@@ -82,6 +113,9 @@ class WordPressPublisher:
                 "_yoast_wpseo_metadesc": article.get('meta_description', '')
             }
         }
+        # Set featured image if provided
+        if article.get('featured_media_id'):
+            payload['featured_media'] = article['featured_media_id']
         
         with httpx.Client(timeout=30) as client:
             resp = client.post(
@@ -106,23 +140,49 @@ class WordPressPublisher:
 
 
 def load_config() -> dict:
-    """Carrega configuracao"""
+    """Carrega configuração do .env e do config.yaml (se existir).
+
+    Prioridade: variáveis de ambiente > config.yaml > defaults.
+    O parser YAML suporta valores com ':' (ex: URLs).
+    """
+    config: dict = {}
+
+    # Tenta ler config.yaml se existir
     config_path = Path(__file__).parent.parent / "config" / "config.yaml"
-    
-    if not config_path.exists():
-        print("ERRO: config/config.yaml nao encontrado!")
-        print("Copie config/config.yaml.example e preencha.")
-        sys.exit(1)
-    
-    # Leitura simples de YAML (sem pyyaml)
-    config = {}
-    with open(config_path) as f:
-        for line in f:
+    if config_path.exists():
+        with open(config_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    key, _, val = line.partition(':')
+                    config[key.strip()] = val.strip().strip('"\'')
+
+    # Carrega .env se ainda não estiver no ambiente
+    env_file = Path(__file__).parent.parent / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if line and not line.startswith('#') and ':' in line:
-                key, _, val = line.partition(':')
-                config[key.strip()] = val.strip().strip('"')
-    
+            if line and not line.startswith('#') and '=' in line:
+                k, _, v = line.partition('=')
+                os.environ.setdefault(k.strip(), v.strip())
+
+    # Mapeia variáveis de ambiente para as chaves do config
+    env_map = {
+        'gemini_api_key': 'GEMINI_API_KEY',
+        'wordpress_url': 'SITE_URL',
+        'wordpress_username': 'WP_USER',
+        'wordpress_app_password': 'WP_APP_PASSWORD',
+    }
+    for yaml_key, env_key in env_map.items():
+        if os.environ.get(env_key):
+            config[yaml_key] = os.environ[env_key]
+
+    # Defaults
+    config.setdefault('blog_niche', 'technology')
+    config.setdefault('blog_posts_per_day', '2')
+
     return config
 
 

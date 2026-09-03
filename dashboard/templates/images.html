@@ -1,0 +1,207 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-regular fa-image" style="color: var(--accent-green);"></i> Galeria de Imagens</h1>
+    <p>Imagens e pins gerados para os artigos</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+    <div class="stat-card">
+        <div class="stat-card-header"><span>Total de Imagens</span><i class="fa-regular fa-images"></i></div>
+        <h2 id="img-total">0</h2>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><span>Pins Gerados</span><i class="fa-brands fa-pinterest"></i></div>
+        <h2 id="img-pins" style="color: var(--danger);">0</h2>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><span>Artigos sem Pin</span><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h2 id="img-missing" style="color: var(--warning);">0</h2>
+    </div>
+</div>
+
+<div class="add-idea-form" style="margin-top: 0;">
+    <button class="btn btn-green" id="btn-generate-all" onclick="generateAllPins()" style="font-weight: bold; padding: 12px 24px;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Pins para Todos os Artigos
+    </button>
+    <span id="gen-all-status" style="margin-left: 15px; color: var(--text-secondary);"></span>
+</div>
+
+<div id="gen-loading" style="display:none; color: var(--accent-green); margin: 15px 0;">
+    <i class="fa-solid fa-spinner fa-spin"></i> Gerando pin... <span id="gen-progress"></span>
+</div>
+
+<!-- Gallery -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-regular fa-images"></i> Imagens Geradas</h2>
+    <div class="stats-grid" id="images-gallery" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+        <p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 20px;">Carregando...</p>
+    </div>
+</div>
+
+<!-- Artigos sem pin -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--warning);"><i class="fa-solid fa-triangle-exclamation"></i> Artigos sem Pin</h2>
+    <div class="list-container" id="missing-pins">
+        <p style="color: var(--text-secondary); text-align: center;">Carregando...</p>
+    </div>
+</div>
+
+<script>
+let articlesList = [];
+let imagesList = [];
+
+function loadGallery() {
+    Promise.all([
+        fetch('/api/images/list').then(r => r.json()),
+        fetch('/api/articles/list').then(r => r.json())
+    ])
+    .then(([images, articles]) => {
+        imagesList = images;
+        articlesList = articles;
+
+        const pins = images.filter(i => i.is_pin);
+        const articleSlugs = articles.map(a => a.filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', ''));
+        const missingCount = articles.filter(a => {
+            const slug = a.filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
+            return !pins.some(p => p.filename === 'pin-' + slug + '.png');
+        }).length;
+
+        document.getElementById('img-total').textContent = images.length;
+        document.getElementById('img-pins').textContent = pins.length;
+        document.getElementById('img-missing').textContent = missingCount;
+
+        // Render gallery
+        const gallery = document.getElementById('images-gallery');
+        if (images.length === 0) {
+            gallery.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">Nenhuma imagem gerada ainda.</p>';
+        } else {
+            gallery.innerHTML = images.map(img => `
+                <div class="stat-card" style="text-align: center; padding: 15px;">
+                    <img src="/static/images/${esc(img.filename)}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
+                    <p style="color: ${img.is_pin ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: bold; font-size: 0.85rem;">${esc(img.filename)}</p>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary);">${img.size_kb} KB | ${img.date}</p>
+                    <div class="actions" style="justify-content: center; margin-top: 8px;">
+                        <a href="/static/images/${esc(img.filename)}" download class="btn btn-blue" style="font-size: 0.8rem;"><i class="fa-solid fa-download"></i></a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Missing pins list
+        const missingContainer = document.getElementById('missing-pins');
+        const missing = articles.filter(a => {
+            const slug = a.filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
+            return !pins.some(p => p.filename === 'pin-' + slug + '.png');
+        });
+        if (missing.length === 0) {
+            missingContainer.innerHTML = '<p style="color: var(--accent-green); text-align: center; padding: 15px;"><i class="fa-solid fa-check-circle"></i> Todos os artigos têm pin!</p>';
+        } else {
+            missingContainer.innerHTML = missing.map(a => `
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-title" style="color: var(--warning);">${esc(a.filename)}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-green" onclick="generatePinForArticle('${esc(a.filename)}', this)">
+                            <i class="fa-regular fa-image"></i> Gerar Pin
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    });
+}
+
+function generatePinForArticle(filename, btn) {
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+    }
+
+    fetch('/api/images/generate_pin', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({filename})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-check"></i> OK!';
+            setTimeout(() => loadGallery(), 1000);
+        } else {
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Erro';
+                btn.disabled = false;
+            }
+            alert('Erro: ' + (data.error || 'Falha'));
+        }
+    })
+    .catch(err => {
+        if (btn) {
+            btn.innerHTML = '<i class="fa-regular fa-image"></i> Gerar Pin';
+            btn.disabled = false;
+        }
+    });
+}
+
+function generateAllPins() {
+    const missing = articlesList.filter(a => {
+        const slug = a.filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
+        return !imagesList.some(i => i.is_pin && i.filename === 'pin-' + slug + '.png');
+    });
+
+    if (missing.length === 0) {
+        alert('Todos os artigos já têm pin!');
+        return;
+    }
+
+    if (!confirm(`Gerar pins para ${missing.length} artigo(s) sem pin?`)) return;
+
+    const btn = document.getElementById('btn-generate-all');
+    const loading = document.getElementById('gen-loading');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+    loading.style.display = 'block';
+
+    let done = 0;
+    const total = missing.length;
+
+    function nextPin() {
+        if (done >= total) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Pins para Todos os Artigos';
+            loading.style.display = 'none';
+            document.getElementById('gen-all-status').textContent = `✅ ${total} pins gerados!`;
+            loadGallery();
+            return;
+        }
+        document.getElementById('gen-progress').textContent = `${done + 1}/${total}`;
+        fetch('/api/images/generate_pin', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({filename: missing[done].filename})
+        })
+        .then(r => r.json())
+        .then(data => {
+            done++;
+            setTimeout(nextPin, 1000); // small delay between requests
+        })
+        .catch(() => {
+            done++;
+            setTimeout(nextPin, 1000);
+        });
+    }
+    nextPin();
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadGallery();
+</script>
+{% endblock %}

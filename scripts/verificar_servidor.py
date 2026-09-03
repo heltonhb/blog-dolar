@@ -4,6 +4,7 @@ Verificar se o servidor ByetHost está online e executar configuração
 Execute: python3 scripts/verificar_servidor.py
 """
 
+import os
 import httpx
 import time
 import sys

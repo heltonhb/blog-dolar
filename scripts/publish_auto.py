@@ -5,6 +5,7 @@ Usage: python3 publish_auto.py <filename>
 """
 
 import sys
+import os
 import json
 import re
 import subprocess
@@ -14,15 +15,15 @@ from pathlib import Path
 import httpx
 
 # Config
-FTP_HOST = "ftpupload.net"
+FTP_HOST = os.environ.get("FTP_HOST", "ftpupload.net")
 FTP_USER = os.environ.get('FTP_USER', '')
 FTP_PASS = os.environ.get('FTP_PASS', '')
-DB_HOST = "sql310.byetcluster.com"
-DB_USER = "42799195_1"
-DB_PASS = "p6S(09[v77"
-DB_NAME = "b442799195_wp909"
+DB_HOST = os.environ.get("WP_DB_HOST", "sql310.byetcluster.com")
+DB_USER = os.environ.get("WP_DB_USER", "")
+DB_PASS = os.environ.get("WP_DB_PASS", "")
+DB_NAME = os.environ.get("WP_DB_NAME", "")
 DB_PREFIX = "wpq9_"
-SITE_URL = "https://tech-tips.byethost4.com"
+SITE_URL = os.environ.get("SITE_URL", "https://tech-tips.byethost4.com")
 
 def parse_frontmatter(content):
     """Parse frontmatter without YAML (handles colons in titles)"""

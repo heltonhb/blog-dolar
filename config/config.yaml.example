@@ -1,0 +1,18 @@
+# Blog em Dolar — Configuração do Pipeline CLI
+# Copie para config/config.yaml e preencha com suas credenciais.
+# As variáveis de ambiente (.env) têm PRIORIDADE sobre este arquivo.
+# Valores com ":" (URLs) são suportados pelo parser nativo — não precisa de aspas.
+
+# --- Conteúdo ---
+blog_niche: technology
+blog_posts_per_day: 2
+
+# --- Gemini AI ---
+# Pegue em: https://aistudio.google.com/app/apikey
+gemini_api_key: your_gemini_api_key_here
+
+# --- WordPress REST API ---
+# Crie uma Application Password em: WP Admin → Users → Profile → Application Passwords
+wordpress_url: https://tech-tips.byethost4.com
+wordpress_username: your_wp_username
+wordpress_app_password: xxxx xxxx xxxx xxxx xxxx xxxx

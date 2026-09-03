@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog em Dolar — Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-color);
+            margin: 0;
+        }
+        .login-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+        }
+        .login-box .brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+        }
+        .login-box p.subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 28px;
+        }
+        .login-box .form-group {
+            text-align: left;
+            margin-bottom: 18px;
+        }
+        .login-box label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+        .login-box input[type=password] {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .error-msg {
+            background: rgba(239,68,68,.15);
+            border: 1px solid var(--danger);
+            border-radius: 6px;
+            color: var(--danger);
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="brand">
+            <i class="fa-solid fa-rocket"></i> Blog em Dolar
+        </div>
+        <p class="subtitle">AI Dashboard — autenticação necessária</p>
+
+        {% if error %}
+        <div class="error-msg">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label for="password">Senha do Dashboard</label>
+                <input type="password" id="password" name="password"
+                       class="form-control" placeholder="••••••••"
+                       autofocus autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-green btn-login">
+                <i class="fa-solid fa-right-to-bracket"></i> Entrar
+            </button>
+        </form>
+
+        <p style="margin-top: 20px; color: var(--text-secondary); font-size: 0.8rem;">
+            Configure <code>DASHBOARD_PASSWORD</code> no arquivo <code>.env</code>
+        </p>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>

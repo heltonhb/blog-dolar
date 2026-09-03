@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-robot" style="color: var(--accent-green);"></i> Gerar Artigo com IA</h1>
+    <p>Insira uma palavra-chave para gerar um artigo otimizado para SEO via Gemini AI</p>
+</div>
+
+<div class="add-idea-form" style="margin-top: 0;">
+    <div class="form-group">
+        <label>Palavra-chave principal</label>
+        <input type="text" id="keywordInput" class="form-control" placeholder="Ex: Melhores roteadores wifi 2026">
+    </div>
+
+    <button class="btn btn-green" id="btn-generate" onclick="generateArticle()" style="font-weight: bold; padding: 12px 24px; font-size: 1rem; margin-top: 10px;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Conteúdo
+    </button>
+</div>
+
+<div id="generating" style="display:none; color: var(--accent-green); margin: 20px 0;">
+    <i class="fa-solid fa-spinner fa-spin"></i> Gerando artigo com Gemini AI... aguarde até 60 segundos.
+</div>
+
+<div id="result" style="display:none; margin-top: 20px;">
+    <div class="stat-card" style="border-color: var(--accent-green);">
+        <h3 style="color: var(--accent-green); margin-bottom: 10px;"><i class="fa-solid fa-check-circle"></i> Artigo Gerado!</h3>
+        <p><strong>Título:</strong> <span id="result-title"></span></p>
+        <p><strong>Arquivo:</strong> <span id="result-filename" style="color: var(--accent-green);"></span></p>
+        <p><strong>Palavras:</strong> <span id="result-words"></span></p>
+        <div class="actions" style="margin-top: 15px;">
+            <a href="/verify" class="btn btn-orange"><i class="fa-solid fa-check"></i> Verificar SEO</a>
+            <a href="/articles" class="btn btn-blue"><i class="fa-solid fa-list"></i> Ver Artigos</a>
+            <a href="/publish" class="btn btn-green"><i class="fa-solid fa-upload"></i> Publicar</a>
+        </div>
+    </div>
+</div>
+
+<div class="terminal" style="margin-top: 30px;">
+    <div class="terminal-header">
+        <span>Log de Geração</span>
+    </div>
+    <div class="terminal-body" id="gen-log" style="height: 150px;">
+        Aguardando input do usuário...
+    </div>
+</div>
+
+<script>
+// Check URL params for pre-filled keyword
+const params = new URLSearchParams(window.location.search);
+if (params.get('keyword')) {
+    document.getElementById('keywordInput').value = params.get('keyword');
+}
+
+function log(msg) {
+    const el = document.getElementById('gen-log');
+    el.innerHTML += '<br>> ' + msg;
+    el.scrollTop = el.scrollHeight;
+}
+
+function generateArticle() {
+    const keyword = document.getElementById('keywordInput').value.trim();
+    if (!keyword) {
+        alert('Digite uma palavra-chave');
+        return;
+    }
+
+    const btn = document.getElementById('btn-generate');
+    const loading = document.getElementById('generating');
+    const result = document.getElementById('result');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+    loading.style.display = 'block';
+    result.style.display = 'none';
+
+    log('Iniciando geração: ' + keyword);
+
+    fetch('/api/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({keyword})
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Conteúdo';
+        loading.style.display = 'none';
+
+        if (data.success) {
+            log('Artigo gerado! (' + data.word_count + ' palavras)');
+            log('Arquivo: ' + data.filename);
+            document.getElementById('result-title').textContent = data.title;
+            document.getElementById('result-filename').textContent = data.filename;
+            document.getElementById('result-words').textContent = data.word_count;
+            result.style.display = 'block';
+        } else {
+            log('ERRO: ' + (data.error || 'Desconhecido'));
+            alert('Erro: ' + (data.error || 'Geração falhou'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Conteúdo';
+        loading.style.display = 'none';
+        log('ERRO de conexão: ' + err);
+    });
+}
+
+// Allow Enter key
+document.getElementById('keywordInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') generateArticle();
+});
+</script>
+{% endblock %}

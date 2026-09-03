@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-layer-group" style="color: var(--accent-green);"></i> Artigos Disponíveis</h1>
+        <p id="articles-count">Carregando...</p>
+    </div>
+    <button class="btn" onclick="loadArticles()" style="background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary);">
+        <i class="fa-solid fa-rotate-right"></i> Atualizar
+    </button>
+</div>
+
+<div class="list-container" id="articles-list">
+    <p style="color: var(--text-secondary); text-align: center; padding: 20px;">Carregando artigos...</p>
+</div>
+
+<script>
+let existingPins = new Set();
+
+function loadArticles() {
+    // First load existing pins
+    fetch('/api/images/list')
+        .then(r => r.json())
+        .then(images => {
+            existingPins = new Set(images.filter(i => i.is_pin).map(i => i.filename));
+        })
+        .then(() => fetch('/api/articles/list'))
+        .then(r => r.json())
+        .then(articles => {
+            const container = document.getElementById('articles-list');
+            document.getElementById('articles-count').textContent = articles.length + ' artigos encontrados';
+
+            if (articles.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">Nenhum artigo gerado ainda. <a href="/generate" style="color: var(--accent-green);">Gerar artigo</a></p>';
+                return;
+            }
+
+            container.innerHTML = articles.map(a => {
+                const slug = a.filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
+                const pinFile = 'pin-' + slug + '.png';
+                const hasPin = existingPins.has(pinFile);
+                return `
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-title">${esc(a.filename)}</div>
+                        <div class="list-item-meta">${a.size} KB | ${a.date}${hasPin ? ' | <span style="color: var(--accent-green);"><i class="fa-solid fa-image"></i> Pin gerado</span>' : ''}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-green" onclick="generatePin('${esc(a.filename)}', this)" title="Gerar imagem de pin">
+                            <i class="fa-regular fa-image"></i> ${hasPin ? 'Regenerar Pin' : 'Gerar Pin'}
+                        </button>
+                        <a href="/verify" class="btn btn-orange" onclick="setVerifyArticle('${esc(a.filename)}')"><i class="fa-solid fa-check"></i> Verificar</a>
+                        <button class="btn btn-blue" onclick="publishArticle('${esc(a.filename)}')"><i class="fa-solid fa-upload"></i> Publicar</button>
+                        <button class="btn btn-red" onclick="deleteArticle('${esc(a.filename)}')" title="Excluir artigo"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        });
+}
+
+function generatePin(filename, btn) {
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+    btn.disabled = true;
+
+    fetch('/api/images/generate_pin', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({filename})
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Pin OK!';
+            btn.style.borderColor = 'var(--accent-green)';
+            btn.style.color = 'var(--accent-green)';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-regular fa-image"></i> Regenerar Pin';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 3000);
+            loadArticles();
+        } else {
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Erro';
+            alert('Erro: ' + (data.error || 'Falha ao gerar pin'));
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-regular fa-image"></i> Gerar Pin';
+            }, 3000);
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-regular fa-image"></i> Gerar Pin';
+        alert('Erro: ' + err);
+    });
+}
+
+function setVerifyArticle(filename) {
+    sessionStorage.setItem('verify_filename', filename);
+}
+
+function publishArticle(filename) {
+    if (!confirm('Publicar "' + filename + '" no WordPress?')) return;
+
+    const btn = event.target;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    fetch('/api/publish', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({filename})
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-upload"></i> Publicar';
+        if (data.success) {
+            alert('Publicado com sucesso!' + (data.url ? '\n' + data.url : ''));
+        } else {
+            alert('Erro: ' + (data.error || 'Falha na publicação'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-upload"></i> Publicar';
+        alert('Erro: ' + err);
+    });
+}
+
+function deleteArticle(filename) {
+    if (!confirm('Excluir "' + filename + '"? Esta ação não pode ser desfeita.')) return;
+    fetch('/api/articles/delete/' + encodeURIComponent(filename), {method: 'DELETE'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                loadArticles();
+            } else {
+                alert('Erro: ' + (data.error || 'Falha ao excluir'));
+            }
+        });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+loadArticles();
+</script>
+{% endblock %}

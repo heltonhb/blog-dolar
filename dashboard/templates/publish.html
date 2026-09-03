@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-upload" style="color: var(--info);"></i> Publicar no WordPress</h1>
+    <p>Publicação via FTP + inserção direta no MySQL</p>
+</div>
+
+<div class="add-idea-form" style="margin-top: 0;">
+    <div class="form-group">
+        <label>Selecione o Artigo para Publicar</label>
+        <select id="publish-select" class="form-control" style="appearance: none;">
+            <option value="">Carregando artigos...</option>
+        </select>
+    </div>
+    <button class="btn btn-blue" id="btn-publish" onclick="publishArticle()" style="font-weight: bold; padding: 12px 24px;">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Publicar Agora
+    </button>
+</div>
+
+<div id="publish-loading" style="display:none; color: var(--info); margin: 15px 0;">
+    <i class="fa-solid fa-spinner fa-spin"></i> Publicando... upload FTP + inserção MySQL
+</div>
+
+<div id="publish-result" style="display:none; margin-top: 15px;"></div>
+
+<div class="terminal" style="margin-top: 20px;">
+    <div class="terminal-header">
+        <span style="color: var(--info);">Log de Publicação</span>
+    </div>
+    <div class="terminal-body" id="pub-log" style="height: 200px;">
+        Aguardando seleção...
+    </div>
+</div>
+
+<!-- Published list -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--info);"><i class="fa-solid fa-clock-rotate-left"></i> Publicações Recentes</h2>
+    <div class="list-container" id="published-list">
+        <p style="color: var(--text-secondary);">Carregando...</p>
+    </div>
+</div>
+
+<script>
+function log(msg) {
+    const el = document.getElementById('pub-log');
+    el.innerHTML += '<br>> ' + msg;
+    el.scrollTop = el.scrollHeight;
+}
+
+// Load articles
+fetch('/api/articles/list')
+    .then(r => r.json())
+    .then(articles => {
+        const sel = document.getElementById('publish-select');
+        sel.innerHTML = '<option value="">-- Selecione um artigo --</option>' +
+            articles.map(a => '<option value="' + esc(a.filename) + '">' + esc(a.filename) + ' (' + a.size + ' KB)</option>').join('');
+    });
+
+function publishArticle() {
+    const filename = document.getElementById('publish-select').value;
+    if (!filename) { alert('Selecione um artigo'); return; }
+    if (!confirm('Publicar "' + filename + '" no WordPress via FTP?')) return;
+
+    const btn = document.getElementById('btn-publish');
+    const loading = document.getElementById('publish-loading');
+    const result = document.getElementById('publish-result');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+    loading.style.display = 'block';
+    result.style.display = 'none';
+
+    log('Iniciando publicação: ' + filename);
+
+    fetch('/api/publish', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({filename})
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar Agora';
+        loading.style.display = 'none';
+
+        if (data.success) {
+            log('✅ Publicado com sucesso!');
+            if (data.post_id) log('Post ID: ' + data.post_id);
+            if (data.url) log('URL: ' + data.url);
+            result.innerHTML = '<div class="stat-card" style="border-color: var(--accent-green);"><h3 style="color: var(--accent-green);"><i class="fa-solid fa-check-circle"></i> Publicado!</h3><p>' + (data.url || 'Verifique o site') + '</p></div>';
+            result.style.display = 'block';
+        } else {
+            log('❌ ' + (data.error || 'Falha'));
+            result.innerHTML = '<div class="stat-card" style="border-color: var(--danger);"><h3 style="color: var(--danger);">Erro</h3><p>' + esc(data.error) + '</p></div>';
+            result.style.display = 'block';
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar Agora';
+        loading.style.display = 'none';
+        log('❌ Erro de conexão: ' + err);
+    });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

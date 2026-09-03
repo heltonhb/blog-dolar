@@ -1,14 +1,16 @@
-# Virtual Environment
-venv/
-env/
-.venv/
-
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Environment
+.env
+.env.local
 
 # IDE
 .vscode/
@@ -16,27 +18,14 @@ __pycache__/
 *.swp
 *.swo
 
-# Logs
-*.log
-logs/
-
-# Environment variables - NEVER COMMIT
-.env
-.env.local
-.env.production
-
-# Sensitive data
-dashboard/data/adcash_config.json
-dashboard/data/pinterest_config.json
-dashboard/data/adcash_stats.json
-
-# Images (large files)
-images/pins/*.png
-
 # OS
 .DS_Store
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
+# Flask
+instance/
+*.log
+
+# Dashboard data (keep structure, ignore content)
+dashboard/data/*.json
+dashboard/static/images/*.png

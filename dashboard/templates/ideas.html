@@ -1,0 +1,192 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-regular fa-lightbulb" style="color: var(--accent-green);"></i> Gerenciar Ideias</h1>
+        <p id="ideas-count">Carregando...</p>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-green" id="btn-generate-ideas" style="font-weight: bold; padding: 10px 20px;" onclick="generateIdeas('ai')">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA
+        </button>
+        <button class="btn btn-blue" id="btn-generate-trends" style="font-weight: bold; padding: 10px 20px;" onclick="generateIdeas('trends')">
+            <i class="fa-solid fa-arrow-trend-up"></i> Google Trends
+        </button>
+    </div>
+</div>
+
+<div id="loading-ideas" style="display:none; color: var(--accent-green); margin: 15px 0;">
+    <i class="fa-solid fa-spinner fa-spin"></i> <span id="loading-ideas-msg">Gerando ideias... aguarde.</span>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Título</th>
+            <th>Keyword</th>
+            <th>CPM</th>
+            <th>Fonte</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="ideas-tbody">
+        <tr><td colspan="6" style="text-align: center; padding: 20px;">Carregando...</td></tr>
+    </tbody>
+</table>
+
+<!-- Add Idea Form -->
+<div class="add-idea-form" style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-solid fa-circle-plus"></i> Adicionar Ideia Manual</h2>
+    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+        <div class="form-group">
+            <label>Título do Artigo</label>
+            <input type="text" id="new-title" class="form-control" placeholder="Ex: Best Mechanical Keyboards 2026">
+        </div>
+        <div class="form-group">
+            <label>Keyword</label>
+            <input type="text" id="new-keyword" class="form-control" placeholder="Ex: best mechanical keyboards">
+        </div>
+        <div class="form-group">
+            <label>CPM Estimado</label>
+            <input type="text" id="new-cpm" class="form-control" placeholder="Ex: $10-20" value="$10-15">
+        </div>
+    </div>
+    <button class="btn btn-green" onclick="addIdea()" style="margin-top: 5px;">
+        <i class="fa-solid fa-plus"></i> Adicionar
+    </button>
+</div>
+
+<script>
+function loadIdeas() {
+    fetch('/api/ideas/list')
+        .then(r => r.json())
+        .then(ideas => {
+            const tbody = document.getElementById('ideas-tbody');
+            document.getElementById('ideas-count').textContent = ideas.length + ' ideias (' + ideas.filter(i => i.status === 'pending').length + ' pendentes)';
+
+            if (ideas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Nenhuma ideia gerada ainda. Clique "Gerar Ideias IA" para começar.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = ideas.map(i => `
+                <tr>
+                    <td>${escHtml(i.title)}</td>
+                    <td style="color: var(--text-secondary);">${escHtml(i.keyword)}</td>
+                    <td><span class="badge">${escHtml(i.cpm_estimate || '-')}</span></td>
+                    <td style="color: var(--text-secondary);">${escHtml(i.source || 'manual')}</td>
+                    <td><span class="badge">${escHtml(i.status)}</span></td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-green" onclick="generateFromIdea('${escAttr(i.keyword)}')" title="Gerar artigo">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar
+                            </button>
+                            <button class="btn btn-red" onclick="deleteIdea(${i.id})" title="Excluir">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(err => console.error(err));
+}
+
+function generateIdeas(source) {
+    source = source || 'ai';
+    const btnAI = document.getElementById('btn-generate-ideas');
+    const btnTrends = document.getElementById('btn-generate-trends');
+    const loading = document.getElementById('loading-ideas');
+    const msgEl = document.getElementById('loading-ideas-msg');
+
+    btnAI.disabled = true;
+    btnTrends.disabled = true;
+
+    if (source === 'trends') {
+        msgEl.textContent = 'Buscando Google Trends + filtrando com Gemini... aguarde.';
+        btnTrends.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando Trends...';
+    } else {
+        msgEl.textContent = 'Gerando ideias com Gemini AI... aguarde.';
+        btnAI.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+    }
+    loading.style.display = 'block';
+
+    fetch('/api/ideas/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({source})
+    })
+        .then(r => r.json())
+        .then(data => {
+            btnAI.disabled = false;
+            btnTrends.disabled = false;
+            btnAI.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA';
+            btnTrends.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Google Trends';
+            loading.style.display = 'none';
+            if (data.success) {
+                const srcLabel = source === 'trends' ? 'Google Trends' : 'IA';
+                alert(`${data.count} ideias de ${srcLabel} geradas!`);
+                loadIdeas();
+            } else {
+                alert('Erro: ' + (data.error || 'Desconhecido'));
+            }
+        })
+        .catch(err => {
+            btnAI.disabled = false;
+            btnTrends.disabled = false;
+            btnAI.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA';
+            btnTrends.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Google Trends';
+            loading.style.display = 'none';
+            alert('Erro: ' + err);
+        });
+}
+
+function addIdea() {
+    const title = document.getElementById('new-title').value.trim();
+    const keyword = document.getElementById('new-keyword').value.trim();
+    const cpm = document.getElementById('new-cpm').value.trim();
+
+    if (!title) { alert('Título obrigatório'); return; }
+
+    fetch('/api/ideas/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title, keyword: keyword || title, cpm_estimate: cpm})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('new-title').value = '';
+            document.getElementById('new-keyword').value = '';
+            loadIdeas();
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    });
+}
+
+function deleteIdea(id) {
+    if (!confirm('Excluir esta ideia?')) return;
+    fetch('/api/ideas/delete/' + id, {method: 'POST'})
+        .then(r => r.json())
+        .then(() => loadIdeas());
+}
+
+function generateFromIdea(keyword) {
+    window.location.href = '/generate?keyword=' + encodeURIComponent(keyword);
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+    return escHtml(s).replace(/'/g, '&#39;');
+}
+
+// Load on start
+loadIdeas();
+</script>
+{% endblock %}

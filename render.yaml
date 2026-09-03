@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: blog-dolar-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn dashboard.app:app --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: WP_DB_HOST
+        sync: false
+      - key: WP_DB_USER
+        sync: false
+      - key: WP_DB_PASS
+        sync: false
+      - key: WP_DB_NAME
+        sync: false
+      - key: FTP_HOST
+        sync: false
+      - key: FTP_USER
+        sync: false
+      - key: FTP_PASS
+        sync: false
+      - key: ADCASH_ZONE_ID
+        sync: false
+      - key: ADCASH_API_TOKEN
+        sync: false
+      - key: PINTEREST_ACCESS_TOKEN
+        sync: false
+      - key: PINTEREST_BOARD_ID
+        sync: false
+      - key: SITE_URL
+        value: https://tech-tips.byethost4.com
+      - key: WP_USER
+        sync: false
+      - key: WP_APP_PASSWORD
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+    disk:
+      name: dashboard-data
+      mountPath: /opt/render/project/src/dashboard/data
+      sizeGB: 1

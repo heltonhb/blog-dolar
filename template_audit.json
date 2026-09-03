@@ -1,0 +1,160 @@
+{
+  "templates": [
+    {
+      "file": "layout.html",
+      "type": "base_template",
+      "description": "Base layout template extended by all pages. Contains sidebar navigation linking to all 10 routes (/ideas, /generate, /articles, /images, /publish, /pinterest, /verify, /adcash, /settings). Includes a global JavaScript runScript() function that POSTs to /api/run_script with {script_name, args} and streams output into a terminal div.",
+      "forms": [],
+      "buttons": [],
+      "api_calls": ["POST /api/run_script (via runScript() JS function)"],
+      "is_stub": false
+    },
+    {
+      "file": "index.html",
+      "type": "dashboard_home",
+      "description": "Main dashboard page showing stats overview and workflow visualization. Displays 4 stat cards (Local Articles, Published, Pending Ideas, Estimated Revenue), a 5-step workflow diagram (Ideas→Generate→Verify→Publish→Monitor), and a terminal-style recent activity log.",
+      "forms": [],
+      "buttons": [],
+      "api_calls": [],
+      "static_data": ["All stat values hardcoded (10, 0, 0, $0). Activity log is hardcoded sample text."],
+      "is_stub": true,
+      "stub_reason": "All dashboard data is hardcoded — no dynamic fetching from backend. Stats do not reflect actual state."
+    },
+    {
+      "file": "ideas.html",
+      "type": "ideas_management",
+      "description": "Ideas management page with a table of ideas (Title, Keyword, CPM, Status, Actions) and an 'Add Idea' form at the bottom. Each row has a 'Gerar' button and a delete button.",
+      "forms": ["Add Idea form with title input field"],
+      "buttons": ["'Gerar Ideias IA' (top button - NO handler), 'Gerar' per-row (calls runScript('gerar_artigos.py', ['--topic', keyword])), Delete '×' per-row (NO handler)"],
+      "api_calls": ["runScript('gerar_artigos.py') via Gerar button"],
+      "missing_functionality": [
+        "'Gerar Ideias IA' button has no onclick handler",
+        "Delete button has no onclick handler",
+        "Add Idea form has no submit button or form action — input field collects nothing",
+        "Table data is passed via Jinja2 {{ ideas }} but no delete/submission endpoint is wired"
+      ],
+      "is_stub": true,
+      "stub_reason": "Only the per-row 'Gerar' button works. AI idea generation button, delete, and add-idea form are non-functional."
+    },
+    {
+      "file": "generate.html",
+      "type": "article_generation_form",
+      "description": "Article generation page with a form for keyword, article size (Long/Medium/Short), and tone of voice (Professional/Casual/Technical). Has a terminal log area for generation output.",
+      "forms": ["Keyword input, Size select, Tone select"],
+      "buttons": ["'Gerar Conteúdo' (calls runScript('gerar_artigos.py', ['--topic', keyword]))"],
+      "api_calls": ["runScript('gerar_artigos.py') via Gerar Conteúdo button"],
+      "missing_functionality": [
+        "Size and tone selects are NOT passed to the script — only keyword is sent as an argument",
+        "The selects have no id/name attributes for programmatic access"
+      ],
+      "is_stub": false,
+      "stub_reason": "Partially functional — keyword generation works but size/tone parameters are ignored."
+    },
+    {
+      "file": "articles.html",
+      "type": "articles_listing",
+      "description": "Lists generated articles with filename, size, and date. Each article has 4 action buttons: Generate Image, Verify, Publish, Pinterest.",
+      "forms": [],
+      "buttons": ["Refresh (no handler), Gerar Imagem (no handler), Verificar (no handler), Publicar (no handler), Pinterest (no handler)"],
+      "api_calls": [],
+      "missing_functionality": [
+        "ALL 4 action buttons have no onclick handlers",
+        "Refresh button has no onclick handler",
+        "No navigation to image/verify/publish pages from these buttons"
+      ],
+      "is_stub": true,
+      "stub_reason": "All buttons are purely visual — none trigger any action. This is a display-only shell."
+    },
+    {
+      "file": "images.html",
+      "type": "image_gallery",
+      "description": "Image gallery showing generated article images. Displays one hardcoded image card (nvme-ssd-vs-sata.png) and a 'Gerar Nova Imagem' placeholder card.",
+      "forms": [],
+      "buttons": ["Upload Manual (no handler), Download (no handler), Delete (no handler), Gerar Nova Imagem card (no handler)"],
+      "api_calls": [],
+      "static_data": ["Single hardcoded image entry with filename and timestamp"],
+      "is_stub": true,
+      "stub_reason": "Entirely static — hardcoded image data, no dynamic loading, all buttons non-functional."
+    },
+    {
+      "file": "publish.html",
+      "type": "wordpress_publish_queue",
+      "description": "WordPress publishing queue table showing articles with scheduled date, category, status, and action buttons.",
+      "forms": [],
+      "buttons": ["Enviar/WordPress button (no handler), Editar button (no handler)"],
+      "api_calls": [],
+      "static_data": ["2 hardcoded articles with hardcoded statuses (Pronto, Agendado)"],
+      "is_stub": true,
+      "stub_reason": "100% hardcoded — no dynamic data from backend, no publish/edit handlers wired."
+    },
+    {
+      "file": "pinterest.html",
+      "type": "pinterest_marketing",
+      "description": "Pinterest marketing page showing scheduled pins, impressions stats, and a list of pending pins.",
+      "forms": [],
+      "buttons": ["Cancelar button (no handler)"],
+      "api_calls": [],
+      "static_data": ["Hardcoded stats (5 Pins Scheduled, 1.2k Impressions), hardcoded pin entry"],
+      "is_stub": true,
+      "stub_reason": "100% hardcoded — no dynamic data, no API integration, cancel button non-functional."
+    },
+    {
+      "file": "verify.html",
+      "type": "seo_verification",
+      "description": "SEO & quality verification page with an article selector dropdown and a terminal showing a sample SEO report.",
+      "forms": ["Article select dropdown (hardcoded 2 options)"],
+      "buttons": ["Iniciar Verificação (no handler)"],
+      "api_calls": [],
+      "static_data": ["Hardcoded article options in select, hardcoded SEO report output in terminal"],
+      "is_stub": true,
+      "stub_reason": "Entirely static — hardcoded article list, hardcoded report output, no verification trigger."
+    },
+    {
+      "file": "adcash.html",
+      "type": "adcash_revenue_dashboard",
+      "description": "AdCash revenue reporting page showing balance and eCPM stats, with a placeholder chart area.",
+      "forms": [],
+      "buttons": [],
+      "api_calls": [],
+      "dynamic_data": ["Uses Jinja2 template variables: stats.total_revenue, stats.avg_ecpm, stats.last_updated, stats.currency"],
+      "static_data": ["Chart area is a placeholder with text 'integração completa será exibida aqui'"],
+      "is_stub": true,
+      "stub_reason": "Stats cards are dynamically rendered (only template that uses real data), but chart is a placeholder and no filtering/period controls exist."
+    },
+    {
+      "file": "settings.html",
+      "type": "system_settings",
+      "description": "Settings page with two cards: AI configuration (API key input, model select) and WordPress integration (site URL, application password).",
+      "forms": ["AI settings form (API key, model select), WordPress settings form (site URL, application password)"],
+      "buttons": ["'Salvar IA' button (no handler), 'Testar Conexão' button (no handler)"],
+      "api_calls": [],
+      "missing_functionality": [
+        "Neither form has a submit action or form action attribute",
+        "Salvar IA button has no onclick handler",
+        "Testar Conexão button has no onclick handler",
+        "Input values are hardcoded placeholders — no reading of actual saved config"
+      ],
+      "is_stub": true,
+      "stub_reason": "Forms are purely visual — no save/test functionality wired."
+    }
+  ],
+  "summary": {
+    "total_templates": 11,
+    "fully_functional": 0,
+    "partially_functional": 2,
+    "stubs_or_broken": 9,
+    "templates_with_no_handlers": ["articles.html", "images.html", "publish.html", "pinterest.html", "verify.html", "settings.html"],
+    "templates_with_partial_handlers": ["ideas.html", "generate.html"],
+    "templates_with_dynamic_data": ["adcash.html"],
+    "templates_with_hardcoded_data_only": ["index.html", "publish.html", "pinterest.html", "verify.html", "images.html"],
+    "critical_findings": [
+      "layout.html runScript() function works and POSTs to /api/run_script — this is the only functional API call mechanism",
+      "generate.html is the ONLY page where runScript() is effectively wired (keyword generation works)",
+      "ideas.html per-row 'Gerar' button also calls runScript() successfully",
+      "All other buttons across all templates are non-functional decoration",
+      "Only adcash.html receives any dynamic data from the backend (Jinja2 stats variable)",
+      "No forms have submit handlers — settings, verify, ideas add-form are all visual shells",
+      "The UI redesign replaced functional templates with CSS mockups that lack interactivity"
+    ]
+  }
+}

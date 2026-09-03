@@ -54,5 +54,107 @@
     "issues_count": 0,
     "warnings_count": 0,
     "verified_at": "2026-09-01T23:40:10.434325"
+  },
+  {
+    "filename": "2026-09-01_nvme-ssd-vs-sata-ssd-vs-hdd.md",
+    "score": 100,
+    "status": "Aprovado",
+    "word_count": 1493,
+    "h2_count": 5,
+    "h3_count": 12,
+    "internal_links": 3,
+    "external_links": 0,
+    "images": 3,
+    "issues": [],
+    "warnings": [],
+    "verified_at": "2026-09-02T09:30:33.207502"
+  },
+  {
+    "filename": "2026-09-02_macbook-pro-vs-windows-for-software-engineers.md",
+    "score": 100,
+    "status": "Aprovado",
+    "word_count": 1236,
+    "h2_count": 7,
+    "h3_count": 7,
+    "internal_links": 0,
+    "external_links": 0,
+    "images": 0,
+    "issues": [],
+    "warnings": [
+      "Sem links internos",
+      "Sem imagens no artigo"
+    ],
+    "verified_at": "2026-09-02T09:39:39.936343"
+  },
+  {
+    "filename": "2026-09-02_how-to-speed-up-windows-11-pc.md",
+    "score": 100,
+    "status": "Aprovado",
+    "word_count": 948,
+    "h2_count": 11,
+    "h3_count": 2,
+    "internal_links": 0,
+    "external_links": 0,
+    "images": 0,
+    "issues": [],
+    "warnings": [
+      "Sem links internos",
+      "Sem imagens no artigo"
+    ],
+    "verified_at": "2026-09-02T11:33:42.301696"
+  },
+  {
+    "filename": "2026-09-02_how-to-fix-high-ping-and-packet-loss.md",
+    "score": 100,
+    "status": "Aprovado",
+    "word_count": 978,
+    "h2_count": 6,
+    "h3_count": 8,
+    "internal_links": 0,
+    "external_links": 0,
+    "images": 0,
+    "issues": [],
+    "warnings": [
+      "Sem links internos",
+      "Sem imagens no artigo"
+    ],
+    "ai_review": null,
+    "verified_at": "2026-09-02T19:23:28.823397"
+  },
+  {
+    "filename": "2026-09-02_how-to-fix-high-ping-and-packet-loss.md",
+    "score": 94,
+    "status": "Aprovado",
+    "word_count": 978,
+    "h2_count": 6,
+    "h3_count": 8,
+    "internal_links": 0,
+    "external_links": 0,
+    "images": 0,
+    "issues": [],
+    "warnings": [
+      "Sem links internos",
+      "Sem imagens no artigo"
+    ],
+    "ai_review": {
+      "ai_score": 85,
+      "readability": "Excellent",
+      "keyword_density": "Good",
+      "content_quality": "The article provides a comprehensive, well-structured guide on diagnosing and fixing high ping and packet loss for gamers.",
+      "missing_elements": [
+        "Internal links",
+        "External links",
+        "Images or alt text",
+        "FAQ section"
+      ],
+      "improvements": [
+        "Add relevant internal and external links to boost SEO authority",
+        "Insert screenshots or infographics to improve user engagement and dwell time",
+        "Include an FAQ section targeting long-tail keywords related to gaming lag"
+      ],
+      "seo_verdict": "Needs Work",
+      "blended_score": 94
+    },
+    "verified_at": "2026-09-02T19:23:47.177343"
   }
 ]

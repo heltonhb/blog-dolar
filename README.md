@@ -1,150 +1,157 @@
 # Blog em Dolar
 
-Sistema automatizado para criar e monetizar blogs em dolar usando IA gratuita.
+Sistema automatizado para criar e monetizar blogs em dólar usando IA 100% gratuita.
 
-## Estrutura
+Pipeline completo: **Ideia → Artigo (Gemini) → Imagem → WordPress (REST API) → Pinterest**
+
+---
+
+## Início Rápido
+
+```bash
+# 1. Ativar ambiente virtual
+source venv/bin/activate
+
+# 2. Copiar e preencher credenciais
+cp .env.example .env
+nano .env
+
+# 3. Instalar dependências (se necessário)
+pip install -r requirements.txt
+
+# 4. Iniciar o dashboard
+python dashboard/app.py
+# Acesse: http://localhost:5001
+```
+
+---
+
+## Estrutura do Projeto
 
 ```
 blog-dolar/
-├── config/
-│   └── config.yaml          # Configuracoes
+├── dashboard/
+│   ├── app.py              # Flask dashboard (11 páginas + APIs)
+│   ├── data/               # JSONs de estado (ideias, histórico, adcash)
+│   ├── static/images/      # Imagens geradas para pins
+│   └── templates/          # HTML (login, scheduler, pipeline, verify...)
 ├── scripts/
-│   ├── gerar_artigos.py     # Gera conteudo com Gemini
-│   ├── publicar_wp.py       # Publica no WordPress
-│   ├── instalar_adcash.py   # Configura anuncios
-│   └── pipeline.py          # Orquestrador principal
-├── articles/                # Artigos gerados
-├── logs/                    # Logs de execucao
-├── venv/                    # Ambiente virtual
-└── setup.sh                 # Instalacao
+│   ├── gerar_artigos.py    # BlogGenerator — geração de artigos via Gemini
+│   ├── publicar_wp.py      # WordPressPublisher — REST API
+│   ├── pipeline.py         # Orquestrador CLI
+│   └── image_generator.py  # Geração de imagens (Gemini + Pollinations)
+├── articles/               # Artigos .md gerados
+├── config/
+│   └── config.yaml.example # Template de configuração CLI
+├── .env.example            # Template de variáveis de ambiente
+└── blog.sh                 # CLI dispatcher
 ```
 
-## Inicio Rapido
+---
 
-### 1. Configurar
+## Configuração
+
+### 1. Variáveis de ambiente (`.env`)
+
+Copie `.env.example` para `.env` e preencha:
+
+| Variável | Onde obter |
+|---|---|
+| `DASHBOARD_PASSWORD` | Defina você mesmo (protege o dashboard) |
+| `GEMINI_API_KEY` | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) — gratuito |
+| `SITE_URL` | URL do seu WordPress |
+| `WP_USER` | Usuário do WordPress |
+| `WP_APP_PASSWORD` | WP Admin → Usuários → Perfil → Senhas de Aplicativo |
+| `ADCASH_API_TOKEN` | Painel Publisher AdCash |
+| `PINTEREST_ACCESS_TOKEN` | [developers.pinterest.com](https://developers.pinterest.com) |
+
+### 2. Pipeline CLI (opcional)
 
 ```bash
-# Ativar ambiente
-source venv/bin/activate
-
-# Configurar Gemini API (free)
-export GEMINI_API_KEY="sua_chave_aqui"
-# Obtenha em: https://aistudio.google.com/apikey
-
-# Editar config do WordPress
+cp config/config.yaml.example config/config.yaml
 nano config/config.yaml
 ```
 
-### 2. Gerar Artigos
+---
+
+## Dashboard
+
+Acesse `http://localhost:5001` após iniciar o `app.py`.
+
+### Páginas disponíveis
+
+| Página | Função |
+|---|---|
+| `/` | Dashboard — stats, workflow, atividade recente |
+| `/ideas` | Gerenciar ideias (IA Gemini ou Google Trends RSS) |
+| `/generate` | Gerar artigo avulso por palavra-chave |
+| `/articles` | Listar e deletar artigos locais |
+| `/images` | Galeria de pins gerados |
+| `/verify` | Verificação SEO heurística + revisão Gemini AI |
+| `/publish` | Publicar artigo avulso no WordPress (REST API) |
+| `/pipeline` | Pipeline completo com checkpoints |
+| `/scheduler` | Agendador integrado (APScheduler) |
+| `/pinterest` | Gerenciar pins |
+| `/adcash` | Stats de receita (API real) |
+| `/settings` | Editar `.env` via UI |
+
+---
+
+## Funcionalidades
+
+### Segurança
+- **Autenticação** com `DASHBOARD_PASSWORD` no `.env`
+- Todas as rotas protegidas por `@login_required`
+- Credenciais nunca hardcoded
+
+### Pipeline Automático (`/pipeline`)
+1. Gera artigo com Gemini (ou reutiliza existente)
+2. Gera imagem Pinterest (3:4) + featured image (16:9) via Gemini Imagen
+3. **Faz upload da imagem para a biblioteca de mídia do WordPress** → obtém URL pública real
+4. Publica o artigo via **WordPress REST API** (com imagem destacada)
+5. Cria pin no Pinterest com a URL pública da imagem WP
+
+**Checkpoints por slug**: se o pipeline falhar após gerar o artigo, na próxima execução ele retoma do passo que parou — sem re-gastar tokens de API.
+
+### Agendador (`/scheduler`)
+- Jobs de pipeline em horários fixos sem cron externo
+- Persistência em JSON — restaurados automaticamente ao reiniciar
+- Botão "Executar agora" para teste
+
+### Geração de Ideias (`/ideas`)
+- **IA Gemini**: 10 ideias evergreen
+- **Google Trends RSS**: busca tendências reais do dia (EUA) e filtra as de tecnologia com Gemini — sem chave de API
+
+### Verificação SEO (`/verify`)
+- **Heurístico**: contagem de palavras, H2/H3, links, imagens, meta description
+- **Gemini AI**: análise editorial completa — readability, keyword density, sugestões de melhoria, veredicto SEO
+
+### AdCash (`/adcash`)
+- Chamada real à **Publisher API** (`/api/v2/stats`)
+- Exibe revenue, impressões, cliques, eCPM por dia
+
+---
+
+## CLI
 
 ```bash
-# Gera topicos + 2 artigos
-python scripts/pipeline.py
-
-# Ou modo interativo
-python scripts/gerar_artigos.py
+./blog.sh gerar          # Gera artigos via Gemini
+./blog.sh publicar       # Publica no WordPress via REST API
+./blog.sh pipeline       # Pipeline completo (gerar + imagens)
+./blog.sh schedule       # Modo agendador (a cada X horas)
 ```
 
-### 3. Publicar no WordPress
+---
 
-```bash
-# Publica como draft
-python scripts/publicar_wp.py
-```
+## Ferramentas 100% gratuitas
 
-### 4. Instalar Anuncios
-
-```bash
-# Mostra guia do AdCash
-python scripts/instalar_adcash.py
-```
-
-### 5. Agendamento Automatico
-
-```bash
-# Roda a cada X horas
-python scripts/pipeline.py --schedule
-```
-
-## Configuracao Detalhada
-
-### Gemini API (100% Free)
-
-1. Acesse https://aistudio.google.com/apikey
-2. Crie uma chave (sem custo)
-3. Exporte: `export GEMINI_API_KEY=AIzaSy...`
-
-Limite free: 60 requests/minuto (suficiente para 100+ artigos/dia)
-
-### WordPress App Password
-
-1. WP Admin > Usuarios > Perfil
-2. Secao "Chaves de Aplicativo"
-3. Crie uma nova chave
-4. Copie para config.yaml
-
-### AdCash
-
-1. Crie conta: https://adcash.com
-2. Adicione seu site
-3. Pegue o codigo da tag
-4. Instale via plugin WPCode ou Ad Inserter
-
-## Fluxo Automatico
-
-```
-┌─────────────────┐
-│  Gera Topicos   │  ← Gemini API (free)
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│  Gera Artigos   │  ← Gemini API (free)
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│  Publica WP     │  ← WordPress API
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│  Insere Anuncios│  ← AdCash
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│  Distribui      │  ← Facebook/Pinterest
-└─────────────────┘
-```
-
-## Ferramentas 100% Free
-
-| Funcao | Ferramenta | Custo |
-|--------|-----------|-------|
-| Conteudo IA | Google Gemini API | $0 |
-| CMS | WordPress | $0 |
-| Anuncios | AdCash | $0 |
-| SEO | RankMath (plugin) | $0 |
-| Analytics | Google Analytics | $0 |
-| Social | n8n (self-hosted) | $0 |
-
-## Dicas
-
-1. **Foco em ingles**: EUA paga 3-10x mais que Brasil
-2. **Conteudo evergreen**: Artigos que duram anos
-3. **Consistencia**: 2 artigos/dia minimo
-4. **Diversifique nichos**: Nao dependa de um so
-5. **SEO basico**: Use RankMath para otimizar
-
-## Comandos Uteis
-
-```bash
-# Gerar 5 artigos de uma vez
-python scripts/gerar_artigos.py
-
-# Listar artigos gerados
-ls -la articles/
-
-# Verificar conexao WP
-python scripts/publicar_wp.py
-
-# Ajuda
-python scripts/pipeline.py --help
-```
+| Função | Ferramenta | Custo |
+|---|---|---|
+| Texto IA | Google Gemini Flash Lite | $0 |
+| Imagem IA | Gemini Imagen 3 | $0 |
+| Imagem fallback | Pollinations.ai | $0 |
+| Tendências | Google Trends RSS | $0 |
+| CMS | WordPress + ByetHost | $0 |
+| Anúncios | AdCash | $0 (rev share) |
+| Pinterest | Pinterest API v5 | $0 |
+| Agendador | APScheduler (embutido) | $0 |

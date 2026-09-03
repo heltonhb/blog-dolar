@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-magnifying-glass-check" style="color: var(--warning);"></i> Verificação SEO & Qualidade</h1>
+    <p>Análise de legibilidade, palavras-chave e estrutura do artigo</p>
+</div>
+
+<div class="add-idea-form" style="margin-top: 0;">
+    <div class="form-group">
+        <label>Selecione um Artigo Local</label>
+        <select id="verify-select" class="form-control" style="appearance: none;">
+            <option value="">Carregando artigos...</option>
+        </select>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; margin-top: 5px;">
+        <button class="btn btn-orange" id="btn-verify" onclick="runVerify(false)"
+                style="font-weight: bold; padding: 12px 24px;">
+            <i class="fa-solid fa-play"></i> Verificar (Heurístico)
+        </button>
+        <button class="btn btn-green" id="btn-verify-ai" onclick="runVerify(true)"
+                style="font-weight: bold; padding: 12px 24px;">
+            <i class="fa-solid fa-robot"></i> Verificar com IA Gemini
+        </button>
+    </div>
+</div>
+
+<div id="verify-loading" style="display:none; color: var(--warning); margin: 15px 0;">
+    <i class="fa-solid fa-spinner fa-spin"></i> Analisando artigo...
+</div>
+
+<div id="verify-result" style="display:none; margin-top: 20px;">
+    <div class="stats-grid">
+        <div class="stat-card" style="border-color: var(--accent-green);">
+            <div class="stat-card-header"><span>Score</span><i class="fa-solid fa-star"></i></div>
+            <h2 id="v-score">0</h2>
+            <p id="v-status">-</p>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header"><span>Palavras</span><i class="fa-solid fa-font"></i></div>
+            <h2 id="v-words">0</h2>
+            <p>tamanho do artigo</p>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header"><span>Headings</span><i class="fa-solid fa-heading"></i></div>
+            <h2 id="v-headings">0</h2>
+            <p>H2 + H3</p>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header"><span>Links</span><i class="fa-solid fa-link"></i></div>
+            <h2 id="v-links">0</h2>
+            <p>internos + externos</p>
+        </div>
+    </div>
+</div>
+
+<div class="terminal" style="margin-top: 20px;">
+    <div class="terminal-header">
+        <span style="color: var(--warning);">Relatório de SEO</span>
+    </div>
+    <div class="terminal-body" id="verify-log" style="height: 250px;">
+        Selecione um artigo e clique "Iniciar Verificação"...
+    </div>
+</div>
+
+<!-- AI Review Result -->
+<div id="ai-review-result" style="display:none; margin-top: 20px;"></div>
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--warning);"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Verificações</h2>
+    <div class="list-container" id="verify-history">
+        <p style="color: var(--text-secondary);">Carregando...</p>
+    </div>
+</div>
+
+<script>
+// Load articles into select
+fetch('/api/articles/list')
+    .then(r => r.json())
+    .then(articles => {
+        const sel = document.getElementById('verify-select');
+        sel.innerHTML = '<option value="">-- Selecione --</option>' +
+            articles.map(a => '<option value="' + esc(a.filename) + '">' + esc(a.filename) + '</option>').join('');
+
+        // Pre-select from sessionStorage
+        const stored = sessionStorage.getItem('verify_filename');
+        if (stored) {
+            sel.value = stored;
+            sessionStorage.removeItem('verify_filename');
+        }
+    });
+
+function runVerify(useAi) {
+    const filename = document.getElementById('verify-select').value;
+    if (!filename) { alert('Selecione um artigo'); return; }
+
+    const btnH = document.getElementById('btn-verify');
+    const btnAI = document.getElementById('btn-verify-ai');
+    const loading = document.getElementById('verify-loading');
+    btnH.disabled = true; btnAI.disabled = true;
+
+    if (useAi) {
+        loading.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analisando com Gemini AI... (pode levar 15s)';
+        btnAI.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analisando com IA...';
+    } else {
+        loading.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analisando artigo...';
+        btnH.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+    }
+    loading.style.display = 'block';
+
+    const log = document.getElementById('verify-log');
+    log.innerHTML = '> Iniciando análise de ' + filename + (useAi ? ' (com Gemini AI)' : '') + '...<br>';
+
+    fetch('/api/verify', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({filename, use_ai: useAi})
+    })
+    .then(r => r.json())
+    .then(data => {
+        btnH.disabled = false; btnAI.disabled = false;
+        btnH.innerHTML = '<i class="fa-solid fa-play"></i> Verificar (Heurístico)';
+        btnAI.innerHTML = '<i class="fa-solid fa-robot"></i> Verificar com IA Gemini';
+        loading.style.display = 'none';
+
+        if (!data.success) {
+            log.innerHTML += '> ERRO: ' + data.error + '<br>';
+            return;
+        }
+
+        const r = data.result;
+        const scoreColor = r.score >= 80 ? 'var(--accent-green)' : r.score >= 60 ? 'var(--warning)' : 'var(--danger)';
+        document.getElementById('v-score').textContent = r.score + '/100';
+        document.getElementById('v-score').style.color = scoreColor;
+        document.getElementById('v-status').textContent = r.status;
+        document.getElementById('v-words').textContent = r.word_count;
+        document.getElementById('v-headings').textContent = (r.h2_count || 0) + (r.h3_count || 0);
+        document.getElementById('v-links').textContent = (r.internal_links || 0) + (r.external_links || 0);
+        document.getElementById('verify-result').style.display = 'block';
+
+        log.innerHTML += '> H2: ' + r.h2_count + ', H3: ' + r.h3_count + '<br>';
+        log.innerHTML += '> Palavras: ' + r.word_count + '<br>';
+        log.innerHTML += '> Links internos: ' + r.internal_links + ', externos: ' + r.external_links + '<br>';
+        log.innerHTML += '> Imagens: ' + (r.images || 0) + '<br><br>';
+        (r.issues || []).forEach(i => log.innerHTML += '> ❌ ' + i + '<br>');
+        (r.warnings || []).forEach(w => log.innerHTML += '> ⚠️ ' + w + '<br>');
+        log.innerHTML += '<br>> RESULTADO: ' + r.status + ' (' + r.score + '/100)<br>';
+        log.scrollTop = log.scrollHeight;
+
+        // AI Review panel
+        const aiDiv = document.getElementById('ai-review-result');
+        if (r.ai_review && !r.ai_review.error) {
+            const ai = r.ai_review;
+            const verdictColor = ai.seo_verdict === 'Optimized' ? 'var(--accent-green)'
+                               : ai.seo_verdict === 'Needs Work' ? 'var(--warning)' : 'var(--danger)';
+            aiDiv.style.display = 'block';
+            aiDiv.innerHTML = `
+            <div class="stat-card" style="border-color: var(--accent-green);">
+                <h3 style="color: var(--accent-green); margin-bottom: 15px;">
+                    <i class="fa-solid fa-robot"></i> Revisão Gemini AI
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                    <div style="text-align:center; background: var(--bg-color); border-radius:8px; padding:10px;">
+                        <div style="font-size:1.5rem; font-weight:bold; color:${ai.ai_score >= 70 ? 'var(--accent-green)' : 'var(--warning)'};">${ai.ai_score}/100</div>
+                        <div style="color:var(--text-secondary); font-size:0.8rem;">Score IA</div>
+                    </div>
+                    <div style="text-align:center; background: var(--bg-color); border-radius:8px; padding:10px;">
+                        <div style="font-size:1rem; font-weight:bold;">${esc(ai.readability || '—')}</div>
+                        <div style="color:var(--text-secondary); font-size:0.8rem;">Legibilidade</div>
+                    </div>
+                    <div style="text-align:center; background: var(--bg-color); border-radius:8px; padding:10px;">
+                        <div style="font-size:1rem; font-weight:bold;">${esc(ai.keyword_density || '—')}</div>
+                        <div style="color:var(--text-secondary); font-size:0.8rem;">Densidade Keyword</div>
+                    </div>
+                    <div style="text-align:center; background: var(--bg-color); border-radius:8px; padding:10px;">
+                        <div style="font-size:1rem; font-weight:bold; color:${verdictColor};">${esc(ai.seo_verdict || '—')}</div>
+                        <div style="color:var(--text-secondary); font-size:0.8rem;">Veredicto SEO</div>
+                    </div>
+                </div>
+                ${ai.content_quality ? '<p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:12px;"><strong>Qualidade:</strong> ' + esc(ai.content_quality) + '</p>' : ''}
+                ${(ai.improvements || []).length > 0 ? `
+                    <p style="font-weight:bold; margin-bottom:6px; font-size:0.9rem;">Melhorias sugeridas:</p>
+                    <ul style="color:var(--text-secondary); font-size:0.85rem; padding-left:20px; line-height:1.8;">
+                        ${ai.improvements.map(s => '<li>' + esc(s) + '</li>').join('')}
+                    </ul>` : ''}
+                ${(ai.missing_elements || []).length > 0 ? `
+                    <p style="font-weight:bold; margin-top:10px; margin-bottom:6px; font-size:0.9rem; color:var(--warning);">Elementos ausentes:</p>
+                    <ul style="color:var(--warning); font-size:0.85rem; padding-left:20px; line-height:1.8;">
+                        ${ai.missing_elements.map(s => '<li>' + esc(s) + '</li>').join('')}
+                    </ul>` : ''}
+            </div>`;
+        } else if (r.ai_review && r.ai_review.error) {
+            aiDiv.style.display = 'block';
+            aiDiv.innerHTML = '<div class="stat-card" style="border-color:var(--danger);"><p style="color:var(--danger);">Erro na revisão IA: ' + esc(r.ai_review.error) + '</p></div>';
+        } else {
+            aiDiv.style.display = 'none';
+        }
+    });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

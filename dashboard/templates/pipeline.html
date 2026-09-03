@@ -1,0 +1,412 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-robot" style="color: var(--accent-green);"></i> Pipeline Automatizado</h1>
+    <p>Artigo → Imagem → Publicar WordPress → Pin Pinterest — tudo automaticamente</p>
+</div>
+
+<!-- Pipeline Form -->
+<div class="add-idea-form" style="margin-top: 0;">
+    <div class="form-group">
+        <label>Palavra-chave do artigo</label>
+        <input type="text" id="pipeline-keyword" class="form-control" placeholder="Ex: Best WiFi routers 2026">
+    </div>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+        <div class="form-group">
+            <label>Prompt da imagem (opcional — auto-gerado se vazio)</label>
+            <input type="text" id="pipeline-prompt" class="form-control" placeholder="Deixe vazio para prompt automático baseado no título">
+        </div>
+        <div class="form-group">
+            <label>Artigo existente (opcional)</label>
+            <select id="pipeline-article" class="form-control" style="appearance: none;">
+                <option value="">Gerar novo artigo</option>
+            </select>
+        </div>
+    </div>
+    <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+            <input type="checkbox" id="skip-publish"> Pular publicação WP
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+            <input type="checkbox" id="skip-pinterest"> Pular Pinterest
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; color: var(--warning);"
+               title="Ignora checkpoints salvos e refaz todas as etapas do zero">
+            <input type="checkbox" id="force-restart">
+            <i class="fa-solid fa-rotate-right"></i> Forçar reprocessamento
+        </label>
+    </div>
+    <button class="btn btn-green" id="btn-pipeline" onclick="runPipeline()" style="font-weight: bold; padding: 14px 28px; font-size: 1.05rem; margin-top: 15px;">
+        <i class="fa-solid fa-play"></i> Executar Pipeline Completo
+    </button>
+</div>
+
+<!-- Progress -->
+<div id="pipeline-progress" style="display:none; margin-top: 20px;">
+    <h3 style="margin-bottom: 15px; color: var(--accent-green);"><i class="fa-solid fa-spinner fa-spin"></i> Executando pipeline...</h3>
+    <div id="steps-container"></div>
+</div>
+
+<!-- Result -->
+<div id="pipeline-result" style="display:none; margin-top: 20px;"></div>
+
+<!-- Existing Pins Preview -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--danger);"><i class="fa-brands fa-pinterest"></i> Pins Gerados</h2>
+    <div class="stats-grid" id="pins-grid" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));">
+        <p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center;">Carregando...</p>
+    </div>
+</div>
+
+<!-- History -->
+<div style="margin-top: 30px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Pipelines</h2>
+    <div class="list-container" id="pipeline-history">
+        <p style="color: var(--text-secondary);">Carregando...</p>
+    </div>
+</div>
+
+<style>
+.step-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.step-icon { font-size: 1.5rem; width: 40px; text-align: center; }
+.step-running { border-color: var(--info); }
+.step-ok { border-color: var(--accent-green); }
+.step-error { border-color: var(--danger); }
+.step-skipped { border-color: var(--text-secondary); opacity: 0.6; }
+</style>
+
+<script>
+const stepLabels = {
+    article: {icon: 'fa-solid fa-file-lines', label: 'Gerar Artigo', api: 'Gemini AI'},
+    image: {icon: 'fa-regular fa-image', label: 'Gerar Imagem', api: 'Gemini Imagen / Pollinations'},
+    publish: {icon: 'fa-brands fa-wordpress', label: 'Publicar WP', api: 'REST API'},
+    pinterest: {icon: 'fa-brands fa-pinterest', label: 'Criar Pin', api: 'Pinterest API'},
+};
+
+// Load articles for reuse
+fetch('/api/articles/list')
+    .then(r => r.json())
+    .then(articles => {
+        const sel = document.getElementById('pipeline-article');
+        articles.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.filename;
+            opt.textContent = a.filename;
+            sel.appendChild(opt);
+        });
+    });
+
+// URL params
+const params = new URLSearchParams(window.location.search);
+if (params.get('keyword')) {
+    document.getElementById('pipeline-keyword').value = params.get('keyword');
+}
+
+function renderSteps(steps) {
+    return steps.map(s => {
+        const info = stepLabels[s.step] || {icon: 'fa-solid fa-circle', label: s.step, api: ''};
+        const statusClass = 'step-' + s.status;
+        const statusIcon = s.status === 'ok' ? '✅' : s.status === 'error' ? '❌' : s.status === 'running' ? '<i class="fa-solid fa-spinner fa-spin"></i>' : '⏭️';
+        let detail = '';
+        if (s.status === 'ok') {
+            if (s.step === 'article') detail = s.title || s.filename;
+            else if (s.step === 'image') detail = s.filename + ' (' + s.size_kb + ' KB)';
+            else if (s.step === 'publish') detail = s.url || 'Publicado';
+            else if (s.step === 'pinterest') detail = 'Pin ID: ' + s.pin_id;
+        } else if (s.status === 'error') {
+            detail = s.error || 'Erro desconhecido';
+        }
+        return `<div class="step-card ${statusClass}">
+            <div class="step-icon">${statusIcon}</div>
+            <div style="flex: 1;">
+                <strong>${info.label}</strong>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 8px;">${info.api}</span>
+                ${s.from_checkpoint ? '<span style="background:var(--warning);color:#000;border-radius:4px;padding:1px 6px;font-size:0.75rem;margin-left:8px;">checkpoint</span>' : ''}
+                ${detail ? '<div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">' + esc(detail) + '</div>' : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function runPipeline() {
+    const keyword = document.getElementById('pipeline-keyword').value.trim();
+    if (!keyword) { alert('Digite uma palavra-chave'); return; }
+
+    const btn = document.getElementById('btn-pipeline');
+    const progress = document.getElementById('pipeline-progress');
+    const result = document.getElementById('pipeline-result');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Executando...';
+    progress.style.display = 'block';
+    result.style.display = 'none';
+
+    const body = {
+        keyword,
+        pin_prompt: document.getElementById('pipeline-prompt').value.trim(),
+        skip_publish: document.getElementById('skip-publish').checked,
+        skip_pinterest: document.getElementById('skip-pinterest').checked,
+        article_filename: document.getElementById('pipeline-article').value,
+        force_restart: document.getElementById('force-restart').checked,
+    };
+
+    document.getElementById('steps-container').innerHTML = renderSteps([
+        {step: 'article', status: 'running'},
+        {step: 'image', status: 'running'},
+        {step: 'publish', status: 'running'},
+        {step: 'pinterest', status: 'running'},
+    ]);
+
+    fetch('/api/pipeline', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Executar Pipeline Completo';
+        progress.style.display = 'none';
+
+        // Render final steps
+        document.getElementById('steps-container').innerHTML = renderSteps(data.steps || []);
+
+        if (data.success) {
+            const pinUrl = data.image_url || ('/static/images/' + esc(data.image));
+            const wpLink = data.post_url || 'https://tech-tips.byethost4.com';
+            const pinTitle = esc(data.title || '');
+            const pinDesc = 'Read this guide on our blog!';
+
+            // Build Pinterest share URL
+            const pinterestUrl = 'https://pinterest.com/pin/create/button/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl.startsWith('http') ? pinUrl : window.location.origin + pinUrl) + '&description=' + encodeURIComponent(pinTitle);
+
+            let links = '';
+            if (data.post_url) links += '<a href="' + esc(data.post_url) + '" target="_blank" class="btn btn-blue" style="margin-right: 8px;"><i class="fa-solid fa-external-link"></i> Ver no WordPress</a>';
+            links += '<button class="btn btn-green" onclick="copyImage(\'' + esc(data.image) + '\')"><i class="fa-regular fa-copy"></i> Copiar Imagem</button>';
+            links += '<button class="btn btn-orange" onclick="downloadPin(\'' + esc(data.image) + '\')"><i class="fa-solid fa-download"></i> Download</button>';
+            links += '<a href="' + pinterestUrl + '" target="_blank" class="btn btn-red" style="text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Publicar no Pinterest</a>';
+
+            result.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Pin Preview -->
+                <div class="stat-card" style="border-color: var(--danger); text-align: center;">
+                    <h3 style="color: var(--danger); margin-bottom: 15px;"><i class="fa-brands fa-pinterest"></i> Preview do Pin</h3>
+                    <div style="background: #fff; border-radius: 12px; padding: 15px; display: inline-block; max-width: 280px;">
+                        <img id="pin-preview-img" src="${pinUrl}" style="width: 100%; border-radius: 8px; cursor: pointer;" title="Clique para copiar" onclick="copyImage('${esc(data.image)}')">
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p style="color: var(--text-primary); font-weight: bold; font-size: 0.95rem;">${pinTitle}</p>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">${pinDesc}</p>
+                    </div>
+                    <div class="actions" style="justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-green" onclick="copyImage('${esc(data.image)}')"><i class="fa-regular fa-copy"></i> Copiar Imagem</button>
+                        <button class="btn btn-orange" onclick="downloadPin('${esc(data.image)}')"><i class="fa-solid fa-download"></i> Download</button>
+                        <button class="btn btn-blue" onclick="copyTitle('${esc(data.title || '')}')"><i class="fa-regular fa-copy"></i> Copiar Título</button>
+                    </div>
+                </div>
+                <!-- Info + Actions -->
+                <div class="stat-card" style="border-color: var(--accent-green);">
+                    <h3 style="color: var(--accent-green); margin-bottom: 10px;"><i class="fa-solid fa-check-circle"></i> Pipeline Concluído!</h3>
+                    <p><strong>Artigo:</strong> ${pinTitle}</p>
+                    <p><strong>Arquivo:</strong> ${esc(data.article)}</p>
+                    <p><strong>Imagem:</strong> ${esc(data.image)}</p>
+                    ${data.post_url ? '<p><strong>WP:</strong> <a href="' + esc(data.post_url) + '" target="_blank" style="color: var(--info);">' + esc(data.post_url) + '</a></p>' : ''}
+                    <div style="margin-top: 15px; padding: 12px; background: var(--bg-color); border-radius: 8px;">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 8px;">Como publicar no Pinterest:</p>
+                        <ol style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 20px; line-height: 1.8;">
+                            <li>Clique "Copiar Imagem" acima</li>
+                            <li>No Pinterest, clique "+" → "Pin"</li>
+                            <li>Cole a imagem (Ctrl+V)</li>
+                            <li>Cole o título (botão ao lado)</li>
+                            <li>Cole o link do WordPress</li>
+                            <li>Adicione hashtags e publique</li>
+                        </ol>
+                    </div>
+                    <div class="actions" style="margin-top: 15px;">
+                        <a href="${pinterestUrl}" target="_blank" class="btn btn-red" style="text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Abrir Pinterest</a>
+                        ${data.post_url ? '<a href="' + esc(data.post_url) + '" target="_blank" class="btn btn-blue"><i class="fa-solid fa-external-link"></i> Ver WP</a>' : ''}
+                        <a href="/articles" class="btn btn-green"><i class="fa-solid fa-list"></i> Artigos</a>
+                    </div>
+                </div>
+            </div>`;
+        } else {
+            const failedStep = (data.steps || []).find(s => s.status === 'error');
+            result.innerHTML = `<div class="stat-card" style="border-color: var(--danger);">
+                <h3 style="color: var(--danger); margin-bottom: 10px;"><i class="fa-solid fa-xmark-circle"></i> Pipeline com Erro</h3>
+                ${failedStep ? '<p><strong>Erro em ' + esc(failedStep.step) + ':</strong> ' + esc(failedStep.error) + '</p>' : '<p>Erro desconhecido</p>'}
+            </div>`;
+        }
+        result.style.display = 'block';
+        loadHistory();
+        loadPins();
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Executar Pipeline Completo';
+        progress.style.display = 'none';
+        result.innerHTML = `<div class="stat-card" style="border-color: var(--danger);"><p>Erro de conexão: ${esc(String(err))}</p></div>`;
+        result.style.display = 'block';
+    });
+}
+
+function loadPins() {
+    Promise.all([
+        fetch('/api/images/list').then(r => r.json()),
+        fetch('/api/articles/list').then(r => r.json())
+    ])
+    .then(([images, articles]) => {
+        const pins = images.filter(i => i.is_pin);
+        const grid = document.getElementById('pins-grid');
+
+        if (pins.length === 0) {
+            grid.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 30px;">Nenhum pin gerado ainda. Execute o pipeline para criar pins.</p>';
+            return;
+        }
+
+        // Map pins to their articles
+        grid.innerHTML = pins.map(pin => {
+            // Try to find the article name from the pin filename
+            const slug = pin.filename.replace('pin-', '').replace('.png', '');
+            const article = articles.find(a => {
+                const aSlug = a.filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
+                return aSlug === slug;
+            });
+            const articleName = article ? article.filename : slug.replace(/-/g, ' ');
+            const title = articleName.replace('.md', '').replace(/_/g, ' ').replace(/\d{4}-\d{2}-\d{2}_/, '').replace(/-/g, ' ');
+
+            // Build Pinterest share URL
+            const wpLink = 'https://tech-tips.byethost4.com';
+            const pinUrl = pin.image_url || (window.location.origin + '/static/images/' + pin.filename);
+            const pinterestUrl = 'https://pinterest.com/pin/create/button/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title);
+
+            return `
+            <div class="stat-card" style="text-align: center; padding: 15px;">
+                <img src="/static/images/${esc(pin.filename)}" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; cursor: pointer; margin-bottom: 10px;" title="Clique para copiar" onclick="copyImage('${esc(pin.filename)}')">
+                <p style="color: var(--danger); font-weight: bold; font-size: 0.85rem; margin-bottom: 4px;">${esc(pin.filename)}</p>
+                <p style="color: var(--text-secondary); font-size: 0.75rem;">${pin.size_kb} KB | ${pin.date}</p>
+                <div class="actions" style="justify-content: center; margin-top: 10px; flex-wrap: wrap; gap: 6px;">
+                    <button class="btn btn-green" onclick="copyImage('${esc(pin.filename)}')" style="font-size: 0.8rem;"><i class="fa-regular fa-copy"></i> Copiar</button>
+                    <button class="btn btn-orange" onclick="downloadPin('${esc(pin.filename)}')" style="font-size: 0.8rem;"><i class="fa-solid fa-download"></i> Download</button>
+                    <button class="btn btn-blue" onclick="copyTitle('${esc(title)}')" style="font-size: 0.8rem;"><i class="fa-regular fa-copy"></i> Título</button>
+                    <a href="${pinterestUrl}" target="_blank" class="btn btn-red" style="font-size: 0.8rem; text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Pin</a>
+                </div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function deleteHistoryEntry(idx) {
+    if (!confirm('Excluir este registro do histórico?')) return;
+    fetch('/api/pipeline/history/delete/' + idx, {method: 'DELETE'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { loadHistory(); } else { alert('Erro: ' + (data.error || 'Falha')); }
+        });
+}
+
+function loadHistory() {
+    fetch('/api/pipeline/history')
+        .then(r => r.json())
+        .then(history => {
+            const container = document.getElementById('pipeline-history');
+            if (history.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Nenhum pipeline executado ainda.</p>';
+                return;
+            }
+            container.innerHTML = history.slice(0, 20).map((h, idx) => {
+                const allOk = (h.steps || []).every(s => s.status === 'ok' || s.status === 'skipped');
+                const stepsSummary = (h.steps || []).map(s => {
+                    const icon = s.status === 'ok' ? '✅' : s.status === 'error' ? '❌' : '⏭️';
+                    return icon;
+                }).join(' ');
+                return `<div class="list-item">
+                    <div>
+                        <div class="list-item-title" style="color: ${allOk ? 'var(--accent-green)' : 'var(--danger)'};">
+                            ${esc(h.title || h.keyword)}
+                        </div>
+                        <div class="list-item-meta">${stepsSummary} | ${esc(h.completed_at || '')}</div>
+                    </div>
+                    <div class="actions">
+                        ${h.post_url ? '<a href="' + esc(h.post_url) + '" target="_blank" class="btn btn-blue" style="font-size: 0.8rem;"><i class="fa-solid fa-external-link"></i> WP</a>' : ''}
+                        <a href="/articles" class="btn btn-green" style="font-size: 0.8rem;"><i class="fa-solid fa-list"></i></a>
+                        <button class="btn btn-red" onclick="deleteHistoryEntry(${idx})" style="font-size: 0.8rem;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        });
+}
+
+function copyImage(filename) {
+    const url = window.location.origin + '/static/images/' + filename;
+    // Try to copy image to clipboard using fetch + blob
+    fetch(url)
+        .then(r => r.blob())
+        .then(blob => {
+            const item = new ClipboardItem({'image/png': blob});
+            navigator.clipboard.write([item]).then(() => {
+                showToast('Imagem copiada! Cole no Pinterest (Ctrl+V)');
+            }).catch(() => {
+                // Fallback: copy URL instead
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('URL da imagem copiada!');
+                }).catch(() => {
+                    // Final fallback: open image in new tab
+                    window.open(url, '_blank');
+                    showToast('Imagem aberta em nova aba — salve com botão direito');
+                });
+            });
+        });
+}
+
+function downloadPin(filename) {
+    const link = document.createElement('a');
+    link.href = '/static/images/' + filename;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Download iniciado: ' + filename);
+}
+
+function copyTitle(title) {
+    navigator.clipboard.writeText(title).then(() => {
+        showToast('Título copiado!');
+    });
+}
+
+function showToast(msg) {
+    let toast = document.getElementById('toast-msg');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-msg';
+        toast.style.cssText = 'position:fixed; bottom:30px; right:30px; background:var(--accent-green); color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('pipeline-keyword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') runPipeline();
+});
+
+loadHistory();
+loadPins();
+</script>
+{% endblock %}

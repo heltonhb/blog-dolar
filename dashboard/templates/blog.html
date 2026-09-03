@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-globe" style="color: var(--info);"></i> Visualização do Blog</h1>
+        <p>tech-tips.byethost4.com — visualize como os visitantes veem o site</p>
+    </div>
+    <div class="actions">
+        <button class="btn btn-blue" onclick="reloadFrame()"><i class="fa-solid fa-rotate-right"></i> Recarregar</button>
+        <a href="https://tech-tips.byethost4.com" target="_blank" class="btn btn-green"><i class="fa-solid fa-external-link"></i> Abrir em nova aba</a>
+    </div>
+</div>
+
+<!-- Stats bar -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 15px;">
+    <div class="stat-card" style="padding: 12px;">
+        <p style="color: var(--text-secondary); font-size: 0.8rem;">Artigos no Blog</p>
+        <h3 id="blog-articles" style="color: var(--accent-green);">...</h3>
+    </div>
+    <div class="stat-card" style="padding: 12px;">
+        <p style="color: var(--text-secondary); font-size: 0.8rem;">Último Artigo</p>
+        <h3 id="blog-latest" style="color: var(--info); font-size: 0.9rem;">...</h3>
+    </div>
+    <div class="stat-card" style="padding: 12px;">
+        <p style="color: var(--text-secondary); font-size: 0.8rem;">Páginas Publicadas</p>
+        <h3 id="blog-published" style="color: var(--warning);">...</h3>
+    </div>
+    <div class="stat-card" style="padding: 12px;">
+        <p style="color: var(--text-secondary); font-size: 0.8rem;">Status do Site</p>
+        <h3 id="blog-status" style="color: var(--accent-green);">...</h3>
+    </div>
+</div>
+
+<!-- Blog iframe -->
+<div style="border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; background: #fff;">
+    <div style="background: var(--card-bg); padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; gap: 6px;">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--danger);"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--warning);"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--accent-green);"></span>
+        </div>
+        <input type="text" id="blog-url" class="form-control" value="https://tech-tips.byethost4.com" style="flex: 1; padding: 6px 12px; font-size: 0.85rem; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;" onkeydown="if(event.key==='Enter')navigateBlog()">
+        <button class="btn btn-blue" onclick="navigateBlog()" style="padding: 6px 12px;"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+    <iframe id="blog-frame" src="https://tech-tips.byethost4.com" style="width: 100%; height: 70vh; border: none;"></iframe>
+</div>
+
+<!-- Local articles list -->
+<div style="margin-top: 20px;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--info);"><i class="fa-solid fa-file-lines"></i> Artigos Locais (prontos para publicar)</h2>
+    <div class="list-container" id="local-articles">
+        <p style="color: var(--text-secondary);">Carregando...</p>
+    </div>
+</div>
+
+<script>
+function reloadFrame() {
+    document.getElementById('blog-frame').src = document.getElementById('blog-frame').src;
+}
+
+function navigateBlog() {
+    const url = document.getElementById('blog-url').value.trim();
+    if (url) document.getElementById('blog-frame').src = url;
+}
+
+// Load stats
+Promise.all([
+    fetch('/api/articles/list').then(r => r.json()),
+    fetch('/api/stats').then(r => r.json())
+]).then(([articles, stats]) => {
+    document.getElementById('blog-articles').textContent = articles.length;
+    document.getElementById('blog-published').textContent = stats.published_count || 0;
+    document.getElementById('blog-latest').textContent = articles.length > 0 ? articles[0].filename.replace('.md', '').replace('2026-09-01_', '').replace(/-/g, ' ') : 'Nenhum';
+
+    // Check site status
+    fetch('https://tech-tips.byethost4.com', {mode: 'no-cors'})
+        .then(() => { document.getElementById('blog-status').textContent = 'Online'; document.getElementById('blog-status').style.color = 'var(--accent-green)'; })
+        .catch(() => { document.getElementById('blog-status').textContent = 'Offline'; document.getElementById('blog-status').style.color = 'var(--danger)'; });
+
+    // Local articles
+    const container = document.getElementById('local-articles');
+    if (articles.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Nenhum artigo local.</p>';
+        return;
+    }
+    container.innerHTML = articles.map(a => `
+        <div class="list-item">
+            <div>
+                <div class="list-item-title" style="color: var(--info);">${esc(a.filename)}</div>
+                <div class="list-item-meta">${a.size} KB | ${a.date}</div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-blue" onclick="viewArticle('${esc(a.filename)}')" style="font-size: 0.8rem;"><i class="fa-solid fa-eye"></i> Ver</button>
+            </div>
+        </div>
+    `).join('');
+});
+
+function viewArticle(filename) {
+    const slug = filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
+    document.getElementById('blog-url').value = 'https://tech-tips.byethost4.com/' + slug + '/';
+    navigateBlog();
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}
