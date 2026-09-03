@@ -36,6 +36,14 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", hashlib.sha256(b"blog-dolar-
 
 # Add scripts/ to path so we can import shared modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+from db import (
+    get_ideas, save_idea, update_idea_status,
+    get_pipeline_history, save_pipeline_history,
+    get_verify_history, save_verify_history,
+    get_config, save_config,
+    get_checkpoint, save_checkpoint, clear_checkpoints,
+    migrate_from_json,
+)
 from image_generator import (
     generate_article_image,
     generate_image,
@@ -523,7 +531,7 @@ def _scheduled_pipeline_job(keyword: str):
             )
         except Exception as e:
             # Log errors to pipeline history as failed runs
-            history = _load_json("pipeline_history.json", [])
+            history = get_pipeline_history()
             history.append({
                 "keyword": keyword,
                 "title": keyword,
@@ -571,7 +579,7 @@ def _run_pipeline_logic(keyword: str, pin_prompt: str, skip_publish: bool,
         steps.append({"step": "article", "status": "ok", "filename": article_filename, "title": title})
     else:
         # Check checkpoint
-        ckpt_article = _get_checkpoint(pipeline_slug, "article") if not force_restart else None
+        ckpt_article = get_checkpoint(pipeline_slug, "article") if not force_restart else None
         if ckpt_article and (_articles_dir() / ckpt_article).exists():
             article_filename = ckpt_article
             filepath = _articles_dir() / article_filename
@@ -617,7 +625,7 @@ Return ONLY JSON:
             filepath.write_text(file_content, encoding="utf-8")
             title = article.get("title", keyword)
             meta_desc = article.get("meta_description", "")
-            _save_checkpoint(pipeline_slug, "article", article_filename)
+            save_checkpoint(pipeline_slug, "article", article_filename)
             steps[-1] = {"step": "article", "status": "ok", "filename": article_filename, "title": title}
 
     # ---- Step 2: Image ----
@@ -627,7 +635,7 @@ Return ONLY JSON:
     images_dir.mkdir(parents=True, exist_ok=True)
 
     # Check checkpoint for image
-    ckpt_image = _get_checkpoint(pipeline_slug, "image") if not force_restart else None
+    ckpt_image = get_checkpoint(pipeline_slug, "image") if not force_restart else None
     if ckpt_image and (images_dir / ckpt_image).exists():
         pin_filename = ckpt_image
         image_bytes = (images_dir / pin_filename).read_bytes()
@@ -649,7 +657,7 @@ Return ONLY JSON:
             (images_dir / f"featured-{image_slug}.png").write_bytes(featured_bytes)
         except Exception:
             pass
-        _save_checkpoint(pipeline_slug, "image", pin_filename)
+        save_checkpoint(pipeline_slug, "image", pin_filename)
         steps.append({"step": "image", "status": "ok", "filename": pin_filename,
                       "size_kb": round(len(image_bytes) / 1024, 1), "provider": provider})
 
@@ -659,7 +667,7 @@ Return ONLY JSON:
 
     if not skip_publish:
         # Check checkpoint
-        ckpt_publish = _get_checkpoint(pipeline_slug, "publish") if not force_restart else None
+        ckpt_publish = get_checkpoint(pipeline_slug, "publish") if not force_restart else None
         if ckpt_publish:
             post_url = ckpt_publish.get("url", "")
             public_image_url = ckpt_publish.get("image_url", "")
@@ -734,15 +742,15 @@ Return ONLY JSON:
     # ---- Step 4: Pinterest ----
     if not skip_pinterest:
         # Check checkpoint
-        ckpt_pin = _get_checkpoint(pipeline_slug, "pinterest") if not force_restart else None
+        ckpt_pin = get_checkpoint(pipeline_slug, "pinterest") if not force_restart else None
         if ckpt_pin:
             steps.append({"step": "pinterest", "status": "ok",
                           "pin_id": ckpt_pin, "from_checkpoint": True})
         else:
             steps.append({"step": "pinterest", "status": "running"})
             try:
-                access_token = _env("PINTEREST_ACCESS_TOKEN") or _load_json("pinterest_config.json", {}).get("access_token", "")
-                board_id = _env("PINTEREST_BOARD_ID") or _load_json("pinterest_config.json", {}).get("board_id", "")
+                access_token = _env("PINTEREST_ACCESS_TOKEN") or get_config("pinterest_config", {}).get("access_token", "")
+                board_id = _env("PINTEREST_BOARD_ID") or get_config("pinterest_config", {}).get("board_id", "")
                 if not access_token or not board_id:
                     steps[-1] = {"step": "pinterest", "status": "error",
                                  "error": "Pinterest não configurado (ACCESS_TOKEN ou BOARD_ID ausente)"}
@@ -763,7 +771,7 @@ Return ONLY JSON:
                     if resp_pin.status_code in (200, 201):
                         pin_data = resp_pin.json()
                         pin_id = pin_data.get("id", "")
-                        config = _load_json("pinterest_config.json", {})
+                        config = get_config("pinterest_config", {})
                         published = config.get("published_pins", [])
                         published.append({"pin_id": pin_id, "title": title,
                                           "article": article_filename,
@@ -781,10 +789,10 @@ Return ONLY JSON:
         steps.append({"step": "pinterest", "status": "skipped"})
 
     # Save history
-    history = _load_json("pipeline_history.json", [])
+    history = get_pipeline_history()
     if not isinstance(history, list):
         history = []
-    history.append({
+    save_pipeline_history({
         "keyword": keyword,
         "article": article_filename,
         "title": title,
@@ -794,13 +802,11 @@ Return ONLY JSON:
         "steps": steps,
         "completed_at": datetime.now().isoformat(),
     })
-    history = history[-100:]
-    _save_json("pipeline_history.json", history)
 
     # Clean up checkpoint if all steps succeeded
     all_ok = all(s["status"] in ("ok", "skipped") for s in steps)
     if all_ok:
-        _clear_checkpoint(pipeline_slug)
+        clear_checkpoints(pipeline_slug)
 
     return {
         "success": all_ok,
@@ -887,7 +893,7 @@ def scheduler_page():
 def api_stats():
     articles_dir = _articles_dir()
     article_count = len(list(articles_dir.glob("2*.md"))) if articles_dir.exists() else 0
-    ideas = _load_json("ideas.json", [])
+    ideas = get_ideas()
     pending_ideas = sum(1 for i in ideas if i.get("status") == "pending")
 
     published_count = 0
@@ -905,7 +911,7 @@ def api_stats():
     except Exception:
         pass
 
-    adcash = _load_json("adcash_stats.json", {})
+    adcash = get_config("adcash_stats", {})
     revenue = adcash.get("total_revenue", 0.0)
 
     # Scheduler status
@@ -1042,7 +1048,7 @@ def api_delete_idea(idea_id):
 @app.route("/api/ideas/list")
 @login_required
 def api_list_ideas():
-    ideas = _load_json("ideas.json", [])
+    ideas = get_ideas()
     ideas.sort(key=lambda x: x.get("id", 0), reverse=True)
     return jsonify(ideas)
 
@@ -1263,7 +1269,7 @@ Return ONLY JSON (no markdown):
             "verified_at": datetime.now().isoformat(),
         }
 
-        history = _load_json("verify_history.json", [])
+        history = get_verify_history()
         history.append(result)
         history = history[-50:]
         _save_json("verify_history.json", history)
@@ -1277,7 +1283,7 @@ Return ONLY JSON (no markdown):
 @login_required
 def api_delete_verify_history(index):
     try:
-        history = _load_json("verify_history.json", [])
+        history = get_verify_history()
         if index < 0 or index >= len(history):
             return jsonify({"success": False, "error": f"Índice inválido: {index}"}), 404
         removed = history.pop(index)
@@ -1432,7 +1438,7 @@ def api_pipeline():
 @app.route("/api/pipeline/history")
 @login_required
 def api_pipeline_history():
-    history = _load_json("pipeline_history.json", [])
+    history = get_pipeline_history()
     if not isinstance(history, list):
         history = []
     history.sort(key=lambda x: x.get("completed_at", ""), reverse=True)
@@ -1443,7 +1449,7 @@ def api_pipeline_history():
 @login_required
 def api_delete_pipeline_history(index):
     try:
-        history = _load_json("pipeline_history.json", [])
+        history = get_pipeline_history()
         if not isinstance(history, list):
             return jsonify({"success": False, "error": "Histórico inválido"}), 500
         if index < 0 or index >= len(history):
@@ -1514,8 +1520,8 @@ def api_pinterest_create():
     try:
         import httpx as _httpx
         data = request.json or {}
-        access_token = _env("PINTEREST_ACCESS_TOKEN") or _load_json("pinterest_config.json", {}).get("access_token", "")
-        board_id = _env("PINTEREST_BOARD_ID") or _load_json("pinterest_config.json", {}).get("board_id", "")
+        access_token = _env("PINTEREST_ACCESS_TOKEN") or get_config("pinterest_config", {}).get("access_token", "")
+        board_id = _env("PINTEREST_BOARD_ID") or get_config("pinterest_config", {}).get("board_id", "")
         if not access_token or not board_id:
             return jsonify({"success": False, "error": "Pinterest não configurado."})
 
@@ -1554,7 +1560,7 @@ def api_pinterest_create():
         )
         if resp.status_code in (200, 201):
             pin = resp.json()
-            config = _load_json("pinterest_config.json", {})
+            config = get_config("pinterest_config", {})
             published = config.get("published_pins", [])
             published.append({"pin_id": pin.get("id", ""), "title": data.get("title", ""),
                                "created_at": datetime.now().isoformat()})
@@ -1568,7 +1574,7 @@ def api_pinterest_create():
 @app.route("/api/pinterest/list")
 @login_required
 def api_pinterest_list():
-    return jsonify(_load_json("pinterest_config.json", {}))
+    return jsonify(get_config("pinterest_config", {}))
 
 
 # ---------------------------------------------------------------------------
@@ -1578,7 +1584,7 @@ def api_pinterest_list():
 @app.route("/api/adcash")
 @login_required
 def api_adcash():
-    return jsonify(_load_json("adcash_stats.json", {}))
+    return jsonify(get_config("adcash_stats", {}))
 
 
 @app.route("/api/adcash/refresh", methods=["POST"])
@@ -1595,7 +1601,7 @@ def api_adcash_refresh():
         if not token:
             return jsonify({"success": False, "error": "Token AdCash não configurado. Adicione ADCASH_API_TOKEN em Config."})
 
-        stats = _load_json("adcash_stats.json", {})
+        stats = get_config("adcash_stats", {})
 
         # AdCash Publisher Stats API
         # Docs: https://publisher.adcash.com/docs/api

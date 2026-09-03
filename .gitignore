@@ -29,3 +29,4 @@ instance/
 # Dashboard data (keep structure, ignore content)
 dashboard/data/*.json
 dashboard/static/images/*.png
+dashboard/data/dashboard.db
