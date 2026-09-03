@@ -1623,7 +1623,7 @@ def api_adcash_refresh():
     try:
         import httpx as _httpx
 
-        config = _load_json("adcash_config.json", {})
+        config = get_config("adcash_config", {})
         token = _env("ADCASH_API_TOKEN") or config.get("api_token", "")
         zone_id = _env("ADCASH_ZONE_ID") or config.get("zone_id", "")
 
@@ -1688,7 +1688,7 @@ def api_adcash_refresh():
             stats["api_status"] = "unreachable"
             stats["api_error"] = str(api_err)
 
-        _save_json("adcash_stats.json", stats)
+        save_config("adcash_stats", stats)
         return jsonify({"success": True, "stats": stats})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
