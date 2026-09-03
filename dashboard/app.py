@@ -1,3 +1,20 @@
+
+@app.route("/api/health")
+def api_health():
+    """Health check endpoint."""
+    import socket
+    checks = {}
+    
+    # Check DNS resolution
+    for host in ["tech-tips.byethost4.com", "api3.adsterratools.com"]:
+        try:
+            socket.gethostbyname(host)
+            checks[host] = "ok"
+        except Exception as e:
+            checks[host] = f"error: {str(e)}"
+    
+    return jsonify({"status": "ok", "dns": checks})
+
 #!/usr/bin/env python3
 """
 Blog em Dolar - Dashboard Flask com funcionalidades completas
@@ -490,16 +507,22 @@ def _byethost_session():
     import httpx as _httpx
     client = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
     try:
-        resp = client.get("https://tech-tips.byethost4.com/")
+        resp = client.get("https://tech-tips.byethost4.com/", timeout=15)
         html = resp.text
         if "toNumbers" in html and "slowAES" in html:
             cookie_val = _solve_challenge(html)
             if cookie_val:
                 client.cookies.set("__test", cookie_val, domain=".byethost4.com")
-                test = client.get("https://tech-tips.byethost4.com/wp-json/")
-                if test.status_code == 200 and "name" in test.text[:200]:
-                    return client
-                client.get("https://tech-tips.byethost4.com/?i=1")
+                try:
+                    test = client.get("https://tech-tips.byethost4.com/wp-json/", timeout=10)
+                    if test.status_code == 200 and "name" in test.text[:200]:
+                        return client
+                except Exception:
+                    pass
+                try:
+                    client.get("https://tech-tips.byethost4.com/?i=1", timeout=10)
+                except Exception:
+                    pass
     except Exception:
         pass
     return client
