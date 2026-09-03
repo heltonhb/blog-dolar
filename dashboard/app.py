@@ -394,9 +394,18 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
     base_url = f"{site_url.rstrip('/')}/wp-json/wp/v2"
     auth = (wp_user, wp_pass)
 
+    # Add hreflang for US targeting
+    hreflang_tag = '<link rel="alternate" hreflang="en-us" href="https://tech-tips.byethost4.com/?p=' + article.get("slug", "") + '" />'
+    article_content = article.get("content", "")
+    # Insert hreflang in article head if it's HTML, or prepend if markdown
+    if "<head>" in article_content:
+        article_content = article_content.replace("<head>", f"<head>\n{hreflang_tag}")
+    elif "<html>" in article_content:
+        article_content = article_content.replace("<html>", f"<html>\n<head>{hreflang_tag}</head>")
+    
     payload = {
         "title": article.get("title", "Untitled"),
-        "content": article.get("content", ""),
+        "content": article_content,
         "slug": article.get("slug", ""),
         "excerpt": article.get("meta_description", ""),
         "status": status,
