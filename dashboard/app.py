@@ -1639,19 +1639,22 @@ def api_adcash_refresh():
 
         try:
             resp = _httpx.get(
-                "https://publisher.adcash.com/api/v2/stats",
+                "https://adcash.myadcash.com/api/v2/publishers/reports",
                 params={
-                    "date_from": month_start,
-                    "date_to": today,
-                    "group_by": "day",
-                    "zone_id": zone_id,
+                    "start_date": month_start,
+                    "end_date": today,
+                    "group_by": "date",
+                    "filters[zone]": zone_id,
                 },
-                headers={"Authorization": f"Bearer {token}"},
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
                 timeout=15,
             )
             if resp.status_code == 200:
                 api_data = resp.json()
-                rows = api_data.get("data", api_data.get("rows", []))
+                rows = api_data.get("data", {}).get("rows", [])
 
                 total_revenue = sum(float(r.get("revenue", r.get("earnings", 0))) for r in rows)
                 total_impressions = sum(int(r.get("impressions", 0)) for r in rows)
