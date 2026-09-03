@@ -153,13 +153,13 @@ def generate_image_gemini(
     aspect_ratio: str = "3:4",
     model: str = "gemini-2.5-flash-image",
 ) -> bytes:
-    """Generate an image using Google Gemini Imagen API (free tier).
+    """Generate an image using Google Gemini API.
 
     Args:
         api_key: Gemini API key
         prompt: Image generation prompt
         aspect_ratio: One of '1:1', '3:4', '4:3', '9:16', '16:9'
-        model: Imagen model to use
+        model: Gemini model to use
 
     Returns:
         Raw image bytes (PNG)
@@ -170,11 +170,9 @@ def generate_image_gemini(
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
     payload = {
-        "instances": [{"prompt": prompt}],
-        "parameters": {
-            "sampleCount": 1,
-            "aspectRatio": aspect_ratio,
-            "personGeneration": "dont_allow",
+        "contents": [{"parts": [{"text": f"Generate an image: {prompt}"}]}],
+        "generationConfig": {
+            "responseModalities": ["TEXT", "IMAGE"],
         },
     }
 
@@ -186,7 +184,7 @@ def generate_image_gemini(
 
                 if resp.status_code in (429, 503):
                     wait = 5 * (attempt + 1)
-                    print(f"  ⏳ Gemini Imagen rate limited, waiting {wait}s...")
+                    print(f"  ⏳ Gemini rate limited, waiting {wait}s...")
                     time.sleep(wait)
                     last_err = f"HTTP {resp.status_code}"
                     continue
@@ -194,28 +192,24 @@ def generate_image_gemini(
                 resp.raise_for_status()
                 data = resp.json()
 
-            predictions = data.get("predictions", [])
-            if not predictions:
-                raise ValueError("No predictions returned from Imagen API")
+            candidates = data.get("candidates", [])
+            for candidate in candidates:
+                parts = candidate.get("content", {}).get("parts", [])
+                for part in parts:
+                    if "inlineData" in part:
+                        import base64 as _b64
+                        return _b64.b64decode(part["inlineData"]["data"])
 
-            image_b64 = predictions[0].get("bytesBase64Encoded", "")
-            if not image_b64:
-                raise ValueError("No image data in prediction response")
-
-            image_bytes = base64.b64decode(image_b64)
-
-            # Validate it's a real image (minimum size check)
-            if len(image_bytes) < 5000:
-                raise ValueError(f"Image too small ({len(image_bytes)} bytes), likely invalid")
-
-            return image_bytes
+            raise ValueError("Gemini returned no image data")
 
         except Exception as e:
             last_err = str(e)
             if attempt < 2:
-                time.sleep(3 * (attempt + 1))
+                print(f"  ⚠️ Gemini attempt {attempt+1} failed: {e}")
+                time.sleep(2)
+            continue
 
-    raise RuntimeError(f"Gemini Imagen failed after 3 attempts: {last_err}")
+    raise RuntimeError(f"Gemini failed after 3 attempts: {last_err}")
 
 
 # ---------------------------------------------------------------------------
