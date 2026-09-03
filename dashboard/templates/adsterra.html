@@ -1,0 +1,168 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-sack-dollar" style="color: var(--accent-green);"></i> AdSterra</h1>
+    <p>Estatísticas de ganhos e impressões</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Receita Total</span>
+            <i class="fa-solid fa-dollar-sign"></i>
+        </div>
+        <h2 id="adsterra-revenue">$0.00</h2>
+        <p>USD este mês</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Impressões</span>
+            <i class="fa-solid fa-eye"></i>
+        </div>
+        <h2 id="adsterra-impressions">0</h2>
+        <p>este mês</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>Cliques</span>
+            <i class="fa-solid fa-hand-pointer"></i>
+        </div>
+        <h2 id="adsterra-clicks">0</h2>
+        <p>este mês</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span>eCPM</span>
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <h2 id="adsterra-ecpm">$0.00</h2>
+        <p>por 1000 impressões</p>
+    </div>
+</div>
+
+<!-- Refresh Button -->
+<div style="margin-bottom: 20px;">
+    <button class="btn btn-green" id="btn-refresh" onclick="refreshAdsterra()" style="padding: 10px 20px;">
+        <i class="fa-solid fa-rotate-right"></i> Atualizar Dados
+    </button>
+    <span id="adsterra-status" style="margin-left: 15px; color: var(--text-secondary);"></span>
+</div>
+
+<!-- Daily Stats Table -->
+<div class="stat-card" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 15px; color: var(--accent-green);">
+        <i class="fa-solid fa-calendar-days"></i> Estatísticas Diárias
+    </h3>
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Impressões</th>
+                    <th>Cliques</th>
+                    <th>Receita</th>
+                    <th>eCPM</th>
+                </tr>
+            </thead>
+            <tbody id="adsterra-tbody">
+                <tr><td colspan="5" style="text-align: center; padding: 20px;">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ad Unit Info -->
+<div class="stat-card">
+    <h3 style="margin-bottom: 10px; color: var(--accent-green);">
+        <i class="fa-solid fa-circle-info"></i> Configuração
+    </h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Site:</strong></p>
+            <a href="https://tech-tips.byethost4.com" target="_blank" style="color: var(--info);">tech-tips.byethost4.com</a>
+        </div>
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Ad Unit:</strong></p>
+            <p>Native Banner / Social Bar</p>
+        </div>
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Painel:</strong></p>
+            <a href="https://beta.publishers.adsterra.com" target="_blank" style="color: var(--info);">AdSterra Publisher</a>
+        </div>
+        <div>
+            <p style="color: var(--text-secondary); margin-bottom: 5px;"><strong>Status:</strong></p>
+            <span id="adsterra-status-badge" class="badge">Verificando...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadAdsterra() {
+    fetch('/api/adsterra')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('adsterra-status').textContent = data.error || 'Erro ao carregar';
+                document.getElementById('adsterra-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center;">' + (data.error || 'Erro ao carregar dados') + '</td></tr>';
+                return;
+            }
+            
+            document.getElementById('adsterra-revenue').textContent = '$' + (data.total_revenue || 0).toFixed(2);
+            document.getElementById('adsterra-impressions').textContent = (data.total_impressions || 0).toLocaleString();
+            document.getElementById('adsterra-clicks').textContent = (data.total_clicks || 0).toLocaleString();
+            document.getElementById('adsterra-ecpm').textContent = '$' + (data.avg_ecpm || 0).toFixed(2);
+            document.getElementById('adsterra-status').textContent = 'Atualizado: ' + (data.last_updated || 'agora');
+            document.getElementById('adsterra-status-badge').textContent = 'Conectado';
+            document.getElementById('adsterra-status-badge').style.color = 'var(--accent-green)';
+            
+            const daily = data.daily_stats || [];
+            const tbody = document.getElementById('adsterra-tbody');
+            if (daily.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Sem dados ainda</td></tr>';
+                return;
+            }
+            tbody.innerHTML = daily.reverse().map(d => `
+                <tr>
+                    <td>${esc(d.date)}</td>
+                    <td>${d.impressions.toLocaleString()}</td>
+                    <td>${d.clicks.toLocaleString()}</td>
+                    <td>$${(d.revenue || 0).toFixed(4)}</td>
+                    <td>$${(d.ecpm || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        })
+        .catch(err => {
+            document.getElementById('adsterra-status').textContent = 'Erro de conexão';
+            console.error(err);
+        });
+}
+
+function refreshAdsterra() {
+    const btn = document.getElementById('btn-refresh');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Atualizando...';
+    btn.disabled = true;
+    
+    fetch('/api/adsterra', { method: 'POST' })
+        .then(r => r.json())
+        .then(() => {
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Atualizar Dados';
+            btn.disabled = false;
+            loadAdsterra();
+        })
+        .catch(() => {
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Atualizar Dados';
+            btn.disabled = false;
+        });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Load on page load
+loadAdsterra();
+</script>
+{% endblock %}

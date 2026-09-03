@@ -2015,6 +2015,100 @@ def api_test_gemini():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+# ---------------------------------------------------------------------------
+#  API: Adsterra stats
+# ---------------------------------------------------------------------------
+
+@app.route("/api/adsterra")
+@login_required
+def api_adsterra():
+    """Fetch stats from Adsterra Publisher API."""
+    import httpx as _httpx
+    
+    token = _env("ADSTERRA_API_TOKEN", "")
+    if not token:
+        return jsonify({"success": False, "error": "Token Adsterra não configurado. Gere em: https://beta.publishers.adsterra.com → API"})
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    month_start = datetime.now().strftime("%Y-%m-01")
+    
+    try:
+        resp = _httpx.get(
+            "https://api3.adsterratools.com/publisher/stats",
+            params={
+                "date_from": month_start,
+                "date_to": today,
+                "group_by": "date",
+            },
+            headers={"X-API-Key": token},
+            timeout=15,
+        )
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            stats_list = data if isinstance(data, list) else data.get("stats", data.get("data", []))
+            
+            total_revenue = sum(float(s.get("revenue", s.get("earnings", 0))) for s in stats_list)
+            total_impressions = sum(int(s.get("impressions", 0)) for s in stats_list)
+            total_clicks = sum(int(s.get("clicks", 0)) for s in stats_list)
+            avg_ecpm = (total_revenue / total_impressions * 1000) if total_impressions > 0 else 0
+            
+            daily = []
+            for s in stats_list:
+                daily.append({
+                    "date": s.get("date", ""),
+                    "impressions": int(s.get("impressions", 0)),
+                    "clicks": int(s.get("clicks", 0)),
+                    "revenue": float(s.get("revenue", s.get("earnings", 0))),
+                    "ecpm": float(s.get("ecpm", 0)),
+                })
+            
+            result = {
+                "success": True,
+                "total_revenue": round(total_revenue, 4),
+                "total_impressions": total_impressions,
+                "total_clicks": total_clicks,
+                "avg_ecpm": round(avg_ecpm, 2),
+                "daily_stats": daily,
+                "last_updated": datetime.now().isoformat(),
+                "api_status": "ok",
+            }
+            save_config("adsterra_stats", result)
+            return jsonify(result)
+        else:
+            return jsonify({"success": False, "error": f"HTTP {resp.status_code}: {resp.text[:200]}"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/api/adsterra/domains")
+@login_required
+def api_adsterra_domains():
+    """Get list of domains from Adsterra."""
+    import httpx as _httpx
+    
+    token = _env("ADSTERRA_API_TOKEN", "")
+    if not token:
+        return jsonify({"success": False, "error": "Token não configurado"})
+    
+    try:
+        resp = _httpx.get(
+            "https://api3.adsterratools.com/publisher/websites",
+            headers={"X-API-Key": token},
+            timeout=15,
+        )
+        return jsonify(resp.json() if resp.status_code == 200 else {"error": resp.text[:200]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+
+@app.route("/adsterra")
+@login_required
+def adsterra_page():
+    return render_template("adsterra.html")
+
+
 @app.route("/sitemap.xml")
 def sitemap():
     """Generate XML sitemap for Google."""
