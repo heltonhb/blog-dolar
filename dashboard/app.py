@@ -34,8 +34,9 @@ from flask import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", hashlib.sha256(b"blog-dolar-secret-2026").hexdigest())
 
-# Add scripts/ to path so we can import shared modules
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+# Add directories to path for imports
+sys.path.insert(0, str(Path(__file__).parent))  # dashboard/ (for db.py)
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))  # scripts/
 from db import (
     get_ideas, save_idea, update_idea_status,
     get_pipeline_history, save_pipeline_history,
