@@ -12,7 +12,7 @@
         <label>Palavra-chave do artigo</label>
         <input type="text" id="pipeline-keyword" class="form-control" placeholder="Ex: Best WiFi routers 2026">
     </div>
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+    <div class="pipeline-form-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
         <div class="form-group">
             <label>Prompt da imagem (opcional — auto-gerado se vazio)</label>
             <input type="text" id="pipeline-prompt" class="form-control" placeholder="Deixe vazio para prompt automático baseado no título">
@@ -197,7 +197,7 @@ function runPipeline() {
             links += '<a href="' + pinterestUrl + '" target="_blank" class="btn btn-red" style="text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Publicar no Pinterest</a>';
 
             result.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="pipeline-result-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <!-- Pin Preview -->
                 <div class="stat-card" style="border-color: var(--danger); text-align: center;">
                     <h3 style="color: var(--danger); margin-bottom: 15px;"><i class="fa-brands fa-pinterest"></i> Preview do Pin</h3>

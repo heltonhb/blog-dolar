@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
@@ -86,6 +86,31 @@
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Bottom Navigation (mobile only) -->
+    <nav class="bottom-nav">
+        <a href="/" class="{% if request.path == '/' %}active{% endif %}">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Home</span>
+        </a>
+        <a href="/pipeline" class="{% if request.path == '/pipeline' %}active{% endif %}">
+            <i class="fa-solid fa-robot"></i>
+            <span>Pipeline</span>
+        </a>
+        <a href="/articles" class="{% if request.path == '/articles' %}active{% endif %}">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Artigos</span>
+        </a>
+        <a href="/ideas" class="{% if request.path == '/ideas' %}active{% endif %}">
+            <i class="fa-regular fa-lightbulb"></i>
+            <span>Ideias</span>
+        </a>
+        <a href="/settings" class="{% if request.path == '/settings' %}active{% endif %}">
+            <i class="fa-solid fa-gear"></i>
+            <span>Config</span>
+        </a>
+    </nav>
+
     <script>
         // ─── Sidebar Toggle (mobile) ────────────────────────────────
         function toggleSidebar() {
@@ -93,15 +118,27 @@
             const overlay = document.querySelector('.sidebar-overlay');
             sidebar.classList.toggle('open');
             overlay.classList.toggle('active');
+            // Prevent body scrolling when sidebar is open
+            document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
         }
 
         // Close sidebar when clicking a nav link (mobile)
-        document.querySelectorAll('.nav-item').forEach(item => {
+        document.querySelectorAll('.sidebar .nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 if (window.innerWidth <= 768) {
                     toggleSidebar();
                 }
             });
+        });
+
+        // Close sidebar on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar.classList.contains('open')) {
+                    toggleSidebar();
+                }
+            }
         });
 
         // ─── Script Runner ──────────────────────────────────────────

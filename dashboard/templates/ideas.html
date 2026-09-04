@@ -1,12 +1,12 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+<div class="header page-header-flex" style="display: flex; justify-content: space-between; align-items: center;">
     <div>
         <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-regular fa-lightbulb" style="color: var(--accent-green);"></i> Gerenciar Ideias</h1>
         <p id="ideas-count">Carregando...</p>
     </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <div class="header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn btn-green" id="btn-generate-ideas" style="font-weight: bold; padding: 10px 20px;" onclick="generateIdeas('ai')">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA
         </button>
@@ -39,7 +39,7 @@
 <!-- Add Idea Form -->
 <div class="add-idea-form" style="margin-top: 30px;">
     <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-solid fa-circle-plus"></i> Adicionar Ideia Manual</h2>
-    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+    <div class="ideas-form-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
         <div class="form-group">
             <label>Título do Artigo</label>
             <input type="text" id="new-title" class="form-control" placeholder="Ex: Best Mechanical Keyboards 2026">
