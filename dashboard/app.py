@@ -807,6 +807,14 @@ Return ONLY JSON:
                 if public_image_url:
                     body = f"![{title}]({public_image_url})\n\n" + body
                     article_data["content"] = body
+                    
+                    # Salva a alteração de volta no arquivo .md para que a verificação (Verify) enxergue a imagem
+                    if file_content.startswith("---") and len(file_content.split("---", 2)) >= 3:
+                        parts = file_content.split("---", 2)
+                        new_file_content = f"---{parts[1]}---\n{body}"
+                    else:
+                        new_file_content = body
+                    filepath.write_text(new_file_content, encoding="utf-8")
 
                 pub_result = _wp_publish(article_data, status="publish")
                 if pub_result["success"]:
