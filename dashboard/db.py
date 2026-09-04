@@ -229,3 +229,44 @@ try:
         init_db()
 except Exception as e:
     print(f"⚠️ Erro ao inicializar banco: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Migrate from JSON (one-time)
+# ═══════════════════════════════════════════════════════════════════
+
+def migrate_from_json(data_dir):
+    """Migrate data from JSON files to PostgreSQL (one-time use)."""
+    data_dir = Path(data_dir)
+    
+    ideas_file = data_dir / 'ideas.json'
+    if ideas_file.exists():
+        with open(ideas_file) as f:
+            ideas = json.load(f)
+        for idea in ideas:
+            save_idea(idea)
+        print(f"✅ {len(ideas)} ideias migradas")
+    
+    history_file = data_dir / 'pipeline_history.json'
+    if history_file.exists():
+        with open(history_file) as f:
+            history = json.load(f)
+        for entry in history:
+            save_pipeline_history(entry)
+        print(f"✅ {len(history)} pipeline records migrados")
+    
+    verify_file = data_dir / 'verify_history.json'
+    if verify_file.exists():
+        with open(verify_file) as f:
+            history = json.load(f)
+        for entry in history:
+            save_verify_history(entry)
+        print(f"✅ {len(history)} verify records migrados")
+    
+    for key in ['pinterest_config', 'adcash_config', 'adcash_stats']:
+        config_file = data_dir / f'{key}.json'
+        if config_file.exists():
+            with open(config_file) as f:
+                config = json.load(f)
+            save_config(key, config)
+            print(f"✅ Config '{key}' migrada")
