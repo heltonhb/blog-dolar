@@ -797,6 +797,17 @@ Return ONLY JSON:
                         if pin_media["success"]:
                             public_image_url = pin_media["url"]
 
+                # Fallback public image URL if ByetHost blocked the upload
+                if not public_image_url:
+                    import urllib.parse
+                    encoded_prompt = urllib.parse.quote(f"professional, high quality, {title}")
+                    public_image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1200&height=675&nologo=true"
+
+                # Prepend the image to the article body so it's always visible
+                if public_image_url:
+                    body = f"![{title}]({public_image_url})\n\n" + body
+                    article_data["content"] = body
+
                 pub_result = _wp_publish(article_data, status="publish")
                 if pub_result["success"]:
                     post_url = pub_result.get("link", "")

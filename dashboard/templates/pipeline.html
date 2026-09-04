@@ -221,19 +221,34 @@ function runPipeline() {
                     <p><strong>Arquivo:</strong> ${esc(data.article)}</p>
                     <p><strong>Imagem:</strong> ${esc(data.image)}</p>
                     ${data.post_url ? '<p><strong>WP:</strong> <a href="' + esc(data.post_url) + '" target="_blank" style="color: var(--info);">' + esc(data.post_url) + '</a></p>' : ''}
-                    <div style="margin-top: 15px; padding: 12px; background: var(--bg-color); border-radius: 8px;">
-                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 8px;">Como publicar no Pinterest:</p>
-                        <ol style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 20px; line-height: 1.8;">
-                            <li>Clique "Copiar Imagem" acima</li>
-                            <li>No Pinterest, clique "+" → "Pin"</li>
-                            <li>Cole a imagem (Ctrl+V)</li>
-                            <li>Cole o título (botão ao lado)</li>
-                            <li>Cole o link do WordPress</li>
-                            <li>Adicione hashtags e publique</li>
-                        </ol>
-                    </div>
+                    ${(() => {
+                        const pinStep = (data.steps || []).find(s => s.step === 'pinterest');
+                        if (pinStep && pinStep.status === 'ok') {
+                            return `
+                            <div style="margin-top: 15px; padding: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-green); border-radius: 8px;">
+                                <p style="color: var(--accent-green); font-weight: bold; margin-bottom: 5px;"><i class="fa-solid fa-check"></i> Pin publicado automaticamente!</p>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem;">ID do Pin: ${pinStep.pin_id}</p>
+                            </div>
+                            `;
+                        } else {
+                            return `
+                            <div style="margin-top: 15px; padding: 12px; background: var(--bg-color); border-radius: 8px;">
+                                <p style="color: var(--warning); font-size: 0.85rem; margin-bottom: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> Automação do Pinterest não configurada ou falhou. Como publicar manualmente:</p>
+                                <ol style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 20px; line-height: 1.8;">
+                                    <li>Clique "Copiar Imagem" acima</li>
+                                    <li>No Pinterest, clique "+" → "Pin"</li>
+                                    <li>Cole a imagem (Ctrl+V)</li>
+                                    <li>Cole o título (botão ao lado)</li>
+                                    <li>Cole o link do WordPress</li>
+                                </ol>
+                            </div>
+                            <div class="actions" style="margin-top: 15px;">
+                                <a href="${pinterestUrl}" target="_blank" class="btn btn-red" style="text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Abrir Pinterest</a>
+                            </div>
+                            `;
+                        }
+                    })()}
                     <div class="actions" style="margin-top: 15px;">
-                        <a href="${pinterestUrl}" target="_blank" class="btn btn-red" style="text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Abrir Pinterest</a>
                         ${data.post_url ? '<a href="' + esc(data.post_url) + '" target="_blank" class="btn btn-blue"><i class="fa-solid fa-external-link"></i> Ver WP</a>' : ''}
                         <a href="/articles" class="btn btn-green"><i class="fa-solid fa-list"></i> Artigos</a>
                     </div>
