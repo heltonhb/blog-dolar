@@ -1326,7 +1326,7 @@ def api_verify_article():
         if internal_links == 0:
             warnings.append("Sem links internos")
 
-        images = body.lower().count("<img")
+        images = body.lower().count("<img") + len(re.findall(r'!\[.*?\]\(.*?\)', body))
         if images == 0:
             warnings.append("Sem imagens no artigo")
 
