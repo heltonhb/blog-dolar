@@ -1,20 +1,3 @@
-
-@app.route("/api/health")
-def api_health():
-    """Health check endpoint."""
-    import socket
-    checks = {}
-    
-    # Check DNS resolution
-    for host in ["tech-tips.byethost4.com", "api3.adsterratools.com"]:
-        try:
-            socket.gethostbyname(host)
-            checks[host] = "ok"
-        except Exception as e:
-            checks[host] = f"error: {str(e)}"
-    
-    return jsonify({"status": "ok", "dns": checks})
-
 #!/usr/bin/env python3
 """
 Blog em Dolar - Dashboard Flask com funcionalidades completas
@@ -104,6 +87,20 @@ def _init_dashboard_db():
         save_config("adcash_stats", {"daily_stats": []})
 
 _init_dashboard_db()
+
+@app.route("/api/health")
+def api_health():
+    """Health check endpoint."""
+    import socket
+    checks = {}
+    for host in ["tech-tips.byethost4.com", "api3.adsterratools.com"]:
+        try:
+            socket.gethostbyname(host)
+            checks[host] = "ok"
+        except Exception as e:
+            checks[host] = f"error: {str(e)}"
+    return jsonify({"status": "ok", "dns": checks})
+
 
 # ---------------------------------------------------------------------------
 #  APScheduler setup
