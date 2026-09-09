@@ -1075,7 +1075,7 @@ def api_generate_ideas():
             ideas = _generate_ideas_from_gemini()
 
         existing = get_ideas()
-        max_id = max((i.get("idea_id", 0) for i in existing), default=0)
+        max_id = max((i.get("idea_id") or 0 for i in existing), default=0)
         for idx, idea in enumerate(ideas):
             idea["idea_id"] = max_id + idx + 1
             idea["status"] = "pending"
@@ -1140,7 +1140,7 @@ def api_add_idea():
     try:
         data = request.json
         ideas = get_ideas()
-        max_id = max((i.get("idea_id", 0) for i in ideas), default=0)
+        max_id = max((i.get("idea_id") or 0 for i in ideas), default=0)
         new_idea = {
             "id": max_id + 1,
             "idea_id": max_id + 1,
