@@ -25,6 +25,10 @@ from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
+from dotenv import load_dotenv
+
+# Load .env before anything else reads environment variables
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from flask import (
     Flask, render_template, request, jsonify,
