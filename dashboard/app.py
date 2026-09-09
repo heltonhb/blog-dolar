@@ -603,16 +603,16 @@ def _scheduled_pipeline_job(keyword: str):
             )
         except Exception as e:
             # Log errors to pipeline history as failed runs
-            history = get_pipeline_history()
-            history.append({
+            save_pipeline_history({
                 "keyword": keyword,
+                "article": "",
                 "title": keyword,
+                "image": "",
+                "image_url": "",
+                "post_url": "",
                 "steps": [{"step": "scheduler", "status": "error", "error": str(e)}],
                 "completed_at": datetime.now().isoformat(),
-                "source": "scheduler",
             })
-            history = history[-100:]
-            save_pipeline_history({"keyword": keyword, "article": article_filename, "title": title, "image": pin_filename, "image_url": public_image_url, "post_url": post_url, "steps": steps, "completed_at": datetime.now().isoformat()})
 
 
 # ---------------------------------------------------------------------------
@@ -1074,6 +1074,9 @@ def api_generate_ideas():
         else:
             ideas = _generate_ideas_from_gemini()
 
+        if not isinstance(ideas, list):
+            return jsonify({"success": False, "error": "Gemini retornou formato inválido"}), 500
+
         existing = get_ideas()
         max_id = max((i.get("idea_id") or 0 for i in existing), default=0)
         for idx, idea in enumerate(ideas):
@@ -1097,7 +1100,8 @@ def _generate_ideas_from_gemini() -> list:
         '[{"title":"Article title","keyword":"long-tail keyword","cpm_estimate":"$10-20","category":"technology"}]\n'
         "No markdown, pure JSON."
     )
-    return _parse_json(data)
+    result = _parse_json(data)
+    return result if isinstance(result, list) else []
 
 
 def _generate_ideas_from_trends() -> list:
