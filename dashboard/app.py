@@ -2185,6 +2185,48 @@ def adsterra_page():
     return render_template("adsterra.html")
 
 
+@app.route("/traffic")
+@login_required
+def traffic_page():
+    return render_template("traffic.html")
+
+
+@app.route("/api/posts")
+@login_required
+def api_posts():
+    """List published posts from WordPress."""
+    import httpx as _httpx
+    env = _load_env_dict()
+    site_url = env.get("SITE_URL", "https://tech-tips.byethost4.com")
+    wp_user = env.get("WP_USER", "")
+    wp_pass = env.get("WP_APP_PASSWORD", "")
+    if not wp_user or not wp_pass:
+        return jsonify([])
+    try:
+        client = _byethost_session()
+        resp = client.get(
+            f"{site_url}/wp-json/wp/v2/posts",
+            params={"per_page": 100, "status": "publish"},
+            auth=(wp_user, wp_pass),
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            posts = []
+            for p in resp.json():
+                posts.append({
+                    "id": p.get("id"),
+                    "title": p.get("title", {}).get("rendered", ""),
+                    "slug": p.get("slug", ""),
+                    "date": p.get("date", "")[:10],
+                    "link": p.get("link", ""),
+                    "content": re.sub(r'<[^>]+>', '', p.get("content", {}).get("rendered", "")),
+                })
+            return jsonify(posts)
+        return jsonify([])
+    except Exception as e:
+        return jsonify([])
+
+
 @app.route("/sitemap.xml")
 def sitemap():
     """Generate XML sitemap for Google."""
