@@ -175,6 +175,22 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/static/sw.js').catch(() => {});
         }
+
+        // ─── Safe JSON fetch (handles Render cold-start HTML responses) ───
+        // Usage: safeFetch(url, opts).then(data => ...) instead of .then(r => r.json())
+        function safeFetch(url, opts = {}) {
+            return fetch(url, opts).then(resp => {
+                const ct = resp.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    // Server returned HTML (cold start, error page, etc.)
+                    if (resp.status === 401) {
+                        throw new Error('Sessão expirada. Faça login novamente.');
+                    }
+                    throw new Error('Servidor despertando, aguarde alguns segundos e tente novamente.');
+                }
+                return resp.json();
+            });
+        }
     </script>
 </body>
 </html>

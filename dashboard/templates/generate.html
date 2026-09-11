@@ -74,12 +74,11 @@ function generateArticle() {
 
     log('Iniciando geração: ' + keyword);
 
-    fetch('/api/generate', {
+    safeFetch('/api/generate', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({keyword})
     })
-    .then(r => r.json())
     .then(data => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Conteúdo';
