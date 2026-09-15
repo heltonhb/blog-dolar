@@ -442,7 +442,10 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
         client = _byethost_session()
         resp = client.post(f"{base_url}/posts", auth=auth, json=payload)
         if resp.status_code in (200, 201):
-            post = resp.json()
+            try:
+                post = resp.json()
+            except Exception:
+                return {"success": False, "error": f"Resposta inválida do WordPress (HTTP {resp.status_code}): {resp.text[:300]}"}
             return {"success": True, "id": post.get("id"), "link": post.get("link", ""), "status": post.get("status")}
         return {"success": False, "error": f"HTTP {resp.status_code}: {resp.text[:300]}"}
     except Exception as e:
@@ -474,7 +477,10 @@ def _wp_upload_media(image_bytes: bytes, filename: str, alt_text: str = "") -> d
             },
         )
         if resp.status_code in (200, 201):
-            media = resp.json()
+            try:
+                media = resp.json()
+            except Exception:
+                return {"success": False, "error": f"Resposta inválida do WordPress (HTTP {resp.status_code}): {resp.text[:200]}"}
             media_id = media.get("id")
             media_url = media.get("source_url", "")
             if alt_text and media_id:
