@@ -536,8 +536,11 @@ def _byethost_session():
                     client.get("https://tech-tips.byethost4.com/?i=1", timeout=10)
                 except Exception:
                     pass
-    except Exception:
-        pass
+                raise RuntimeError("Falha ao resolver anti-bot do ByetHost: cookie inválido. Tente novamente.")
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Falha ao conectar com ByetHost: {e}")
     return client
 
 
