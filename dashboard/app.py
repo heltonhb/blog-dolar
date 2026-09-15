@@ -497,23 +497,45 @@ def _wp_upload_media(image_bytes: bytes, filename: str, alt_text: str = "") -> d
 # ---------------------------------------------------------------------------
 
 def _solve_challenge(html: str):
+    """Solve ByetHost AES challenge. Uses Node.js slowAES for correctness."""
     matches = re.findall(r'toNumbers\("([0-9a-f]+)"\)', html)
     if len(matches) < 3:
         return None
     a, b, c = matches[0], matches[1], matches[2]
+
+    # Fetch aes.js from ByetHost to use their exact slowAES implementation
+    import httpx as _httpx
+    import subprocess as _sp
+    import tempfile as _tmp
     try:
-        from Crypto.Cipher import AES
-        key = bytes.fromhex(a)
-        iv = bytes.fromhex(b)
-        ct = bytes.fromhex(c)
-        cipher = AES.new(key, AES.MODE_CBC, iv)
-        decrypted = cipher.decrypt(ct)
-        pad_len = decrypted[-1]
-        if 1 <= pad_len <= 16:
-            decrypted = decrypted[:-pad_len]
-        return decrypted.hex()
+        aes_resp = _httpx.get("https://tech-tips.byethost4.com/aes.js", timeout=10, verify=False)
+        aes_js = aes_resp.text
     except Exception:
         return None
+
+    # Node.js script using the real slowAES from ByetHost
+    node_code = (
+        aes_js + "\n"
+        'function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}\n'
+        'function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}\n'
+        f'var a=toNumbers("{a}"),b=toNumbers("{b}"),c=toNumbers("{c}");\n'
+        'console.log(toHex(slowAES.decrypt(c,2,a,b)));\n'
+    )
+
+    try:
+        with _tmp.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
+            f.write(node_code)
+            tmpfile = f.name
+        result = _sp.run(["node", tmpfile], capture_output=True, text=True, timeout=10)
+        cookie = result.stdout.strip()
+        return cookie if cookie else None
+    except Exception:
+        return None
+    finally:
+        try:
+            os.unlink(tmpfile)
+        except Exception:
+            pass
 
 def _byethost_session():
     """Create an httpx Client with the ByetHost anti-bot cookie resolved."""
