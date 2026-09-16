@@ -60,6 +60,25 @@
         </div>
     </div>
 
+    <!-- Trafego por Origem (GA4 — mede o Pinterest) -->
+    <div style="margin-bottom: 32px;">
+        <div class="section-title">
+            <i class="fa-brands fa-pinterest" style="color: #e60023;"></i>
+            Tráfego por Origem (Pinterest vs Google vs Direto)
+        </div>
+        <div class="stat-card" id="ga4-card">
+            <p style="color: var(--text-secondary);" id="ga4-status">Verificando dados...</p>
+            <div id="ga4-content" style="margin-top: 12px;"></div>
+            <div style="margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-blue" onclick="refreshGa4()" style="padding: 8px 16px;">🔄 Atualizar agora</button>
+                <span id="ga4-alert" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+            </div>
+            <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
+                📈 Busca as sessões por origem via Google Analytics Data API. Requer o Site Kit (GA4) ativo e os dados já coletados. Para visualizar o painel completo, abra seu Google Analytics.
+            </p>
+        </div>
+    </div>
+
     <!-- SEO Index Status -->
     <div style="margin-bottom: 32px;">
         <div class="section-title">
@@ -189,6 +208,83 @@ async function loadAnalytics() {
     }
 }
 
+async function loadGa4() {
+    const statusEl = document.getElementById('ga4-status');
+    const contentEl = document.getElementById('ga4-content');
+    try {
+        const resp = await fetch('/api/traffic/pinterest');
+        const data = await resp.json();
+        if (!data.success) {
+            statusEl.textContent = 'ℹ️ ' + (data.error || 'GA4 ainda sem dados. Ative o Site Kit e colete visitas primeiro.');
+            contentEl.innerHTML = '';
+            return;
+        }
+        const p = data.pinterest;
+        statusEl.textContent = 'Dados de ' + (data.fetched_at ? new Date(data.fetched_at).toLocaleString() : '?');
+
+        const pinterestSessions = p ? p.sessions : 0;
+        const total = data.total_sessions || 0;
+
+        contentEl.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div class="stat-card" style="padding: 14px;">
+                    <div class="stat-value" style="font-size: 1.4rem; color: #e60023;">${pinterestSessions.toLocaleString()}</div>
+                    <div class="stat-label">Sessões do Pinterest</div>
+                </div>
+                <div class="stat-card" style="padding: 14px;">
+                    <div class="stat-value" style="font-size: 1.4rem;">${total.toLocaleString()}</div>
+                    <div class="stat-label">Total de sessões</div>
+                </div>
+                <div class="stat-card" style="padding: 14px;">
+                    <div class="stat-value" style="font-size: 1.4rem; color: ${total > 0 && pinterestSessions > 0 ? 'var(--accent-green)' : 'var(--warning)'};">${total > 0 ? (pinterestSessions / total * 100).toFixed(1) + '%' : '—'}</div>
+                    <div class="stat-label">Pinterest % do total</div>
+                </div>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead><tr>
+                    <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border-color);">Canal</th>
+                    <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border-color);">Origem</th>
+                    <th style="text-align:right; padding:8px 12px; border-bottom:1px solid var(--border-color);">Sessões</th>
+                    <th style="text-align:right; padding:8px 12px; border-bottom:1px solid var(--border-color);">Usuários</th>
+                </tr></thead>
+                <tbody>
+                    ${(data.all_sources || []).map(s => `
+                        <tr style="${s.source && s.source.toLowerCase().includes('pinterest') ? 'background: rgba(230,0,35,0.08); font-weight:600;' : ''}">
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${s.channel}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${s.source}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${s.sessions.toLocaleString()}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${s.users.toLocaleString()}</td>
+                        </tr>`
+                    ).join('') || '<tr><td colspan="4" style="padding:12px; color:var(--text-secondary); text-align:center;">Sem dados de origem.</td></tr>'}
+                </tbody>
+            </table>`;
+    } catch(e) {
+        statusEl.textContent = 'Erro ao carregar: ' + e.message;
+    }
+}
+
+async function refreshGa4() {
+    const alertEl = document.getElementById('ga4-alert');
+    const btn = event.target;
+    alertEl.textContent = 'Buscando dados do Google Analytics (pode levar ~1 min)...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/api/traffic/ga4/refresh', { method: 'POST' });
+        const data = await resp.json();
+        if (data.success) {
+            alertEl.textContent = '✅ Dados atualizados.';
+            loadGa4();
+        } else {
+            alertEl.textContent = '❌ ' + (data.error || 'Falha ao atualizar.');
+        }
+    } catch(e) {
+        alertEl.textContent = '❌ ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 loadAnalytics();
+loadGa4();
 </script>
 {% endblock %}

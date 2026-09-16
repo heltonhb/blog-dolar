@@ -89,6 +89,9 @@ def _init_dashboard_db():
         save_config("adcash_config", {"api_token": "", "zone_id": "", "site_url": ""})
     if not get_config("adcash_stats"):
         save_config("adcash_stats", {"daily_stats": []})
+    if not get_config("analytics_source"):
+        save_config("analytics_source", {"success": False,
+                                         "error": "GA4 não configurado ainda. Ative o Site Kit e defina GA4_PROPERTY_ID."})
 
 _init_dashboard_db()
 
@@ -912,7 +915,7 @@ Return ONLY JSON:
                         # Upload to WP to get public URL
                         pf_media = _wp_upload_media(pf_path.read_bytes(), pf, alt_text=title)
                         pf_url = pf_media.get("url", public_image_url) if pf_media.get("success") else public_image_url
-                        
+
                         pin_payload = {
                             "board_id": board_id,
                             "title": title[:100],
@@ -923,24 +926,36 @@ Return ONLY JSON:
                         resp_pin = _httpx.post(
                             "https://api.pinterest.com/v5/pins",
                             json=pin_payload,
-                            headers={"Authorization": f"Bearer {access_token}"},
+                            headers=({"Authorization": f"Bearer {access_token}"}
+                                     if not access_token.startswith("Bearer ")
+                                     else {"Authorization": access_token}),
                             timeout=30,
-                    )
-                    if resp_pin.status_code in (200, 201):
-                        pin_data = resp_pin.json()
-                        pin_id = pin_data.get("id", "")
-                        config = get_config("pinterest_config", {})
-                        published = config.get("published_pins", [])
-                        published.append({"pin_id": pin_id, "title": title,
-                                          "article": article_filename,
-                                          "created_at": datetime.now().isoformat()})
-                        config["published_pins"] = published[-50:]
-                        save_config("pinterest_config", config)
-                        _save_checkpoint(pipeline_slug, "pinterest", pin_id)
-                        steps[-1] = {"step": "pinterest", "status": "ok", "pin_id": pin_id}
-                    else:
-                        steps[-1] = {"step": "pinterest", "status": "error",
-                                     "error": f"HTTP {resp_pin.status_code}: {resp_pin.text[:200]}"}
+                        )
+                        if resp_pin.status_code in (401, 403):
+                            steps[-1] = {"step": "pinterest", "status": "error",
+                                         "error": f"Token expirado ({resp_pin.status_code}). "
+                                                  "Regenere o token e configure CLIENT_ID/SECRET/REFRESH no .env."}
+                            break
+                        if resp_pin.status_code in (200, 201):
+                            pin_data = resp_pin.json()
+                            pin_id = pin_data.get("id", "")
+                            pin_ids.append(pin_id)
+                            config = get_config("pinterest_config", {})
+                            published = config.get("published_pins", [])
+                            published.append({"pin_id": pin_id, "title": title,
+                                              "article": article_filename,
+                                              "created_at": datetime.now().isoformat()})
+                            config["published_pins"] = published[-50:]
+                            save_config("pinterest_config", config)
+                            _save_checkpoint(pipeline_slug, "pinterest", pin_id)
+                            steps[-1] = {"step": "pinterest", "status": "ok", "pin_id": pin_id}
+                        else:
+                            steps[-1] = {"step": "pinterest", "status": "error",
+                                         "error": f"HTTP {resp_pin.status_code}: {resp_pin.text[:200]}"}
+                            break
+                    if pin_ids:
+                        steps[-1] = {"step": "pinterest", "status": "ok",
+                                     "pin_ids": pin_ids, "count": len(pin_ids)}
             except Exception as e:
                 steps[-1] = {"step": "pinterest", "status": "error", "error": str(e)}
     else:
@@ -1827,8 +1842,56 @@ def api_adcash_refresh():
 
 
 # ---------------------------------------------------------------------------
-#  API: Scheduler (APScheduler)
+#  API: GA4 / Search Console (tráfego por origem — mede o Pinterest)
 # ---------------------------------------------------------------------------
+
+@app.route("/api/traffic/ga4")
+@login_required
+def api_traffic_ga4():
+    """Retorna cache de sessões por origem (GA4). Puxa do disco, não da API."""
+    return jsonify(_load_json("analytics_source.json", {"success": False,
+                                                        "error": "sem dados ainda"}))
+
+
+@app.route("/api/traffic/ga4/refresh", methods=["POST"])
+@login_required
+def api_traffic_ga4_refresh():
+    """Roda scripts/analytics_ga4.py e devolve o resultado atualizado."""
+    try:
+        script = _scripts_dir() / "analytics_ga4.py"
+        if not script.exists():
+            return jsonify({"success": False, "error": "script analytics_ga4.py não encontrado"}), 500
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--days", "30"],
+            capture_output=True, text=True, timeout=90, cwd=str(script.parent.parent),
+        )
+        out = (result.stdout or "") + ("\n" + result.stderr if result.stderr else "")
+        data = _load_json("analytics_source.json", {})
+        if data.get("success"):
+            return jsonify({"success": True, "stats": data, "console": out[-1200:]})
+        return jsonify({"success": False, "error": out[-1200:],
+                        "detail": "Script rodou mas não gerou dados. Verifique a credencial do Site Kit."}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/traffic/pinterest")
+@login_required
+def api_traffic_pinterest():
+    """Extrai somente a linha de origem do Pinterest do cache GA4."""
+    data = _load_json("analytics_source.json", {})
+    if not data.get("success"):
+        return jsonify({"success": False, "error": "GA4 ainda sem dados."})
+    pinterest = next((s for s in data.get("sources", [])
+                      if "pinterest" in s.get("source", "").lower()), None)
+    return jsonify({
+        "success": True,
+        "pinterest": pinterest,
+        "all_sources": data.get("sources", []),
+        "fetched_at": data.get("fetched_at"),
+        "total_sessions": sum(s.get("sessions", 0) for s in data.get("sources", [])),
+    })
 
 @app.route("/api/scheduler/status")
 @login_required

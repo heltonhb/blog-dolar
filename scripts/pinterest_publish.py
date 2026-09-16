@@ -30,12 +30,30 @@ def get_wp_posts():
         return resp.json()
     return []
 
-def get_pin_image_url(post: dict) -> str:
-    """Extrai URL da imagem destacada do post."""
-    # Featured media
+def get_pin_image_url(post: dict, client=None) -> str:
+    """Extrai URL DIRETA do arquivo de imagem destacada do post.
+
+    O Pinterest rejeita o endpoint REST (`/wp-json/.../media/N`); ele precisa
+    da URL do arquivo de imagem. Buscamos o campo `source_url` na API do WP.
+    """
     media_id = post.get("featured_media")
     if media_id:
-        return f"https://tech-tips.byethost4.com/wp-json/wp/v2/media/{media_id}"
+        media_url = f"https://tech-tips.byethost4.com/wp-json/wp/v2/media/{media_id}"
+        try:
+            if client is not None:
+                r = client.get(media_url, timeout=15)
+            else:
+                import httpx
+                with httpx.Client(timeout=15) as c:
+                    r = c.get(media_url)
+            if r.status_code == 200:
+                ctype = r.headers.get("content-type", "")
+                if "application/json" in ctype:
+                    src = r.json().get("source_url")
+                    if src:
+                        return src
+        except Exception:
+            pass
 
     # Fallback: Pollinations
     title = post.get("title", {}).get("rendered", "tech article")
@@ -43,9 +61,102 @@ def get_pin_image_url(post: dict) -> str:
     prompt = urllib.parse.quote(f"professional tech blog pin, {title}")
     return f"https://image.pollinations.ai/prompt/{prompt}?width=1000&height=1500&nologo=true"
 
+def load_published_pins() -> list:
+    """Carrega pins já publicados, unificando as DUAS fontes de dedup.
+
+    Fonte 1: dashboard/data/pinterest_published.json (CLI)
+    Fonte 2: dashboard/data/pinterest_config.json["published_pins"] (pipeline/UI)
+    A chave de dedup é `article_url` (ou `link`) para evitar duplicação entre fluxos.
+    """
+    from pathlib import Path
+    base = Path(__file__).parent.parent / "dashboard" / "data"
+    pub_path = base / "pinterest_published.json"
+    cfg_path = base / "pinterest_config.json"
+
+    seen = {}
+    for path, key_field in ((pub_path, "article_url"), (cfg_path, "link")):
+        if path.exists():
+            try:
+                data = json.loads(path.read_text())
+            except Exception:
+                continue
+            items = data if isinstance(data, list) else data.get("published_pins", [])
+            if not isinstance(items, list):
+                continue
+            for p in items:
+                if not isinstance(p, dict):
+                    continue
+                k = p.get("article_url") or p.get("link")
+                if k:
+                    seen[k] = p
+    return list(seen.values())
+
+def save_published_pin(pin_data: dict):
+    """Salva pin publicado espelhando em AMBAS as fontes de dedup."""
+    from pathlib import Path
+    base = Path(__file__).parent.parent / "dashboard" / "data"
+    base.mkdir(parents=True, exist_ok=True)
+    pub_path = base / "pinterest_published.json"
+    cfg_path = base / "pinterest_config.json"
+
+    # Fonte 1: pinterest_published.json (lista)
+    pins = json.loads(pub_path.read_text()) if pub_path.exists() else []
+    if not isinstance(pins, list):
+        pins = []
+    pins.append(pin_data)
+    pub_path.write_text(json.dumps(pins, indent=2, default=str))
+
+    # Fonte 2: pinterest_config.json["published_pins"] (dict)
+    cfg = {}
+    if cfg_path.exists():
+        try:
+            cfg = json.loads(cfg_path.read_text())
+        except Exception:
+            cfg = {}
+    if not isinstance(cfg, dict):
+        cfg = {}
+    published = cfg.get("published_pins", [])
+    if not isinstance(published, list):
+        published = []
+    published.append({
+        "pin_id": pin_data.get("pin_id"),
+        "title": pin_data.get("title"),
+        "article": pin_data.get("article_url"),
+        "created_at": pin_data.get("created_at"),
+    })
+    cfg["published_pins"] = published[-50:]
+    cfg_path.write_text(json.dumps(cfg, indent=2, default=str))
+
+
+def refresh_access_token() -> str:
+    """Tenta renovar o access token via refresh token. Retorna o novo token ou ''.
+
+    Exige PINTEREST_CLIENT_ID / CLIENT_SECRET / REFRESH_TOKEN no .env.
+    """
+    client_id = os.environ.get("PINTEREST_CLIENT_ID", "")
+    client_secret = os.environ.get("PINTEREST_CLIENT_SECRET", "")
+    refresh_token = os.environ.get("PINTEREST_REFRESH_TOKEN", "")
+    if not (client_id and client_secret and refresh_token):
+        return ""
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        from pinterest_setup import refresh_token as do_refresh, save_token_to_env
+        data = do_refresh(client_id, client_secret, refresh_token)
+        new_token = data.get("access_token", "")
+        if new_token:
+            save_token_to_env(new_token, data.get("refresh_token") or "")
+            os.environ["PINTEREST_ACCESS_TOKEN"] = new_token
+        return new_token
+    except Exception as e:
+        print(f"   ⚠️ Falha no refresh automático: {e}")
+        return ""
+
+def auth_headers(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
 def create_pin(token: str, board_id: str, title: str, description: str,
                link: str, image_url: str) -> dict:
-    """Cria um pin no Pinterest."""
+    """Cria um pin no Pinterest. Em 401/403, tenta renovar o token e refaz 1x."""
     import httpx
 
     payload = {
@@ -56,32 +167,31 @@ def create_pin(token: str, board_id: str, title: str, description: str,
         "image_source_url": image_url,
     }
 
-    resp = httpx.post(
-        "https://api.pinterest.com/v5/pins",
-        json=payload,
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=30,
-    )
+    def _post(tok: str) -> "httpx.Response":
+        return httpx.post(
+            "https://api.pinterest.com/v5/pins",
+            json=payload,
+            headers=auth_headers(tok),
+            timeout=30,
+        )
+
+    resp = _post(token)
+    if resp.status_code in (401, 403):
+        print("   ⚠️ Token expirado/rejeitado — tentando refresh automático...")
+        new_token = refresh_access_token()
+        if new_token:
+            token = new_token
+            resp = _post(token)
+        else:
+            return {"success": False,
+                    "error": f"HTTP {resp.status_code}: sem refresh configurado (CLIENT_ID/SECRET/REFRESH). "
+                             f"Original: {resp.text[:160]}"}
 
     if resp.status_code in (200, 201):
         pin = resp.json()
         return {"success": True, "pin_id": pin.get("id")}
     else:
-        return {"success": False, "error": resp.text[:200]}
-
-def load_published_pins() -> list:
-    """Carrega lista de pins já publicados."""
-    path = Path(__file__).parent.parent / "dashboard" / "data" / "pinterest_published.json"
-    if path.exists():
-        return json.loads(path.read_text())
-    return []
-
-def save_published_pin(pin_data: dict):
-    """Salva pin publicado na lista."""
-    path = Path(__file__).parent.parent / "dashboard" / "data" / "pinterest_published.json"
-    pins = load_published_pins()
-    pins.append(pin_data)
-    path.write_text(json.dumps(pins, indent=2, default=str))
+        return {"success": False, "error": f"HTTP {resp.status_code}: {resp.text[:200]}"}
 
 def main():
     import argparse
@@ -117,9 +227,19 @@ def main():
     import httpx
     resp = httpx.get(
         "https://api.pinterest.com/v5/user_account",
-        headers={"Authorization": f"Bearer {token}"},
+        headers=auth_headers(token),
         timeout=15,
     )
+    if resp.status_code in (401, 403):
+        print("⚠️ Token expirado — tentando refresh automático...")
+        new_token = refresh_access_token()
+        if new_token:
+            token = new_token
+            resp = httpx.get(
+                "https://api.pinterest.com/v5/user_account",
+                headers=auth_headers(token),
+                timeout=15,
+            )
     if resp.status_code != 200:
         print(f"❌ Token inválido ou expirado: {resp.status_code}")
         print("   Regenere o token em: https://developers.pinterest.com/apps/")
@@ -149,6 +269,7 @@ def main():
     # Create pins
     success = 0
     errors = 0
+    client = httpx.Client(timeout=30)
 
     for post in posts:
         title = post.get("title", {}).get("rendered", "Untitled")
@@ -163,8 +284,16 @@ def main():
             print(f"   [DRY RUN] Seria criado pin")
             success += 1
         else:
-            image_url = get_pin_image_url(post)
+            image_url = get_pin_image_url(post, client=client)
+            # Evitar reenvio se já está na lista (ex.: mesclado de outra fonte).
             result = create_pin(token, board_id, title, description, link, image_url)
+
+            # Retry com backoff em rate limit (HTTP 429)
+            import time
+            if not result["success"] and "429" in result["error"]:
+                print("   ⏳ Rate limit (429) — aguardando 30s e tentando de novo...")
+                time.sleep(30)
+                result = create_pin(token, board_id, title, description, link, image_url)
 
             if result["success"]:
                 print(f"   ✅ Pin criado: {result['pin_id']}")
