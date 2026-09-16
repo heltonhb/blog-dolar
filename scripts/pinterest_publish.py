@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
+from image_generator import generate_pin_title, build_pin_description
+
 def get_wp_posts():
     """Busca artigos publicados no WordPress."""
     sys.path.insert(0, str(Path(__file__).parent.parent / "dashboard"))
@@ -209,6 +211,7 @@ def main():
 
     # Load config
     token = os.environ.get("PINTEREST_ACCESS_TOKEN", "")
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     board_id = args.board_id or os.environ.get("PINTEREST_BOARD_ID", "")
 
     if not token:
@@ -304,6 +307,13 @@ def main():
                     "created_at": datetime.now().isoformat(),
                 })
                 success += 1
+                
+                # Ação 7: Agendamento Inteligente (Delay para evitar spam no feed)
+                if post != posts[-1] and not args.dry_run:
+                    delay = 15 # Em producao pode ser random.randint(1800, 3600)
+                    print(f"   ⏳ Aguardando {delay}s antes do proximo pin (Pinterest pacing)...")
+                    import time
+                    time.sleep(delay)
             else:
                 print(f"   ❌ Erro: {result['error']}")
                 errors += 1

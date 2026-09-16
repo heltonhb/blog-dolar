@@ -16,6 +16,7 @@ Features:
 
 import base64
 import hashlib
+import io
 import os
 import random
 import re
@@ -35,7 +36,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 ASPECT_RATIOS = {
-    "pinterest": "3:4",     # Vertical pin (ideal for Pinterest)
+    "pinterest": "2:3",     # Vertical pin (ideal for Pinterest)
     "featured": "16:9",     # Wide banner for WordPress featured image
     "inline": "16:9",       # Wide image for article body
     "square": "1:1",        # Square fallback
@@ -43,7 +44,7 @@ ASPECT_RATIOS = {
 
 # Dimensions for Pollinations fallback (which uses width/height, not aspect ratio)
 DIMENSIONS = {
-    "pinterest": (768, 1024),
+    "pinterest": (1000, 1500),
     "featured": (1200, 675),
     "inline": (800, 450),
     "square": (1024, 1024),
@@ -78,9 +79,22 @@ def generate_smart_prompt(
     kw_str = ", ".join(keywords[:5]) if keywords else ""
     excerpt_part = f"\nArticle excerpt: {article_excerpt[:400]}" if article_excerpt else ""
 
+    import datetime
+    month = datetime.datetime.now().month
+    quarter = f"Q{(month - 1) // 3 + 1}"
+    seasonal_hints = {
+        "Q1": "fresh, bright, organized tech aesthetic",
+        "Q2": "warm, dynamic, modern tech aesthetic",
+        "Q3": "vibrant maximal colors, bold contrasts, glamorous tech aesthetic",
+        "Q4": "warm cozy lighting, high-end tech setup, festive but professional",
+    }
+    seasonal_hint = seasonal_hints.get(quarter, "modern professional aesthetic")
+
     prompt = f"""You are an expert image prompt engineer for AI image generation.
 Based on this blog article, create a single highly specific image generation prompt
 for a {target}.
+
+Style hint: {seasonal_hint}
 
 Article title: {article_title}{excerpt_part}
 Keywords: {kw_str}
@@ -416,7 +430,303 @@ def generate_article_image(
         usage=usage,
     )
 
+    # Apply Pinterest text overlay to the generated pin image
+    if usage == "pinterest":
+        headline = _pin_headline(article_title)
+        if headline:
+            try:
+                image_bytes = add_pin_text_overlay(image_bytes, headline)
+                print(f"  📝 Overlay aplicado no pin: {headline}")
+            except Exception as e:
+                print(f"  ⚠️ Overlay de texto pulado ({e})")
+
     return image_bytes, provider, prompt
+
+
+# ---------------------------------------------------------------------------
+#  Pinterest: text overlay + pin title/description/hashtags
+#  (texto sobre a imagem é a recomendação nº 1 do Pinterest para CTR/alcance)
+# ---------------------------------------------------------------------------
+
+import logging as _logging
+
+_logger = _logging.getLogger(__name__)
+
+# Fontes preferidas (Debian/Ubuntu de fábrica). Se nenhuma existir, usamos
+# a fonte bitmap do Pillow como fallback (menor, mas funciona em qualquer lugar).
+_BOLD_FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "C:\\Windows\\Fonts\\arialbd.ttf",
+]
+
+
+def _find_bold_font() -> Optional[str]:
+    for path in _BOLD_FONT_CANDIDATES:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def _pin_headline(title: str, max_words: int = 5) -> str:
+    """Gera uma headline curta e impactante a partir do título do artigo.
+
+    Pinterest quer texto curto sobre a imagem (uma frase de até ~5 palavras).
+    Prioriza a keyword; descarta stopwords e filler.
+    """
+    if not title:
+        return ""
+    stop = {
+        "the", "a", "an", "is", "are", "to", "for", "and", "or", "in", "on",
+        "at", "of", "how", "what", "why", "your", "you", "with", "this", "that",
+        "best", "top", "guide", "ultimate", "complete", "ultimate", "vs", "2026",
+        "2025", "2024", "explained", "need", "know",
+    }
+    # Remover pontuação e normalizar minúsculas
+    words = [w.strip(",:;!?()") for w in title.split()]
+    meaningful = [w for w in words if w.lower() not in stop and len(w) > 2]
+    chosen = meaningful or words
+    headline = " ".join(chosen[:max_words])
+    return headline.upper() if headline else ""
+
+
+def add_pin_text_overlay(image_bytes: bytes, headline: str) -> bytes:
+    """Sobrepoe `headline` no pin (fair use de texto), usando templates variados na BASE."""
+    if not headline:
+        return image_bytes
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        raise RuntimeError("Pillow nao instalado (pip install pillow)")
+    
+    import random
+
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    W, H = img.size
+    
+    font_path = _find_bold_font()
+    target_size = max(32, int(W * 0.08))  # Tamanho maior
+    if font_path:
+        font = ImageFont.truetype(font_path, target_size)
+        cta_font = ImageFont.truetype(font_path, max(16, int(W * 0.035)))
+    else:
+        font = ImageFont.load_default()
+        cta_font = ImageFont.load_default()
+
+    # Quebra em linhas
+    max_width = int(W * 0.85)
+    draw_temp = ImageDraw.Draw(img)
+    lines = []
+    for word in headline.split():
+        if not lines:
+            lines.append(word)
+            continue
+        test = lines[-1] + " " + word
+        wpx = draw_temp.textlength(test, font=font)
+        if wpx <= max_width or len(lines) >= 4:
+            lines[-1] = test
+        else:
+            if len(lines) < 4:
+                lines.append(word)
+            break
+    
+    line_h = target_size + int(target_size * 0.2) if font_path else 14
+    total_text_h = line_h * len(lines)
+    
+    # Templates variados (Ação 5)
+    template = random.choice(["gradient", "solid", "split"])
+    
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    
+    if template == "gradient":
+        # Gradiente na base (Ação 2)
+        band_h = int(H * 0.45)
+        start_y = H - band_h
+        steps = 48
+        for i in range(steps):
+            y0 = start_y + int(i * band_h / steps)
+            y1 = start_y + int((i + 1) * band_h / steps)
+            alpha = int(240 * (i / steps))
+            od.rectangle([0, y0, W, y1], fill=(0, 0, 0, alpha))
+        text_y_start = H - band_h + int(band_h * 0.3)
+    
+    elif template == "solid":
+        # Barra solida na base com borda
+        band_h = total_text_h + int(H * 0.18)
+        start_y = H - band_h
+        od.rectangle([0, start_y, W, H], fill=(15, 15, 20, 245))
+        od.line([0, start_y, W, start_y], fill=(255, 64, 129, 255), width=8)
+        text_y_start = start_y + int(band_h * 0.15)
+    
+    else: # split
+        # Split design (imagem cima, cor baixo)
+        band_h = total_text_h + int(H * 0.18)
+        start_y = H - band_h
+        od.rectangle([0, start_y, W, H], fill=(230, 230, 235, 255))
+        text_y_start = start_y + int(band_h * 0.15)
+
+    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    
+    # Desenhar texto
+    text_color = (0, 0, 0) if template == "split" else (255, 255, 255)
+    shadow_color = (255, 255, 255, 180) if template == "split" else (0, 0, 0, 180)
+
+    for i, line in enumerate(lines):
+        wpx = draw.textlength(line, font=font)
+        x = (W - wpx) / 2
+        y = text_y_start + i * line_h
+        # Shadow/Stroke 4.5:1 ratio simulado
+        draw.text((x + 2, y + 2), line, font=font, fill=shadow_color)
+        draw.text((x, y), line, font=font, fill=text_color)
+    
+    # Adicionar CTA e Branding na base (Ação 2)
+    cta_text = "Read the full guide  |  Tech Tips"
+    cta_w = draw.textlength(cta_text, font=cta_font)
+    cta_y = H - int(H * 0.04)
+    cta_color = (80, 80, 80) if template == "split" else (200, 200, 200)
+    draw.text(((W - cta_w)/2, cta_y), cta_text, font=cta_font, fill=cta_color)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", quality=95)
+    return buf.getvalue()
+
+
+def _gemini_available(api_key: str) -> bool:
+    return bool(api_key)
+
+
+def generate_pin_title(api_key: str, article_title: str, excerpt: str = "") -> str:
+    """Gera um titulo otimizado para pin (keyword na frente, 60-80 chars, gancho).
+
+    Fallback: headline curta derivada do titulo do artigo.
+    """
+    if not article_title:
+        return ""
+    if not api_key:
+        return _pin_headline(article_title) or article_title
+
+    text = f"""You are a Pinterest creator expert.
+Rewrite this blog article title into a high-performing Pinterest pin title.
+
+Rules:
+- Put the main keyword at the beginning.
+- Maximum 80 characters, minimum 20.
+- Strong hook / curiosity, but NO clickbait, NO all-caps, NO emojis.
+- It must stay on-topic and be immediately clear.
+
+Article title: {article_title}
+Excerpt: {excerpt[:300]}
+
+Return ONLY the pin title text. No quotes, no explanation."""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(url, json={
+                "contents": [{"parts": [{"text": text}]}],
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 120},
+            })
+            resp.raise_for_status()
+            result = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return result.strip().strip('"').strip("'")[:100]
+    except Exception as e:
+        _logger.warning("generate_pin_title fallback (%s)", e)
+        return _pin_headline(article_title) or article_title
+
+
+def make_hashtags(keywords, tags=None, base=None, limit: int = 5) -> list:
+    """Deriva hashtags relevantes do artigo (e combina com hashtags base).
+
+    Recomendacao: 3-5 hashtags por pin, misturando a keyword do artigo com
+    hashtags genericas do nicho.
+    """
+    base = [b for b in (base or []) if b]
+    pool: list = []
+
+    def _add(words):
+        if not words:
+            return
+        for w in words:
+            if not w:
+                continue
+            s = str(w).strip().lstrip("#").strip()
+            s = re.sub(r"[^a-zA-Z0-9]", "", s)
+            if s:
+                pool.append(s)
+
+    _add(tags)
+    _add(keywords)
+
+    # keyword composta que ja existe (ex: "wifi" de "#wifi7")
+    seen = set()
+    result = []
+    for s in pool:
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append("#" + s)
+    result = result[:limit]
+
+    # completa com hashtags base (nicho) que ainda nao estejam presentes
+    for b in base:
+        if len(result) >= limit:
+            break
+        bclean = b.lstrip("#")
+        if bclean.lower() not in seen:
+            seen.add(bclean.lower())
+            result.append("#" + bclean)
+
+    return result if result else ["#tech", "#tutorial"]
+
+
+def build_pin_description(api_key: str, article_title: str, excerpt: str = "",
+                          keywords=None, tags=None, base_hashtags=None) -> str:
+    """Monta a descricao do pin: keyword + valor + CTA + hashtags (max ~490)."""
+    if excerpt and not api_key:
+        # Fallback sem Gemini: 1a frase do excerpt + CTA + hashtags
+        clean = re.sub(r"\s+", " ", excerpt).strip()
+        first = clean.split(". ")[0][:280]
+        desc = f"{first}. Saiba mais no link."
+    else:
+        text = f"""You are a Pinterest creator expert.
+Write a Pinterest pin DESCRIPTION (max 200 characters counts, we keep under 450 chars) for:
+
+Title: {article_title}
+Excerpt: {excerpt[:300]}
+
+Requirements:
+- Open with the main keyword naturally.
+- 1-2 sentences that convey value/what the reader learns.
+- End with a soft call-to-action ("Save for later" / "Read the full guide").
+- NO hashtags inside the text body (they are appended separately).
+Return ONLY the description text."""
+
+        desc = article_title
+        if api_key:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+            try:
+                with httpx.Client(timeout=30) as client:
+                    resp = client.post(url, json={
+                        "contents": [{"parts": [{"text": text}]}],
+                        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 180},
+                    })
+                    resp.raise_for_status()
+                    desc = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip().strip('"')
+            except Exception as e:
+                _logger.warning("build_pin_description fallback (%s)", e)
+                if excerpt:
+                    clean = re.sub(r"\s+", " ", excerpt).strip()
+                    desc = clean.split(". ")[0][:280] + ". Full guide in the link."
+
+    hashtags = make_hashtags(keywords, tags, base_hashtags)
+    desc = f"{desc} {'. '.join(hashtags)}" if hashtags else desc
+    return desc[:500]
 
 
 # ---------------------------------------------------------------------------
