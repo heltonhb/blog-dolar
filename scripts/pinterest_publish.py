@@ -275,12 +275,18 @@ def main():
     client = httpx.Client(timeout=30)
 
     for post in posts:
-        title = post.get("title", {}).get("rendered", "Untitled")
+        raw_title = post.get("title", {}).get("rendered", "Untitled")
         link = post.get("link", "")
         excerpt = re.sub(r'<[^>]+>', '', post.get("excerpt", {}).get("rendered", ""))
-        description = excerpt[:490] if excerpt else f"Read about {title}"
 
-        print(f"📌 {title[:50]}...")
+        # Use Gemini to generate optimized Pinterest title & description
+        title = generate_pin_title(api_key, raw_title, excerpt) if api_key else raw_title
+        description = build_pin_description(
+            api_key, raw_title, excerpt,
+        ) if api_key else (excerpt[:490] if excerpt else f"Read about {raw_title}")
+
+        print(f"📌 {raw_title[:50]}...")
+        print(f"   Pin title: {title[:60]}...")
         print(f"   Link: {link}")
 
         if args.dry_run:

@@ -65,6 +65,17 @@ def generate_smart_prompt(
 ) -> str:
     """Use Gemini text model to create an optimal image generation prompt.
 
+    This is the core "Google Flow" prompt generator — it deeply analyzes the
+    article content and produces a highly specific, visually rich prompt that
+    the image generator (Gemini Imagen / FLUX / Pollinations) can turn into
+    an image that is immediately recognizable as related to the article topic.
+
+    The prompt engineering follows Pinterest best practices:
+    - Hero object / scene that tells the story at a glance
+    - Specific color palette and lighting directives
+    - Composition rules (rule of thirds, negative space for overlay)
+    - Style consistency (editorial photography or flat illustration)
+
     Args:
         api_key: Gemini API key
         article_title: Title of the article
@@ -76,44 +87,93 @@ def generate_smart_prompt(
     Returns:
         A detailed, optimized image generation prompt
     """
-    kw_str = ", ".join(keywords[:5]) if keywords else ""
-    excerpt_part = f"\nArticle excerpt: {article_excerpt[:400]}" if article_excerpt else ""
+    if not api_key:
+        return _build_fallback_prompt(article_title, keywords or [])
+
+    kw_str = ", ".join(keywords[:8]) if keywords else ""
+    excerpt_part = f"\nArticle excerpt: {article_excerpt[:600]}" if article_excerpt else ""
 
     import datetime
     month = datetime.datetime.now().month
     quarter = f"Q{(month - 1) // 3 + 1}"
     seasonal_hints = {
-        "Q1": "fresh, bright, organized tech aesthetic",
-        "Q2": "warm, dynamic, modern tech aesthetic",
-        "Q3": "vibrant maximal colors, bold contrasts, glamorous tech aesthetic",
-        "Q4": "warm cozy lighting, high-end tech setup, festive but professional",
+        "Q1": "fresh start energy, clean whites and blues, organized minimalist aesthetic, crisp winter light",
+        "Q2": "warm golden light, lush greens, dynamic outdoor-inspired freshness, spring/summer vibrancy",
+        "Q3": "vibrant saturated colors, bold contrasts, sun-drenched glamour, peak summer energy",
+        "Q4": "warm amber lighting, cozy atmosphere, premium holiday feel, rich deep tones with gold accents",
     }
     seasonal_hint = seasonal_hints.get(quarter, "modern professional aesthetic")
 
-    prompt = f"""You are an expert image prompt engineer for AI image generation.
-Based on this blog article, create a single highly specific image generation prompt
-for a {target}.
+    # Determine if the topic is more "product/hardware" or "concept/software"
+    product_keywords = {"laptop", "pc", "monitor", "headphone", "keyboard", "mouse",
+                        "ssd", "nvme", "router", "phone", "tablet", "camera", "gpu",
+                        "cpu", "ram", "cable", "charger", "speaker", "drone", "watch"}
+    concept_keywords = {"vpn", "privacy", "security", "speed", "wifi", "cloud",
+                        "ai", "machine learning", "programming", "code", "hack",
+                        "tips", "guide", "tutorial", "review", "comparison", "budget",
+                        "travel", "remote", "freelance", "productivity"}
 
-Style hint: {seasonal_hint}
+    title_lower = article_title.lower()
+    is_product = any(kw in title_lower for kw in product_keywords)
+    is_concept = any(kw in title_lower for kw in concept_keywords)
 
-Article title: {article_title}{excerpt_part}
+    if is_product:
+        style_directive = (
+            "Use a PRODUCT PHOTOGRAPHY style: the main product/device as hero subject "
+            "on a clean surface, shallow depth of field, studio lighting with soft shadows, "
+            "lifestyle context (desk, workspace, hands using it). Think Apple product photography."
+        )
+    elif is_concept:
+        style_directive = (
+            "Use a CONCEPTUAL ILLUSTRATION style: create a visual metaphor that represents "
+            "the abstract concept. Use symbolic elements, creative compositions, maybe "
+            "isometric 3D render or editorial infographic aesthetic. Think Dribbble/Behance quality."
+        )
+    else:
+        style_directive = (
+            "Use an EDITORIAL PHOTOGRAPHY style: a striking, magazine-quality scene that "
+            "tells the story of the article at a glance. Rich details, professional composition, "
+            "cinematic lighting."
+        )
+
+    prompt = f"""You are a world-class visual director creating image prompts for AI image generation.
+Your job: analyze this article and produce ONE highly specific, visually rich image prompt
+that will generate a stunning {target}.
+
+{style_directive}
+
+Seasonal mood: {seasonal_hint}
+
+═══ ARTICLE TO ANALYZE ═══
+Title: {article_title}{excerpt_part}
 Keywords: {kw_str}
+═══════════════════════════
 
-Requirements for the image prompt you generate:
-- Describe a visually striking, photorealistic or high-quality illustration scene
-- Must be directly and obviously related to the article's main topic
-- Specify concrete visual elements (objects, colors, composition, lighting)
-- NO text, NO words, NO letters, NO watermarks in the image
-- Bright, eye-catching colors suitable for social media
-- One clear focal subject with clean composition
-- Professional, editorial quality
+Follow this mental process (but output ONLY the final prompt):
+1. IDENTIFY the single most iconic visual element of this topic
+   (What object/scene would someone INSTANTLY associate with this subject?)
+2. COMPOSE the scene: place the hero element using rule of thirds
+3. SPECIFY exact lighting: direction, warmth, shadows, highlights
+4. DEFINE color palette: 2-3 dominant colors + 1 accent
+5. ADD environmental context: background, surface, atmosphere
+6. INCLUDE fine details that make it feel real and premium
 
-Return ONLY the image prompt text, nothing else. No quotes, no explanation."""
+STRICT RULES for your output prompt:
+- Be HYPER-SPECIFIC: say "matte black mechanical keyboard with cherry MX switches
+  and warm RGB backlighting" NOT "a keyboard"
+- NEVER include any text, words, letters, logos, watermarks, or UI elements
+- Specify the camera angle (top-down, 45°, eye-level, macro close-up)
+- Mention depth of field (shallow bokeh, deep focus, tilt-shift)
+- The image must be INSTANTLY recognizable as related to "{article_title}"
+- Leave the lower 30% of the composition slightly darker/simpler for text overlay space
+- Output 60-120 words maximum
+
+Return ONLY the image generation prompt. No quotes, no labels, no explanation."""
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 250},
+        "generationConfig": {"temperature": 0.85, "maxOutputTokens": 300},
     }
 
     try:
@@ -121,11 +181,110 @@ Return ONLY the image prompt text, nothing else. No quotes, no explanation."""
             resp = client.post(url, json=payload)
             resp.raise_for_status()
             result = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-            return result.strip().strip('"').strip("'")
+            clean = result.strip().strip('"').strip("'").strip()
+            # Remove any prefix labels the model might add
+            for prefix in ["Image prompt:", "Prompt:", "Here is", "Here's"]:
+                if clean.lower().startswith(prefix.lower()):
+                    clean = clean[len(prefix):].strip().strip(":").strip()
+            return clean
     except Exception as e:
-        # Fallback to simple prompt
         print(f"  ⚠️ Smart prompt generation failed ({e}), using fallback")
         return _build_fallback_prompt(article_title, keywords or [])
+
+
+def generate_pin_prompt_variations(
+    api_key: str,
+    article_title: str,
+    article_excerpt: str = "",
+    keywords: list[str] = None,
+    count: int = 3,
+    model: str = "gemini-3.1-flash-lite",
+) -> list[str]:
+    """Generate multiple distinct visual angle prompts for the same article.
+
+    Pinterest rewards variety — posting 3-5 different pins for the same article
+    with different visual approaches increases reach significantly.
+
+    Args:
+        api_key: Gemini API key
+        article_title: Title of the article
+        article_excerpt: First ~500 chars of the article body
+        keywords: Extracted keywords from headings
+        count: Number of variations (2-5)
+        model: Gemini text model to use
+
+    Returns:
+        List of distinct image generation prompts
+    """
+    if not api_key:
+        base = _build_fallback_prompt(article_title, keywords or [])
+        return [base]
+
+    count = max(2, min(count, 5))
+    kw_str = ", ".join(keywords[:6]) if keywords else ""
+    excerpt_part = f"\nExcerpt: {article_excerpt[:400]}" if article_excerpt else ""
+
+    prompt = f"""You are a Pinterest content strategist and visual director.
+Generate {count} COMPLETELY DIFFERENT image prompts for the same blog article.
+Each prompt must show the topic from a unique visual angle.
+
+Article: {article_title}{excerpt_part}
+Keywords: {kw_str}
+
+For each variation, use a DIFFERENT visual approach:
+1. HERO PRODUCT SHOT — Close-up, studio lighting, the main subject as star
+2. LIFESTYLE SCENE — The subject in real-world use, environmental context
+3. FLAT LAY / TOP-DOWN — Organized arrangement of related items from above
+4. CONCEPTUAL / ABSTRACT — Visual metaphor, artistic interpretation
+5. INFOGRAPHIC STYLE — Clean illustration with visual hierarchy (but NO text)
+
+Rules for EACH prompt:
+- 60-100 words, hyper-specific visual details
+- NO text, words, letters, logos, or watermarks in the image
+- Specify lighting, colors, camera angle, depth of field
+- Must be INSTANTLY recognizable as related to the article topic
+- Reserve lower 30% for text overlay (keep it simpler/darker there)
+
+Return ONLY a JSON array of strings, each string being one prompt.
+Example: ["prompt 1 here", "prompt 2 here", "prompt 3 here"]"""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 800},
+    }
+
+    try:
+        with httpx.Client(timeout=45) as client:
+            resp = client.post(url, json=payload)
+            resp.raise_for_status()
+            raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+        # Parse JSON array from response
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
+
+        import json as _json
+        match = re.search(r'\[[\s\S]*\]', raw)
+        if match:
+            prompts = _json.loads(match.group())
+            if isinstance(prompts, list) and len(prompts) >= 2:
+                return [str(p).strip() for p in prompts[:count]]
+
+        # Fallback: split by numbered lines
+        lines = [l.strip().strip('"').strip("'") for l in raw.split("\n") if len(l.strip()) > 30]
+        if len(lines) >= 2:
+            return lines[:count]
+
+    except Exception as e:
+        print(f"  ⚠️ Pin variations failed ({e}), using single prompt")
+
+    # Final fallback: generate one smart prompt
+    return [generate_smart_prompt(api_key, article_title, article_excerpt, keywords)]
 
 
 def _build_fallback_prompt(title: str, keywords: list[str]) -> str:
@@ -150,9 +309,11 @@ def _build_fallback_prompt(title: str, keywords: list[str]) -> str:
 
     subject = ", ".join(visual_terms) if visual_terms else title[:50]
     return (
-        f"Vibrant professional illustration about {subject}. "
-        f"Colorful modern editorial style, bright gradient background, "
-        f"clean composition, detailed, sharp, high quality. "
+        f"Professional editorial photography of {subject}. "
+        f"Shot at 45-degree angle with shallow depth of field, "
+        f"soft directional lighting from the left, warm color temperature. "
+        f"Clean modern desk surface, subtle bokeh background. "
+        f"Rich details, premium quality, magazine-worthy composition. "
         f"No text, no words, no watermarks."
     )
 
@@ -392,6 +553,10 @@ def generate_article_image(
 ) -> tuple[bytes, str, str]:
     """Full pipeline: generate smart prompt → generate image.
 
+    Uses the "Google Flow" approach: Gemini analyzes the article content
+    and generates a hyper-specific image prompt, which is then sent to
+    the best available image generation provider.
+
     Args:
         api_key: Gemini API key
         article_title: Article title
@@ -404,10 +569,10 @@ def generate_article_image(
         Tuple of (image_bytes, provider_name, prompt_used)
     """
     target_map = {
-        "pinterest": "Pinterest pin (vertical 3:4 ratio, eye-catching)",
-        "featured": "blog featured hero image (wide 16:9 ratio, professional)",
-        "inline": "blog section illustration (wide 16:9 ratio, informative)",
-        "square": "social media square image (1:1 ratio)",
+        "pinterest": "Pinterest pin (vertical 3:4 ratio, bold eye-catching hero image for social media feed)",
+        "featured": "blog featured hero banner (wide 16:9, professional editorial photography quality)",
+        "inline": "blog section illustration (wide 16:9, informative, contextual to the heading topic)",
+        "square": "social media square thumbnail (1:1, clean, bold focal point)",
     }
 
     # Generate smart prompt if not provided
@@ -422,6 +587,8 @@ def generate_article_image(
             keywords=keywords,
             target=target,
         )
+
+    print(f"  🧠 Prompt gerado: {prompt[:120]}...")
 
     # Generate the image
     image_bytes, provider = generate_image(
@@ -441,6 +608,87 @@ def generate_article_image(
                 print(f"  ⚠️ Overlay de texto pulado ({e})")
 
     return image_bytes, provider, prompt
+
+
+def generate_article_pins(
+    api_key: str,
+    article_title: str,
+    article_excerpt: str = "",
+    keywords: list[str] = None,
+    count: int = 3,
+) -> list[tuple[bytes, str, str]]:
+    """Generate multiple Pinterest pin variations for the same article.
+
+    Pinterest algorithm rewards fresh content variety — posting 3-5 different
+    pins for the same article with different visual angles significantly
+    increases total reach and click-through rate.
+
+    Uses generate_pin_prompt_variations() to get distinct visual approaches,
+    then generates an image for each.
+
+    Args:
+        api_key: Gemini API key
+        article_title: Article title
+        article_excerpt: First ~500 chars of article body
+        keywords: Keywords extracted from headings
+        count: Number of pin variations to generate (2-5)
+
+    Returns:
+        List of (image_bytes, provider_name, prompt_used) tuples
+    """
+    prompts = generate_pin_prompt_variations(
+        api_key=api_key,
+        article_title=article_title,
+        article_excerpt=article_excerpt,
+        keywords=keywords,
+        count=count,
+    )
+
+    results = []
+    headline = _pin_headline(article_title)
+
+    for i, prompt in enumerate(prompts, 1):
+        print(f"\n  🎨 Variação {i}/{len(prompts)}")
+        print(f"  🧠 Prompt: {prompt[:100]}...")
+
+        try:
+            image_bytes, provider = generate_image(
+                prompt=prompt,
+                api_key=api_key,
+                usage="pinterest",
+            )
+
+            # Apply text overlay
+            if headline:
+                try:
+                    image_bytes = add_pin_text_overlay(image_bytes, headline)
+                except Exception:
+                    pass
+
+            results.append((image_bytes, provider, prompt))
+            print(f"  ✅ Variação {i} gerada ({len(image_bytes) // 1024}KB via {provider})")
+
+        except Exception as e:
+            print(f"  ⚠️ Variação {i} falhou: {e}")
+            continue
+
+        # Small delay between generations to avoid rate limiting
+        if i < len(prompts):
+            time.sleep(2)
+
+    if not results:
+        # Emergency fallback: try a single generation
+        print("  ⚠️ Todas as variações falharam, tentando geração padrão...")
+        img, prov, prompt = generate_article_image(
+            api_key=api_key,
+            article_title=article_title,
+            article_excerpt=article_excerpt,
+            keywords=keywords,
+            usage="pinterest",
+        )
+        results.append((img, prov, prompt))
+
+    return results
 
 
 # ---------------------------------------------------------------------------

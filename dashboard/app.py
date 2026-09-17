@@ -51,8 +51,10 @@ from db import (
 )
 from image_generator import (
     generate_article_image,
+    generate_article_pins,
     generate_image,
     generate_smart_prompt,
+    generate_pin_prompt_variations,
     extract_slug_from_filename,
     inject_inline_images,
     upload_featured_image_wp,
@@ -268,6 +270,12 @@ def _extract_article_info(filepath: Path) -> dict:
 
 
 def _build_pin_prompt(article_info: dict, usage: str = "pinterest") -> str:
+    """Build an optimized image generation prompt for a pin/featured image.
+
+    Uses the "Google Flow" approach: sends the article context to Gemini
+    which generates a hyper-specific, visually rich prompt for the image
+    generator. Falls back to a keyword-based prompt if Gemini is unavailable.
+    """
     title = article_info["title"]
     keywords = article_info["keywords"]
     tags = article_info["tags"]
@@ -277,10 +285,10 @@ def _build_pin_prompt(article_info: dict, usage: str = "pinterest") -> str:
     if api_key:
         try:
             target_map = {
-                "pinterest": "Pinterest pin (vertical 3:4, eye-catching, social media optimized)",
-                "featured": "blog featured hero image (wide 16:9, professional)",
-                "inline": "blog section illustration (wide 16:9, informative)",
-                "square": "social media square image (1:1)",
+                "pinterest": "Pinterest pin (vertical 3:4, bold hero image for social media feed)",
+                "featured": "blog featured hero banner (wide 16:9, editorial photography quality)",
+                "inline": "blog section illustration (wide 16:9, informative, contextual)",
+                "square": "social media square thumbnail (1:1, clean, bold focal point)",
             }
             target = target_map.get(usage, "blog illustration")
             return generate_smart_prompt(
@@ -293,6 +301,7 @@ def _build_pin_prompt(article_info: dict, usage: str = "pinterest") -> str:
         except Exception:
             pass
 
+    # Enhanced fallback: product-aware prompt building
     import re as _re
     clean_kw = []
     for kw in (keywords + tags):
@@ -314,36 +323,44 @@ def _build_pin_prompt(article_info: dict, usage: str = "pinterest") -> str:
         visual_kw = title_words[:3]
 
     slug = article_info.get("slug", "")
+    # Enhanced theme hints with specific photographic descriptions
     theme_hints = {
-        "laptop": "laptops on a modern desk, workspace",
-        "monitor": "computer monitors, dual screen desk setup",
-        "headphone": "premium headphones, audio listening",
-        "wifi": "wireless router, wifi signal waves",
-        "build-a-pc": "computer parts, motherboard, graphics card",
-        "ssd": "solid state drives, storage hardware",
-        "vpn": "digital shield, online security concept",
-        "keyboard": "mechanical keyboard, colorful keys",
-        "mouse": "computer mouse, ergonomic device",
-        "travel": "travel suitcase, world map, adventure",
-        "pack": "packed luggage, travel items",
-        "privacy": "privacy shield, digital security",
-        "speed": "speedometer, fast performance",
-        "fix": "repair tools, technical support",
-        "guide": "step by step infographic arrows",
-        "best": "product comparison lineup, top picks",
-        "budget": "affordable price tag, value deal",
-        "gaming": "gaming setup, RGB lights",
-        "work-from-home": "home office desk, productive workspace",
-        "nvme": "NVMe SSD drive, M.2 slot, fast storage",
+        "laptop": "sleek aluminum laptop on a minimalist wooden desk, warm ambient lighting, shallow depth of field",
+        "monitor": "ultrawide curved monitor on a clean desk setup, subtle RGB glow, professional workspace",
+        "headphone": "premium over-ear headphones resting on a leather surface, warm studio light, macro detail",
+        "wifi": "modern mesh router with visible signal waves illustration, clean white surface, tech aesthetic",
+        "build-a-pc": "PC components arranged in flat lay: motherboard, GPU, RAM sticks, on dark surface, studio lighting",
+        "ssd": "NVMe SSD drive held at an angle showing the circuit board, macro photography, blue accent light",
+        "vpn": "glowing digital shield hovering over a laptop, cybersecurity concept, dark teal and gold palette",
+        "keyboard": "mechanical keyboard with custom keycaps, warm RGB backlighting, 45-degree angle, bokeh background",
+        "mouse": "ergonomic gaming mouse on a large mousepad, dynamic lighting, close-up detail shot",
+        "travel": "packed carry-on suitcase with travel essentials arranged around it, top-down flat lay, wanderlust mood",
+        "pack": "organized packing cubes and travel gear flat lay on a bed, bright natural light",
+        "privacy": "smartphone with a lock icon reflected on screen, moody dark lighting, privacy concept",
+        "speed": "motion blur concept with digital speedometer, electric blue and white palette, dynamic energy",
+        "fix": "precision tools and electronics on a repair workbench, macro close-up, workshop atmosphere",
+        "guide": "organized desk with notebook, laptop and coffee, step-by-step learning concept, warm light",
+        "best": "product lineup comparison on a clean gradient surface, studio lighting, top picks showcase",
+        "budget": "wallet with money and a tech gadget, value proposition concept, warm tones",
+        "gaming": "gaming setup with RGB peripherals and monitor, dark room with colorful lighting, immersive atmosphere",
+        "work-from-home": "cozy home office with laptop, plant and coffee, natural window light, productive workspace",
+        "nvme": "M.2 NVMe SSD installed on motherboard slot, macro photography with blue LED accent",
     }
     theme = next((desc for key, desc in theme_hints.items() if key in slug), "")
     kw_str = ", ".join(visual_kw)
-    theme_str = f" Include: {theme}." if theme else ""
+    if theme:
+        return (
+            f"Professional editorial photography: {theme}. "
+            f"Subject: {kw_str}. Shot with shallow depth of field, "
+            f"soft directional lighting, clean composition. "
+            f"No text, no words, no watermarks. Premium magazine quality."
+        )
     return (
-        f"Vibrant Pinterest pin illustration about {kw_str}.{theme_str} "
-        f"Colorful flat design, bright gradient background, modern editorial style, "
-        f"clean composition, no text, no words, no watermarks. "
-        f"High quality, detailed, sharp, 1024x1024."
+        f"Professional editorial photography of {kw_str}. "
+        f"Shot at 45-degree angle with shallow depth of field, "
+        f"soft directional lighting from the left, warm color temperature. "
+        f"Clean modern surface, subtle bokeh background. "
+        f"No text, no words, no watermarks. Magazine-quality composition."
     )
 
 
@@ -916,10 +933,21 @@ Return ONLY JSON:
                         pf_media = _wp_upload_media(pf_path.read_bytes(), pf, alt_text=title)
                         pf_url = pf_media.get("url", public_image_url) if pf_media.get("success") else public_image_url
 
+                        # Generate optimized pin title & description via Gemini
+                        from image_generator import generate_pin_title, build_pin_description
+                        pin_api_key = _env("GEMINI_API_KEY")
+                        excerpt_clean = re.sub(r'<[^>]+>', '', meta_desc or title)
+                        pin_title = generate_pin_title(pin_api_key, title, excerpt_clean) if pin_api_key else title
+                        pin_desc = build_pin_description(
+                            pin_api_key, title, excerpt_clean,
+                            keywords=article_info.get("keywords") if 'article_info' in dir() else None,
+                            tags=article_info.get("tags") if 'article_info' in dir() else None,
+                        ) if pin_api_key else (meta_desc or f"Read about {title}")
+
                         pin_payload = {
                             "board_id": board_id,
-                            "title": title[:100],
-                            "description": (meta_desc or f"Read about {title}")[:500],
+                            "title": pin_title[:100],
+                            "description": pin_desc[:500],
                             "link": post_url or _env("SITE_URL", "https://tech-tips.byethost4.com"),
                             "image_source_url": pf_url,
                         }
@@ -1534,6 +1562,114 @@ def api_generate_pin_for_article():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+@app.route("/api/images/generate_pin_variations", methods=["POST"])
+@login_required
+def api_generate_pin_variations():
+    """Generate multiple Pinterest pin variations for the same article.
+
+    Each variation uses a different visual angle (hero shot, lifestyle,
+    flat lay, conceptual, etc.) to maximize Pinterest reach.
+    """
+    try:
+        data = request.json or {}
+        filename = data.get("filename", "").strip()
+        count = min(max(int(data.get("count", 3)), 2), 5)
+        if not filename:
+            return jsonify({"success": False, "error": "Arquivo obrigatório"}), 400
+
+        filepath = _articles_dir() / filename
+        if not filepath.exists():
+            return jsonify({"success": False, "error": f"Arquivo não encontrado: {filename}"}), 404
+
+        article_info = _extract_article_info(filepath)
+        slug = extract_slug_from_filename(filename)
+        api_key = _env("GEMINI_API_KEY")
+
+        results = generate_article_pins(
+            api_key=api_key,
+            article_title=article_info["title"],
+            article_excerpt=article_info["excerpt"],
+            keywords=article_info["keywords"] + article_info["tags"],
+            count=count,
+        )
+
+        images_dir = Path(app.root_path) / "static" / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        saved = []
+        for i, (image_bytes, provider, prompt) in enumerate(results):
+            suffix = f"-v{i+1}" if i > 0 else ""
+            pin_filename = f"pin-{slug}{suffix}.png"
+            (images_dir / pin_filename).write_bytes(image_bytes)
+            saved.append({
+                "filename": pin_filename,
+                "url": f"/static/images/{pin_filename}",
+                "size_kb": round(len(image_bytes) / 1024, 1),
+                "provider": provider,
+                "prompt_used": prompt,
+                "variation": i + 1,
+            })
+
+        return jsonify({
+            "success": True,
+            "article": filename,
+            "title": article_info["title"],
+            "count": len(saved),
+            "pins": saved,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/images/preview_prompt", methods=["POST"])
+@login_required
+def api_preview_prompt():
+    """Preview the smart prompt that would be generated for an article.
+
+    Useful for reviewing/editing the prompt before generating the image.
+    Does NOT generate the image — only the text prompt via Gemini.
+    """
+    try:
+        data = request.json or {}
+        filename = data.get("filename", "").strip()
+        usage = data.get("usage", "pinterest")
+        variations = data.get("variations", False)
+
+        if not filename:
+            return jsonify({"success": False, "error": "Arquivo obrigatório"}), 400
+
+        filepath = _articles_dir() / filename
+        if not filepath.exists():
+            return jsonify({"success": False, "error": f"Arquivo não encontrado: {filename}"}), 404
+
+        article_info = _extract_article_info(filepath)
+        api_key = _env("GEMINI_API_KEY")
+
+        if variations:
+            count = min(max(int(data.get("count", 3)), 2), 5)
+            prompts = generate_pin_prompt_variations(
+                api_key=api_key,
+                article_title=article_info["title"],
+                article_excerpt=article_info["excerpt"],
+                keywords=article_info["keywords"] + article_info["tags"],
+                count=count,
+            )
+            return jsonify({
+                "success": True,
+                "title": article_info["title"],
+                "prompts": prompts,
+            })
+        else:
+            prompt = _build_pin_prompt(article_info, usage=usage)
+            return jsonify({
+                "success": True,
+                "title": article_info["title"],
+                "prompt": prompt,
+                "usage": usage,
+            })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/images/list")
 @login_required
