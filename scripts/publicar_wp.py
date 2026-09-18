@@ -201,7 +201,10 @@ def publish_from_file(filepath: Path, wp: WordPressPublisher):
             for line in frontmatter.strip().split("\n"):
                 if ':' in line:
                     key, _, val = line.partition(':')
-                    article[key.strip()] = val.strip().strip('"[]').split(',')
+                    if val.strip().startswith('['):
+                        article[key.strip()] = [v.strip().strip('"') for v in val.strip().strip('[]').split(',')]
+                    else:
+                        article[key.strip()] = val.strip().strip('"')
     
     # Publica
     result = wp.publish_post(article, status="draft")

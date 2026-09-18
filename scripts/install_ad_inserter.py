@@ -3,6 +3,7 @@
 Instalar Ad Inserter via FTP no WordPress
 """
 
+import os
 import ftplib
 import zipfile
 import requests

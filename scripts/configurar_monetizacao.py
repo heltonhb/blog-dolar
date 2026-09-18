@@ -10,6 +10,7 @@ Passos:
 4. Verifica se os anúncios estão funcionando
 """
 
+import os
 import httpx
 import time
 import sys

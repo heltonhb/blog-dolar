@@ -7,7 +7,7 @@ Fluxo completo: gerar topicos -> gerar artigos -> publicar
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Adiciona scripts ao path
@@ -214,9 +214,7 @@ def run_scheduler():
             run_full_pipeline()
             
             # Calcula proxima execucao
-            next_run = datetime.now().replace(
-                hour=datetime.now().hour + (24 // interval_hours)
-            )
+            next_run = datetime.now() + timedelta(hours=(24 // interval_hours))
             print(f"\n  Proxima execucao: {next_run.strftime('%H:%M')}")
             print("  Aguardando... (Ctrl+C para sair)\n")
             

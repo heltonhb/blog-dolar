@@ -19,6 +19,7 @@ import os
 import re
 import ftplib
 import hashlib
+import secrets
 import subprocess
 import sys
 from io import BytesIO
@@ -205,12 +206,18 @@ def login_required(f):
 def login_page():
     error = ""
     if request.method == "POST":
+        # CSRF validation
+        if request.form.get("csrf_token") != session.get("csrf_token") or not session.get("csrf_token"):
+            return "CSRF token missing or invalid", 403
         password = request.form.get("password", "")
         if password == _get_dashboard_password():
             session["authenticated"] = True
             return redirect(url_for("index"))
         error = "Senha incorreta."
-    return render_template("login.html", error=error)
+
+    token = secrets.token_hex(32)
+    session["csrf_token"] = token
+    return render_template("login.html", error=error, csrf_token=token)
 
 @app.route("/logout")
 def logout():

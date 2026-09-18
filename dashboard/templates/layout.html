@@ -178,6 +178,12 @@
             navigator.serviceWorker.register('/static/sw.js').catch(() => {});
         }
 
+        // ─── HTML Escape Utility ────────────────────────────────────
+        function esc(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // ─── Safe JSON fetch (handles Render cold-start HTML responses) ───
         // Usage: safeFetch(url, opts).then(data => ...) instead of .then(r => r.json())
         function safeFetch(url, opts = {}) {

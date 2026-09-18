@@ -61,7 +61,7 @@ def generate_smart_prompt(
     article_excerpt: str = "",
     keywords: list[str] = None,
     target: str = "pinterest pin",
-    model: str = "gemini-3.1-flash-lite",
+    model: str = "gemini-2.0-flash",
 ) -> str:
     """Use Gemini text model to create an optimal image generation prompt.
 
@@ -198,7 +198,7 @@ def generate_pin_prompt_variations(
     article_excerpt: str = "",
     keywords: list[str] = None,
     count: int = 3,
-    model: str = "gemini-3.1-flash-lite",
+    model: str = "gemini-2.0-flash",
 ) -> list[str]:
     """Generate multiple distinct visual angle prompts for the same article.
 
@@ -872,7 +872,7 @@ Excerpt: {excerpt[:300]}
 
 Return ONLY the pin title text. No quotes, no explanation."""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     try:
         with httpx.Client(timeout=30) as client:
             resp = client.post(url, json={
@@ -957,7 +957,7 @@ Return ONLY the description text."""
 
         desc = article_title
         if api_key:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
             try:
                 with httpx.Client(timeout=30) as client:
                     resp = client.post(url, json={

@@ -14,7 +14,7 @@ if env_path.exists():
             os.environ.setdefault(k.strip(), v.strip())
 
 FTP_HOST = os.environ.get("FTP_HOST", "ftpupload.net")
-FTP_USER = os.environ.get("FTP_USER", "b4_42799195")
+FTP_USER = os.environ.get("FTP_USER", "")
 FTP_PASS = os.environ.get("FTP_PASS", "")
 
 def install_adsterra(code: str):

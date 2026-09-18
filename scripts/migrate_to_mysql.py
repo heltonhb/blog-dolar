@@ -14,10 +14,10 @@ load_dotenv()
 import pymysql
 
 DB_CONFIG = {
-    'host': os.getenv('WP_DB_HOST', 'sql310.byetcluster.com'),
-    'user': os.getenv('WP_DB_USER', '42799195_1'),
+    'host': os.getenv('WP_DB_HOST', ''),
+    'user': os.getenv('WP_DB_USER', ''),
     'password': os.getenv('WP_DB_PASS', ''),
-    'database': os.getenv('WP_DB_NAME', 'b442799195_wp909'),
+    'database': os.getenv('WP_DB_NAME', ''),
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }
