@@ -10,7 +10,7 @@ import time
 import sys
 from ftplib import FTP
 
-SITE_URL = "https://tech-tips.byethost4.com"
+SITE_URL = "https://tech-tips.ct.ws"
 FTP_HOST = "ftpupload.net"
 FTP_USER = os.environ.get('FTP_USER', '')
 FTP_PASS = os.environ.get('FTP_PASS', '')
@@ -72,10 +72,10 @@ if __name__ == "__main__":
         if main():
             print("\n" + "=" * 60)
             print("  SERVIDOR ONLINE! Próximos passos:")
-            print("  1. Acesse: https://tech-tips.byethost4.com/debug.php")
+            print("  1. Acesse: https://tech-tips.ct.ws/debug.php")
             print("  2. Se WordPress carregar, acesse wp-admin")
             print("  3. Ative o plugin Ad Inserter")
-            print("  4. Execute: https://tech-tips.byethost4.com/config-ad-cash.php")
+            print("  4. Execute: https://tech-tips.ct.ws/config-ad-cash.php")
             print("=" * 60)
             break
         else:

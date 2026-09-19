@@ -8,7 +8,7 @@ import json, hashlib, httpx
 from pathlib import Path
 from datetime import datetime
 
-HOST = "tech-tips.byethost4.com"
+HOST = "tech-tips.ct.ws"
 SITEMAP_URL = f"https://{HOST}/wp-sitemap.xml"
 
 def get_urls_from_sitemap() -> list:

@@ -151,11 +151,11 @@ function renderPinGrid(results) {
     grid.innerHTML = results.map(({pin, info}) => {
         const title = info ? info.title : pin.filename.replace('pin-', '').replace('.png', '').replace(/-/g, ' ');
         const desc = info ? (info.description || info.excerpt || '') : '';
-        const link = info ? info.link : 'https://tech-tips.byethost4.com';
+        const link = info ? info.link : 'https://tech-tips.ct.ws';
         const articleFile = info ? info.article_file : '';
         const tags = info ? (info.tags || []) : [];
 
-        const pinUrl = 'https://tech-tips.byethost4.com/wp-content/uploads/' + pin.filename;
+        const pinUrl = 'https://tech-tips.ct.ws/wp-content/uploads/' + pin.filename;
         const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(link) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title + (tags.length ? ' #' + tags.join(' #') : ''));
 
         return `

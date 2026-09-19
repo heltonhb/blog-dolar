@@ -23,7 +23,7 @@ DB_USER = os.environ.get("WP_DB_USER", "")
 DB_PASS = os.environ.get("WP_DB_PASS", "")
 DB_NAME = os.environ.get("WP_DB_NAME", "")
 DB_PREFIX = "wpq9_"
-SITE_URL = os.environ.get("SITE_URL", "https://tech-tips.byethost4.com")
+SITE_URL = os.environ.get("SITE_URL", "https://tech-tips.ct.ws")
 
 def parse_frontmatter(content):
     """Parse frontmatter without YAML (handles colons in titles)"""

@@ -2,7 +2,7 @@
 /**
  * Configurar Ad Inserter com código REAL do AdCash
  * 
- * Execute: https://tech-tips.byethost4.com/config-ad-cash.php
+ * Execute: https://tech-tips.ct.ws/config-ad-cash.php
  */
 
 $wp_load = dirname(__FILE__) . '/wp-load.php';
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['config_adcash'])) {
         echo '<h2>Zone ID: suhf5fqztw</h2>';
         echo '<h3>Próximos passos:</h3>';
         echo '<ol>';
-        echo '<li><a href="https://tech-tips.byethost4.com" target="_blank">Verificar o site</a></li>';
+        echo '<li><a href="https://tech-tips.ct.ws" target="_blank">Verificar o site</a></li>';
         echo '<li><a href="wp-admin/options-general.php?page=ad-inserter.php">Configurações Ad Inserter</a></li>';
         echo '<li>DELETE este arquivo: config-ad-cash.php</li>';
         echo '</ol>';

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-SITEMAP_URL = "https://tech-tips.byethost4.com/wp-sitemap.xml"
+SITEMAP_URL = "https://tech-tips.ct.ws/wp-sitemap.xml"
 
 def ping_google():
     """Envia sitemap para o Google via ping."""
@@ -54,6 +54,6 @@ if __name__ == "__main__":
     ping_bing()
     print("\n💡 Para indexação mais rápida:")
     print("   1. Acesse: https://search.google.com/search-console")
-    print("   2. Selecione tech-tips.byethost4.com")
+    print("   2. Selecione tech-tips.ct.ws")
     print("   3. Use 'Inspecionar URL' para cada artigo importante")
     print("   4. Clique 'Solicitar indexação'")

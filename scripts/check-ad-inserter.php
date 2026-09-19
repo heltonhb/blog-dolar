@@ -1,6 +1,6 @@
 <?php
 // Script para verificar configuracao do Ad Inserter
-// Executar via browser: https://tech-tips.byethost4.com/check-ad-inserter.php
+// Executar via browser: https://tech-tips.ct.ws/check-ad-inserter.php
 
 $wp_load = dirname(__FILE__) . '/wp-load.php';
 if (file_exists($wp_load)) {

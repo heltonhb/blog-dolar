@@ -18,7 +18,7 @@ from ftplib import FTP
 from io import BytesIO
 
 # Configurações
-SITE_URL = "https://tech-tips.byethost4.com"
+SITE_URL = "https://tech-tips.ct.ws"
 FTP_HOST = "ftpupload.net"
 FTP_USER = os.environ.get('FTP_USER', '')
 FTP_PASS = os.environ.get('FTP_PASS', '')

@@ -4,7 +4,7 @@
  * 
  * COMO USAR:
  * 1. Upload este arquivo via FTP para htdocs/
- * 2. Acesse: https://tech-tips.byethost4.com/setup-ad-inserter.php
+ * 2. Acesse: https://tech-tips.ct.ws/setup-ad-inserter.php
  * 3. Siga as instruções na tela
  * 4. DELETE este arquivo após usar!
  */

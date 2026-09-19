@@ -43,7 +43,7 @@ def get_published_urls():
         os.environ.setdefault(k, v)
 
     client = _byethost_session()
-    base = "https://tech-tips.byethost4.com/wp-json/wp/v2/posts"
+    base = "https://tech-tips.ct.ws/wp-json/wp/v2/posts"
     resp = client.get(
         f"{base}?per_page=100&status=publish",
         auth=("heltonhb", os.environ.get("WP_APP_PASSWORD", "")),

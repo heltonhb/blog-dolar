@@ -2,7 +2,7 @@
 /**
  * Verificar Configuração do Ad Inserter
  * 
- * Acesse: https://tech-tips.byethost4.com/verificar-ad-inserter.php
+ * Acesse: https://tech-tips.ct.ws/verificar-ad-inserter.php
  */
 
 $wp_load = dirname(__FILE__) . '/wp-load.php';

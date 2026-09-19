@@ -103,7 +103,7 @@ def api_health():
     """Health check endpoint."""
     import socket
     checks = {}
-    for host in ["tech-tips.byethost4.com", "api3.adsterratools.com"]:
+    for host in ["tech-tips.ct.ws", "api3.adsterratools.com"]:
         try:
             socket.gethostbyname(host)
             checks[host] = "ok"
@@ -435,7 +435,7 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
     import httpx as _httpx
 
     env = _load_env_dict()
-    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.byethost4.com")
+    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
     wp_user = env.get("WP_USER") or _env("WP_USER", "")
     wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
 
@@ -446,7 +446,7 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
     auth = (wp_user, wp_pass)
 
     # Add hreflang for US targeting
-    hreflang_tag = '<link rel="alternate" hreflang="en-us" href="https://tech-tips.byethost4.com/?p=' + article.get("slug", "") + '" />'
+    hreflang_tag = '<link rel="alternate" hreflang="en-us" href="https://tech-tips.ct.ws/?p=' + article.get("slug", "") + '" />'
     article_content = article.get("content", "")
     # Insert hreflang in article head if it's HTML, or prepend if markdown
     if "<head>" in article_content:
@@ -484,7 +484,7 @@ def _wp_upload_media(image_bytes: bytes, filename: str, alt_text: str = "") -> d
     import httpx as _httpx
 
     env = _load_env_dict()
-    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.byethost4.com")
+    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
     wp_user = env.get("WP_USER") or _env("WP_USER", "")
     wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
 
@@ -535,7 +535,7 @@ def _solve_challenge(html: str):
     import subprocess as _sp
     import tempfile as _tmp
     try:
-        aes_resp = _httpx.get("https://tech-tips.byethost4.com/aes.js", timeout=10, verify=False)
+        aes_resp = _httpx.get("https://tech-tips.ct.ws/aes.js", timeout=10, verify=False)
         aes_js = aes_resp.text
     except Exception:
         return None
@@ -569,20 +569,20 @@ def _byethost_session():
     import httpx as _httpx
     client = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
     try:
-        resp = client.get("https://tech-tips.byethost4.com/", timeout=15)
+        resp = client.get("https://tech-tips.ct.ws/", timeout=15)
         html = resp.text
         if "toNumbers" in html and "slowAES" in html:
             cookie_val = _solve_challenge(html)
             if cookie_val:
-                client.cookies.set("__test", cookie_val, domain=".byethost4.com")
+                client.cookies.set("__test", cookie_val, domain=".ct.ws")
                 try:
-                    test = client.get("https://tech-tips.byethost4.com/wp-json/", timeout=10)
+                    test = client.get("https://tech-tips.ct.ws/wp-json/", timeout=10)
                     if test.status_code == 200 and "name" in test.text[:200]:
                         return client
                 except Exception:
                     pass
                 try:
-                    client.get("https://tech-tips.byethost4.com/?i=1", timeout=10)
+                    client.get("https://tech-tips.ct.ws/?i=1", timeout=10)
                 except Exception:
                     pass
                 raise RuntimeError("Falha ao resolver anti-bot do ByetHost: cookie inválido. Tente novamente.")
@@ -923,7 +923,7 @@ Return ONLY JSON:
                     pin_files = image_step.get("files", [pin_filename])
                     
                     # Ensure public_image_url is a WordPress URL
-                    if not public_image_url or "tech-tips.byethost4.com" not in public_image_url:
+                    if not public_image_url or "tech-tips.ct.ws" not in public_image_url:
                         # Upload main pin to WordPress
                         main_pin_path = images_dir / pin_filename
                         if main_pin_path.exists():
@@ -955,7 +955,7 @@ Return ONLY JSON:
                             "board_id": board_id,
                             "title": pin_title[:100],
                             "description": pin_desc[:500],
-                            "link": post_url or _env("SITE_URL", "https://tech-tips.byethost4.com"),
+                            "link": post_url or _env("SITE_URL", "https://tech-tips.ct.ws"),
                             "image_source_url": pf_url,
                         }
                         resp_pin = _httpx.post(
@@ -1715,7 +1715,7 @@ def api_pin_info(filename: str):
     for f in _articles_dir().glob("*.md"):
         if extract_slug_from_filename(f.name) == slug:
             info = _extract_article_info(f)
-            site_url = _env("SITE_URL", "https://tech-tips.byethost4.com")
+            site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
             return jsonify({
                 "success": True,
                 "title": info["title"], "description": info["meta_description"],
@@ -1845,7 +1845,7 @@ def api_pinterest_create():
             "board_id": board_id,
             "title": data.get("title", ""),
             "description": data.get("description", ""),
-            "link": data.get("link", _env("SITE_URL", "https://tech-tips.byethost4.com")),
+            "link": data.get("link", _env("SITE_URL", "https://tech-tips.ct.ws")),
         }
         image_url = data.get("image_url", "")
         # Convert local URLs to public (WP media or Pollinations fallback)
@@ -2232,7 +2232,7 @@ def api_test_wp():
     try:
         import httpx as _httpx
         env = _load_env_dict()
-        site_url = env.get("SITE_URL", "https://tech-tips.byethost4.com")
+        site_url = env.get("SITE_URL", "https://tech-tips.ct.ws")
         wp_user = env.get("WP_USER", "")
         wp_pass = env.get("WP_APP_PASSWORD", "")
         if not wp_user or not wp_pass:
@@ -2434,7 +2434,7 @@ def api_posts():
     """List published posts from WordPress."""
     import httpx as _httpx
     env = _load_env_dict()
-    site_url = env.get("SITE_URL", "https://tech-tips.byethost4.com")
+    site_url = env.get("SITE_URL", "https://tech-tips.ct.ws")
     wp_user = env.get("WP_USER", "")
     wp_pass = env.get("WP_APP_PASSWORD", "")
     if not wp_user or not wp_pass:
@@ -2470,7 +2470,7 @@ def sitemap():
     from flask import Response
     import pymysql
     
-    site_url = _env("SITE_URL", "https://tech-tips.byethost4.com")
+    site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
     
     # Try to get posts from WordPress database
     posts_xml = ""

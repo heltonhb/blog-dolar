@@ -4,11 +4,11 @@
 <div class="header" style="display: flex; justify-content: space-between; align-items: center;">
     <div>
         <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-globe" style="color: var(--info);"></i> Visualização do Blog</h1>
-        <p>tech-tips.byethost4.com — visualize como os visitantes veem o site</p>
+        <p>tech-tips.ct.ws — visualize como os visitantes veem o site</p>
     </div>
     <div class="actions">
         <button class="btn btn-blue" onclick="reloadFrame()"><i class="fa-solid fa-rotate-right"></i> Recarregar</button>
-        <a href="https://tech-tips.byethost4.com" target="_blank" class="btn btn-green"><i class="fa-solid fa-external-link"></i> Abrir em nova aba</a>
+        <a href="https://tech-tips.ct.ws" target="_blank" class="btn btn-green"><i class="fa-solid fa-external-link"></i> Abrir em nova aba</a>
     </div>
 </div>
 
@@ -40,10 +40,10 @@
             <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--warning);"></span>
             <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--accent-green);"></span>
         </div>
-        <input type="text" id="blog-url" class="form-control" value="https://tech-tips.byethost4.com" style="flex: 1; padding: 6px 12px; font-size: 0.85rem; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;" onkeydown="if(event.key==='Enter')navigateBlog()">
+        <input type="text" id="blog-url" class="form-control" value="https://tech-tips.ct.ws" style="flex: 1; padding: 6px 12px; font-size: 0.85rem; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;" onkeydown="if(event.key==='Enter')navigateBlog()">
         <button class="btn btn-blue" onclick="navigateBlog()" style="padding: 6px 12px;"><i class="fa-solid fa-arrow-right"></i></button>
     </div>
-    <iframe id="blog-frame" src="https://tech-tips.byethost4.com" style="width: 100%; height: 70vh; border: none;"></iframe>
+    <iframe id="blog-frame" src="https://tech-tips.ct.ws" style="width: 100%; height: 70vh; border: none;"></iframe>
 </div>
 
 <!-- Local articles list -->
@@ -74,7 +74,7 @@ Promise.all([
     document.getElementById('blog-latest').textContent = articles.length > 0 ? articles[0].filename.replace('.md', '').replace('2026-09-01_', '').replace(/-/g, ' ') : 'Nenhum';
 
     // Check site status
-    fetch('https://tech-tips.byethost4.com', {mode: 'no-cors'})
+    fetch('https://tech-tips.ct.ws', {mode: 'no-cors'})
         .then(() => { document.getElementById('blog-status').textContent = 'Online'; document.getElementById('blog-status').style.color = 'var(--accent-green)'; })
         .catch(() => { document.getElementById('blog-status').textContent = 'Offline'; document.getElementById('blog-status').style.color = 'var(--danger)'; });
 
@@ -99,7 +99,7 @@ Promise.all([
 
 function viewArticle(filename) {
     const slug = filename.replace('.md', '').replace('2026-09-01_', '').replace('2026-08-31_', '');
-    document.getElementById('blog-url').value = 'https://tech-tips.byethost4.com/' + slug + '/';
+    document.getElementById('blog-url').value = 'https://tech-tips.ct.ws/' + slug + '/';
     navigateBlog();
 }
 

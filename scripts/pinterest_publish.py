@@ -23,7 +23,7 @@ def get_wp_posts():
 
     client = _byethost_session()
     resp = client.get(
-        "https://tech-tips.byethost4.com/wp-json/wp/v2/posts",
+        "https://tech-tips.ct.ws/wp-json/wp/v2/posts",
         params={"per_page": 100, "status": "publish"},
         auth=(env.get("WP_USER", ""), env.get("WP_APP_PASSWORD", "")),
         timeout=15,
@@ -40,7 +40,7 @@ def get_pin_image_url(post: dict, client=None) -> str:
     """
     media_id = post.get("featured_media")
     if media_id:
-        media_url = f"https://tech-tips.byethost4.com/wp-json/wp/v2/media/{media_id}"
+        media_url = f"https://tech-tips.ct.ws/wp-json/wp/v2/media/{media_id}"
         try:
             if client is not None:
                 r = client.get(media_url, timeout=15)

@@ -119,7 +119,7 @@ def main():
         print()
         print("PRÓXIMOS PASSOS:")
         print("  1. Aguarde o site ficar online")
-        print("  2. Acesse: https://tech-tips.byethost4.com/wp-admin")
+        print("  2. Acesse: https://tech-tips.ct.ws/wp-admin")
         print("  3. Vá em Plugins > Plugins Instalados")
         print("  4. Ative o Ad Inserter")
         print("  5. Configure conforme SETUP-INSTRUCTIONS.txt")

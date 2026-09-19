@@ -254,7 +254,7 @@ def step6_update_env_example(new_domain):
 
     # Atualizar SITE_URL
     content = content.replace(
-        "SITE_URL=https://tech-tips.byethost4.com",
+        "SITE_URL=https://tech-tips.ct.ws",
         f"SITE_URL=https://{new_domain}"
     )
 
