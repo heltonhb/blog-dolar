@@ -1,33 +1,34 @@
 # -*- coding: utf-8 -*-
 """Tests for API endpoints."""
-import sys
-from pathlib import Path
-
-# Use existing app.py for tests
-sys.path.insert(0, str(Path(__file__).parent.parent / "dashboard"))
 
 
-def test_api_health():
-    """Test health check endpoint."""
-    import app
-    with app.app.test_client() as client:
-        response = client.get("/api/health")
-        assert response.status_code == 200
-        data = response.get_json()
-        assert "status" in data
+def test_health_endpoint(client):
+    """Test /api/health returns 200 with status ok."""
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["status"] == "ok"
+    assert "dns" in data
 
 
-def test_login_without_password():
-    """Test login when no password is set."""
-    import app
-    with app.app.test_client() as client:
-        response = client.get("/login")
-        assert response.status_code == 200
+def test_login_page_loads(client):
+    """Test /login page loads with GET."""
+    resp = client.get("/login")
+    assert resp.status_code == 200
 
 
-def test_index_page():
-    """Test main dashboard page (redirects to /login if no session)."""
-    import app
-    with app.app.test_client() as client:
-        response = client.get("/")
-        assert response.status_code in (200, 302)
+def test_unauthenticated_redirect(client):
+    """Test that pages redirect to login when not authenticated."""
+    import os
+    os.environ["DASHBOARD_PASSWORD"] = "test123"
+    resp = client.get("/")
+    # Should redirect to login
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+
+
+def test_logout_clears_session(client):
+    """Test /logout clears session and redirects."""
+    resp = client.get("/logout")
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")

@@ -1,37 +1,30 @@
 # -*- coding: utf-8 -*-
 """Authentication routes."""
-from flask import Blueprint, request, redirect, url_for, session, render_template
-from pathlib import Path
+import secrets
+
+from flask import Blueprint, redirect, render_template, request, session, url_for
+
+from dashboard.services.helpers import _get_dashboard_password
 
 auth_bp = Blueprint("auth", __name__)
-
-
-def _get_dashboard_password():
-    """Get dashboard password from environment."""
-    pwd = os.environ.get("DASHBOARD_PASSWORD", "")
-    if not pwd:
-        env_path = Path(__file__).parent.parent.parent / ".env"
-        if env_path.exists():
-            for line in env_path.read_text().splitlines():
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, _, v = line.partition("=")
-                    if k.strip() == "DASHBOARD_PASSWORD":
-                        pwd = v.strip()
-                        break
-    return pwd
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login_page():
     error = ""
     if request.method == "POST":
+        # CSRF validation
+        if request.form.get("csrf_token") != session.get("csrf_token") or not session.get("csrf_token"):
+            return "CSRF token missing or invalid", 403
         password = request.form.get("password", "")
         if password == _get_dashboard_password():
             session["authenticated"] = True
             return redirect(url_for("main.index"))
         error = "Senha incorreta."
-    return render_template("login.html", error=error)
+
+    token = secrets.token_hex(32)
+    session["csrf_token"] = token
+    return render_template("login.html", error=error, csrf_token=token)
 
 
 @auth_bp.route("/logout")
