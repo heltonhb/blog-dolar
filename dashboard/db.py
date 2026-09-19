@@ -13,10 +13,17 @@ DATABASE_URL = os.environ.get('DATABASE_URL', '')
 
 def get_conn_params():
     """Parse DATABASE_URL into connection params."""
-    if not DATABASE_URL:
+    db_url = os.environ.get('DATABASE_URL', '')
+    if not db_url:
+        try:
+            from dashboard.services.helpers import _env
+            db_url = _env('DATABASE_URL', '')
+        except Exception:
+            pass
+    if not db_url:
         return None
     # Handle postgres:// -> postgresql://
-    url = DATABASE_URL.replace('postgres://', 'postgresql://')
+    url = db_url.replace('postgres://', 'postgresql://')
     return url
 
 @contextmanager

@@ -25,8 +25,15 @@ def _dashboard_dir() -> Path:
 
 
 def _env(key: str, default: str = "") -> str:
-    """Safely read an environment variable."""
-    return os.environ.get(key, default)
+    """Safely read an environment variable, falling back to .env file."""
+    val = os.environ.get(key)
+    if val:
+        return val
+    try:
+        env = _load_env_dict()
+        return env.get(key, default)
+    except Exception:
+        return default
 
 
 def _data_path(name: str) -> Path:
@@ -41,7 +48,11 @@ def _articles_dir() -> Path:
 
 def _scripts_dir() -> Path:
     """Resolve path to root scripts/ directory."""
-    return _project_root() / "scripts"
+    p = _project_root() / "scripts"
+    p_str = str(p)
+    if p_str not in sys.path:
+        sys.path.insert(0, p_str)
+    return p
 
 
 def _images_dir() -> Path:
