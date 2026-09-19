@@ -183,18 +183,19 @@ function runPipeline() {
 
         if (data.success) {
             const pinUrl = data.image_url || ('https://tech-tips.ct.ws/wp-content/uploads/' + esc(data.image));
-            const wpLink = data.post_url || 'https://tech-tips.ct.ws';
+            const safeLink = data.bridge_url || data.post_url || 'https://tech-tips.ct.ws';
             const pinTitle = esc(data.title || '');
             const pinDesc = 'Read this guide on our blog!';
 
             // Build Pinterest share URL
-            const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl.startsWith('http') ? pinUrl : window.location.origin + pinUrl) + '&description=' + encodeURIComponent(pinTitle);
+            const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(safeLink) + '&media=' + encodeURIComponent(pinUrl.startsWith('http') ? pinUrl : window.location.origin + pinUrl) + '&description=' + encodeURIComponent(pinTitle);
 
             let links = '';
             if (data.post_url) links += '<a href="' + esc(data.post_url) + '" target="_blank" class="btn btn-blue" style="margin-right: 8px;"><i class="fa-solid fa-external-link"></i> Ver no WordPress</a>';
+            if (data.bridge_url) links += '<a href="' + esc(data.bridge_url) + '" target="_blank" class="btn btn-green" style="margin-right: 8px;"><i class="fa-solid fa-shield-halved"></i> Ver Página Ponte</a>';
             links += '<button class="btn btn-green" onclick="copyImage(\'' + esc(data.image) + '\')"><i class="fa-regular fa-copy"></i> Copiar Imagem</button>';
             links += '<button class="btn btn-orange" onclick="downloadPin(\'' + esc(data.image) + '\')"><i class="fa-solid fa-download"></i> Download</button>';
-            links += '<a href="' + pinterestUrl + '" target="_blank" class="btn btn-red" style="text-decoration: none;"><i class="fa-brands fa-pinterest"></i> Publicar no Pinterest</a>';
+            links += '<a href="' + pinterestUrl + '" target="_blank" class="btn btn-red" style="text-decoration: none;" title="Publicar com o Link Seguro da Ponte"><i class="fa-brands fa-pinterest"></i> Publicar no Pinterest</a>';
 
             result.innerHTML = `
             <div class="pipeline-result-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -220,7 +221,9 @@ function runPipeline() {
                     <p><strong>Artigo:</strong> ${pinTitle}</p>
                     <p><strong>Arquivo:</strong> ${esc(data.article)}</p>
                     <p><strong>Imagem:</strong> ${esc(data.image)}</p>
-                    ${data.post_url ? '<p><strong>WP:</strong> <a href="' + esc(data.post_url) + '" target="_blank" style="color: var(--info);">' + esc(data.post_url) + '</a></p>' : ''}
+                    ${data.bridge_url ? '<p><strong>Ponte Segura:</strong> <a href="' + esc(data.bridge_url) + '" target="_blank" style="color: var(--accent-green); font-weight: bold;"><i class="fa-solid fa-shield-halved"></i> ' + esc(data.bridge_url) + '</a></p>' : ''}
+                    ${data.post_url ? '<p><strong>WordPress:</strong> <a href="' + esc(data.post_url) + '" target="_blank" style="color: var(--info);">' + esc(data.post_url) + '</a></p>' : ''}
+
                     ${(() => {
                         const pinStep = (data.steps || []).find(s => s.step === 'pinterest');
                         if (pinStep && pinStep.status === 'ok') {

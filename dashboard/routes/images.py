@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import Blueprint, jsonify, request
 
 from dashboard.services.articles import _extract_article_info
+from dashboard.services.bridge import get_bridge_url, is_bridge_enabled
 from dashboard.services.helpers import (
     _articles_dir,
     _env,
@@ -235,13 +236,20 @@ def api_pin_info(filename: str):
         if extract_slug_from_filename(f.name) == slug:
             info = _extract_article_info(f)
             site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
+            post_url = f"{site_url.rstrip('/')}/?p={info['slug']}"
+            bridge_url = get_bridge_url(info['slug'], post_url)
+            default_link = bridge_url if is_bridge_enabled() else post_url
             return jsonify({
                 "success": True,
                 "title": info["title"],
                 "description": info["meta_description"],
                 "excerpt": info["excerpt"],
                 "tags": info["tags"],
-                "link": f"{site_url.rstrip('/')}/?p={info['slug']}",
+                "link": default_link,
+                "post_url": post_url,
+                "bridge_url": bridge_url,
+                "slug": info["slug"],
                 "article_file": f.name,
             })
+
     return jsonify({"success": False, "error": "Artigo não encontrado"}), 404

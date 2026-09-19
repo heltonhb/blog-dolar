@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article.title }} | {{ article.site_name }}</title>
+    <meta name="description" content="{{ article.meta_description }}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ article.post_url }}">
+
+    <!-- Open Graph (Facebook / Pinterest / LinkedIn) -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="{{ article.site_name }}">
+    <meta property="og:title" content="{{ article.title }}">
+    <meta property="og:description" content="{{ article.meta_description }}">
+    <meta property="og:image" content="{{ article.image_url }}">
+    <meta property="og:url" content="{{ bridge_url }}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ article.title }}">
+    <meta name="twitter:description" content="{{ article.meta_description }}">
+    <meta name="twitter:image" content="{{ article.image_url }}">
+
+    <!-- Pinterest Domain Verification -->
+    {% if article.pinterest_verify %}
+    <meta name="p:domain_verify" content="{{ article.pinterest_verify }}">
+    {% endif %}
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --pinterest-red: #e60023;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --badge-bg: #eff6ff;
+            --badge-text: #1d4ed8;
+            --highlight-bg: #f1f5f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 580px;
+            margin: 0 auto;
+        }
+
+        /* Top Brand Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 4px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.15rem;
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        }
+
+        .brand-badge {
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Main Bridge Card */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+
+        .hero-img-wrap {
+            position: relative;
+            width: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .hero-img {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .meta-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .tag-pill {
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .reading-pill {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 6px;
+        }
+
+        .article-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            line-height: 1.35;
+            color: var(--primary);
+            margin-bottom: 14px;
+        }
+
+        .article-excerpt {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Key Takeaways / Highlights Box */
+        .highlights-box {
+            background: var(--highlight-bg);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .highlights-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .highlights-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .highlights-list li {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .check-icon {
+            color: #16a34a;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Call To Action Button */
+        .cta-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .cta-btn {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .cta-btn:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .cta-btn-alt {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted) !important;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-align: center;
+            transition: background 0.15s;
+        }
+
+        .cta-btn-alt:hover {
+            background: #f1f5f9;
+            color: var(--text-main) !important;
+        }
+
+        /* Countdown Notice */
+        .countdown-notice {
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--text-muted);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px 12px;
+            }
+            .card-body {
+                padding: 18px;
+            }
+            .article-title {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Brand Header -->
+        <div class="header">
+            <a href="{{ article.post_url }}" class="brand">
+                <div class="brand-icon">⚡</div>
+                <span>{{ article.site_name }}</span>
+            </a>
+            <span class="brand-badge">✓ Verificado</span>
+        </div>
+
+        <!-- Main Card -->
+        <article class="card">
+            {% if article.image_url %}
+            <div class="hero-img-wrap">
+                <img src="{{ article.image_url }}" alt="{{ article.title }}" class="hero-img" loading="eager">
+            </div>
+            {% endif %}
+
+            <div class="card-body">
+                <div class="meta-tags">
+                    {% for tag in article.tags[:2] %}
+                    <span class="tag-pill">{{ tag }}</span>
+                    {% endfor %}
+                    <span class="reading-pill">⏱️ {{ article.reading_time }} de leitura</span>
+                </div>
+
+                <h1 class="article-title">{{ article.title }}</h1>
+                <p class="article-excerpt">{{ article.excerpt }}</p>
+
+                {% if article.highlights %}
+                <div class="highlights-box">
+                    <div class="highlights-title">📌 Neste guia prático:</div>
+                    <ul class="highlights-list">
+                        {% for item in article.highlights %}
+                        <li><span class="check-icon">✓</span> <span>{{ item }}</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Call to Action -->
+                <div class="cta-container">
+                    <a id="btn-read-full" href="{{ article.post_url }}" class="cta-btn" rel="noopener">
+                        <span>Acessar Artigo Completo</span>
+                        <span>➜</span>
+                    </a>
+
+                    {% if article.redirect_seconds and article.redirect_seconds > 0 %}
+                    <div class="countdown-notice" id="countdown-wrap">
+                        Redirecionando automaticamente em <strong id="timer">{{ article.redirect_seconds }}</strong>s...
+                    </div>
+                    {% endif %}
+
+                    <a href="{{ article.post_url }}" class="cta-btn-alt" rel="noopener">
+                        Abrir diretamente no site oficial
+                    </a>
+                </div>
+            </div>
+        </article>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2026 {{ article.site_name }}. Conteúdo editorial independente.</p>
+            <p style="margin-top: 4px;">Dica: Salve este pin no Pinterest para consultar mais tarde.</p>
+        </footer>
+    </div>
+
+    {% if article.redirect_seconds and article.redirect_seconds > 0 %}
+    <script>
+        (function() {
+            var seconds = {{ article.redirect_seconds }};
+            var timerEl = document.getElementById('timer');
+            var interval = setInterval(function() {
+                seconds--;
+                if (timerEl) timerEl.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    window.location.href = "{{ article.post_url }}";
+                }
+            }, 1000);
+        })();
+    </script>
+    {% endif %}
+</body>
+</html>

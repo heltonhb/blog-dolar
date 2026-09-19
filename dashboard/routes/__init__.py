@@ -19,6 +19,7 @@ def register_blueprints(app):
     from .scheduler import scheduler_bp
     from .settings import settings_bp
     from .misc import misc_bp
+    from .bridge import bridge_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -35,3 +36,5 @@ def register_blueprints(app):
     app.register_blueprint(scheduler_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(misc_bp)
+    app.register_blueprint(bridge_bp)
+

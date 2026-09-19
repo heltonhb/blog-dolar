@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 
 from dashboard.services.articles import _extract_article_info
+from dashboard.services.bridge import get_bridge_url, is_bridge_enabled
 from dashboard.services.gemini import _gemini_call
 from dashboard.services.helpers import (
     _articles_dir,
@@ -395,11 +396,14 @@ Return ONLY JSON:
                             tags=article_info.get("tags") if 'article_info' in locals() else None,
                         ) if pin_api_key else (meta_desc or f"Read about {title}")
 
+                        bridge_url = get_bridge_url(slug, post_url) if is_bridge_enabled() else ""
+                        pin_target_link = bridge_url or post_url or site_url
+
                         pin_payload = {
                             "board_id": board_id,
                             "title": pin_title[:100],
                             "description": pin_desc[:500],
-                            "link": post_url or site_url,
+                            "link": pin_target_link,
                             "image_source_url": pf_url,
                         }
                         resp_pin = httpx.post(
@@ -447,6 +451,8 @@ Return ONLY JSON:
     else:
         steps.append({"step": "pinterest", "status": "skipped"})
 
+    bridge_url = get_bridge_url(slug, post_url) if is_bridge_enabled() else ""
+
     # Save execution to history
     save_pipeline_history({
         "keyword": keyword,
@@ -455,6 +461,7 @@ Return ONLY JSON:
         "image": pin_filename,
         "image_url": public_image_url,
         "post_url": post_url,
+        "bridge_url": bridge_url,
         "steps": steps,
         "completed_at": datetime.now().isoformat(),
     })
@@ -470,5 +477,7 @@ Return ONLY JSON:
         "image": pin_filename,
         "image_url": public_image_url,
         "post_url": post_url,
+        "bridge_url": bridge_url,
         "steps": steps,
     }
+

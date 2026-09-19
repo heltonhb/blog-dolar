@@ -151,7 +151,9 @@ function renderPinGrid(results) {
     grid.innerHTML = results.map(({pin, info}) => {
         const title = info ? info.title : pin.filename.replace('pin-', '').replace('.png', '').replace(/-/g, ' ');
         const desc = info ? (info.description || info.excerpt || '') : '';
-        const link = info ? info.link : 'https://tech-tips.ct.ws';
+        const bridgeUrl = info && info.bridge_url ? info.bridge_url : '';
+        const postUrl = info && info.post_url ? info.post_url : (info ? info.link : 'https://tech-tips.ct.ws');
+        const link = bridgeUrl || postUrl;
         const articleFile = info ? info.article_file : '';
         const tags = info ? (info.tags || []) : [];
 
@@ -164,21 +166,35 @@ function renderPinGrid(results) {
             <div class="pin-body">
                 <div class="pin-title">${esc(title)}</div>
                 <div class="pin-desc">${esc(desc)}</div>
+                ${bridgeUrl ? `
+                <div style="margin: 8px 0; font-size: 0.8rem; background: var(--bg-card); border: 1px solid var(--accent-green); border-radius: 6px; padding: 6px 10px;">
+                    <span style="color: var(--accent-green); font-weight: bold;"><i class="fa-solid fa-shield-halved"></i> Ponte Segura (Anti-Bloqueio):</span>
+                    <br><a class="pin-link" href="${esc(bridgeUrl)}" target="_blank" style="word-break: break-all;"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${esc(bridgeUrl)}</a>
+                </div>
+                ` : `
                 <a class="pin-link" href="${esc(link)}" target="_blank"><i class="fa-solid fa-link"></i> ${esc(link)}</a>
+                `}
                 <div class="pin-actions">
                     <button class="btn btn-green" onclick="copyImage('${esc(pin.filename)}')" style="font-size: 0.8rem;"><i class="fa-regular fa-copy"></i> Copiar Imagem</button>
                     <button class="btn btn-blue" onclick="copyTitle('${esc(title)}')" style="font-size: 0.8rem;"><i class="fa-regular fa-copy"></i> Título</button>
                     <button class="btn btn-orange" onclick="copyDesc('${esc(desc)}')" style="font-size: 0.8rem;"><i class="fa-regular fa-copy"></i> Descrição</button>
+                    ${bridgeUrl ? `<button class="btn btn-green" onclick="copyLink('${esc(bridgeUrl)}', 'Link da Ponte')" style="font-size: 0.8rem;" title="Copiar link da Página Ponte"><i class="fa-solid fa-link"></i> Copiar Link Ponte</button>` : ''}
                 </div>
                 <div class="pin-actions" style="margin-top: 6px;">
                     <button class="btn btn-red" onclick="downloadPin('${esc(pin.filename)}')" style="font-size: 0.8rem;"><i class="fa-solid fa-download"></i> Salvar</button>
-                    <a href="${pinterestUrl}" target="_blank" class="btn btn-red" style="font-size: 0.8rem; text-decoration: none; background: #e60023; border-color: #e60023;"><i class="fa-brands fa-pinterest"></i> Publicar no Pinterest</a>
+                    <a href="${pinterestUrl}" target="_blank" class="btn btn-red" style="font-size: 0.8rem; text-decoration: none; background: #e60023; border-color: #e60023;" title="Publicar com o Link Seguro da Ponte (evita bloqueio do Pinterest)"><i class="fa-brands fa-pinterest"></i> Publicar no Pinterest</a>
+                    ${bridgeUrl ? `<a href="${esc(bridgeUrl)}" target="_blank" class="btn btn-blue" style="font-size: 0.8rem; text-decoration: none;"><i class="fa-solid fa-eye"></i> Ver Ponte</a>` : ''}
                     <button class="btn btn-red" onclick="deletePin('${esc(pin.filename)}')" style="font-size: 0.8rem; margin-left: auto;"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
         </div>`;
     }).join('');
 }
+
+function copyLink(url, label) {
+    navigator.clipboard.writeText(url).then(() => showToast((label || 'Link') + ' copiado!'));
+}
+
 
 function copyImage(filename) {
     const url = window.location.origin + '/static/images/' + filename;

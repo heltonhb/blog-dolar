@@ -111,6 +111,28 @@
         </div>
     </div>
 
+    <!-- Bridge Page Config (Anti-Bloqueio Pinterest) -->
+    <div class="stat-card" style="border-left: 4px solid var(--accent-green);">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-shield-halved" style="color: var(--accent-green);"></i> Página Ponte (Anti-Bloqueio Pinterest)</h3>
+        <div class="form-group">
+            <label>Ativar Página Ponte Automática</label>
+            <select id="cfg-BRIDGE_ENABLED" class="form-control">
+                <option value="true">Ativado (Recomendado - Evita bloqueio do Pinterest)</option>
+                <option value="false">Desativado (Links diretos para tech-tips.ct.ws)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>URL Base da Ponte (Vazio = Detecta Render automaticamente)</label>
+            <input type="text" id="cfg-BRIDGE_BASE_URL" class="form-control" placeholder="https://blog-dolar-dashboard.onrender.com">
+            <small style="color: var(--text-secondary); display: block; margin-top: 4px;">Se você hospeda no Render ou tem um domínio próprio, cole a URL base aqui.</small>
+        </div>
+        <div class="form-group">
+            <label>Redirecionamento Automático (Segundos)</label>
+            <input type="number" id="cfg-BRIDGE_REDIRECT_SECONDS" class="form-control" placeholder="0" min="0" max="30">
+            <small style="color: var(--text-secondary); display: block; margin-top: 4px;">0 = Apenas clique no botão (Mais seguro para o robô do Pinterest). 3 = Redireciona após 3s.</small>
+        </div>
+    </div>
+
     <!-- AdCash Config -->
     <div class="stat-card">
         <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-sack-dollar"></i> AdCash</h3>
@@ -141,7 +163,9 @@ const allKeys = ['DASHBOARD_PASSWORD', 'FLASK_SECRET_KEY',
                  'FTP_HOST', 'FTP_USER', 'FTP_PASS',
                  'WP_DB_HOST', 'WP_DB_USER', 'WP_DB_PASS', 'WP_DB_NAME',
                  'PINTEREST_ACCESS_TOKEN', 'PINTEREST_BOARD_ID',
+                 'BRIDGE_ENABLED', 'BRIDGE_BASE_URL', 'BRIDGE_REDIRECT_SECONDS',
                  'ADCASH_ZONE_ID', 'ADCASH_API_TOKEN'];
+
 
 // Load current settings
 fetch('/api/settings')

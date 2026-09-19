@@ -7,6 +7,7 @@ from pathlib import Path
 import httpx
 from flask import Blueprint, jsonify, request
 
+from dashboard.services.bridge import get_bridge_url, is_bridge_enabled
 from dashboard.services.helpers import _env, _images_dir, login_required
 from dashboard.services.wordpress import _wp_upload_media
 from db import get_config, save_config
@@ -26,12 +27,20 @@ def api_pinterest_create():
             return jsonify({"success": False, "error": "Pinterest não configurado (ACCESS_TOKEN ou BOARD_ID ausente)."}), 400
 
         site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
+        raw_link = data.get("link", site_url)
+        use_bridge = data.get("use_bridge", True) and is_bridge_enabled()
+        if use_bridge and ("/p/" not in raw_link and "/bridge/" not in raw_link):
+            target_link = get_bridge_url(data.get("slug", ""), raw_link)
+        else:
+            target_link = raw_link
+
         payload = {
             "board_id": board_id,
             "title": data.get("title", ""),
             "description": data.get("description", ""),
-            "link": data.get("link", site_url),
+            "link": target_link,
         }
+
         image_url = data.get("image_url", "")
 
         # Convert local URLs to public (WP media or Pollinations fallback)
