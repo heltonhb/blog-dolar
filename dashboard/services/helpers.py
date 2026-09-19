@@ -89,23 +89,30 @@ def _save_json(name: str, data):
 # ---------------------------------------------------------------------------
 
 def _load_env_dict() -> dict:
-    """Read .env file into dict."""
+    """Read .env file into dict (checking root .env, then persistent data disk)."""
     env = {}
-    env_path = _project_root() / ".env"
-    if env_path.exists():
-        for line in env_path.read_text().splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, _, v = line.partition("=")
-                env[k.strip()] = v.strip()
+    paths = [_project_root() / ".env", _data_path(".env")]
+    for path in paths:
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, _, v = line.partition("=")
+                    env[k.strip()] = v.strip()
     return env
 
 
 def _save_env_dict(env: dict):
-    """Overwrite .env file."""
-    env_path = _project_root() / ".env"
+    """Overwrite .env file in root and persistent data disk."""
     lines = [f"{k}={v}" for k, v in env.items()]
-    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    content = "\n".join(lines) + "\n"
+    _project_root().joinpath(".env").write_text(content, encoding="utf-8")
+    try:
+        data_env = _data_path(".env")
+        data_env.parent.mkdir(parents=True, exist_ok=True)
+        data_env.write_text(content, encoding="utf-8")
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------

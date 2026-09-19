@@ -30,6 +30,7 @@ instance/
 dashboard/data/*.json
 dashboard/static/images/*.png
 dashboard/data/dashboard.db
+dashboard/data/.env
 
 # Prevent credential leaks
 test_upload.py
