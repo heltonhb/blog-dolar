@@ -44,6 +44,13 @@ def _scripts_dir() -> Path:
     return _project_root() / "scripts"
 
 
+def _images_dir() -> Path:
+    """Resolve path to dashboard/static/images directory."""
+    p = _dashboard_dir() / "static" / "images"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
 # ---------------------------------------------------------------------------
 #  JSON file helpers
 # ---------------------------------------------------------------------------

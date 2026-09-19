@@ -143,7 +143,10 @@ def get_pipeline_history(limit=50):
             result = []
             for r in cur.fetchall():
                 d = dict(r)
-                d['steps'] = json.loads(d['steps']) if d['steps'] else []
+                if isinstance(d.get('steps'), str):
+                    d['steps'] = json.loads(d['steps'])
+                elif d.get('steps') is None:
+                    d['steps'] = []
                 result.append(d)
             return result
 
@@ -156,6 +159,17 @@ def save_pipeline_history(entry):
             """, (entry.get('keyword'), entry.get('article'), entry.get('title'),
                   entry.get('image'), entry.get('image_url'), entry.get('post_url'),
                   json.dumps(entry.get('steps', [])), entry.get('completed_at', datetime.now().isoformat())))
+
+def delete_pipeline_history_by_index(index):
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT id FROM pipeline_history ORDER BY completed_at DESC")
+            rows = cur.fetchall()
+            if 0 <= index < len(rows):
+                target_id = rows[index]['id']
+                cur.execute("DELETE FROM pipeline_history WHERE id=%s", (target_id,))
+                return True
+            return False
 
 # ═══════════════════════════════════════════════════════════════════
 # Verify History

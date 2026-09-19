@@ -10,6 +10,9 @@ def register_blueprints(app):
     from .ideas import ideas_bp
     from .stats import stats_bp
     from .articles import articles_bp
+    from .images import images_bp
+    from .publish import publish_bp
+    from .pipeline import pipeline_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -17,3 +20,6 @@ def register_blueprints(app):
     app.register_blueprint(ideas_bp)
     app.register_blueprint(stats_bp)
     app.register_blueprint(articles_bp)
+    app.register_blueprint(images_bp)
+    app.register_blueprint(publish_bp)
+    app.register_blueprint(pipeline_bp)
