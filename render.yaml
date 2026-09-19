@@ -3,8 +3,10 @@ services:
     name: blog-dolar-dashboard
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn dashboard.app:app --bind 0.0.0.0:$PORT --timeout 120
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --timeout 120
     envVars:
+      - key: DATABASE_URL
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: WP_DB_HOST
@@ -25,12 +27,14 @@ services:
         sync: false
       - key: ADCASH_API_TOKEN
         sync: false
+      - key: ADSTERRA_API_TOKEN
+        sync: false
       - key: PINTEREST_ACCESS_TOKEN
         sync: false
       - key: PINTEREST_BOARD_ID
         sync: false
       - key: SITE_URL
-        value: https://tech-tips.byethost4.com
+        value: https://tech-tips.ct.ws
       - key: WP_USER
         sync: false
       - key: WP_APP_PASSWORD
