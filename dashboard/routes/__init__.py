@@ -17,6 +17,8 @@ def register_blueprints(app):
     from .adcash import monetization_bp
     from .traffic import traffic_bp
     from .scheduler import scheduler_bp
+    from .settings import settings_bp
+    from .misc import misc_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -31,3 +33,5 @@ def register_blueprints(app):
     app.register_blueprint(monetization_bp)
     app.register_blueprint(traffic_bp)
     app.register_blueprint(scheduler_bp)
+    app.register_blueprint(settings_bp)
+    app.register_blueprint(misc_bp)

@@ -1,157 +1,104 @@
-# 📋 Status do Refatoramento - Blog em Dolar
+# 📋 Status do Refatoramento e Migração - Blog em Dólar
 
-## ✅ Implementado (Prioridade Alta)
+## ✅ Migração Concluída com Sucesso! (100%)
 
-### 1. Estrutura Modular
-- `dashboard/__init__.py` - App factory
-- `dashboard/routes/` - Blueprints (parciais)
-- `dashboard/services/` - Logging e rate limiting
-- `dashboard/models/` - Pronto para uso
-
-### 2. Logging Estruturado
-- `services/logging.py` - JSON logs com request context
-- `services/rate_limit.py` - Flask-limiter config
-
-### 3. Testes
-- `tests/conftest.py` - Fixtures
-- `tests/test_api.py` - Testes de endpoints
-- `tests/test_logging.py` - Testes de logging
-- `tests/test_rate_limit.py` - Testes de rate limit
-- Status: **5/5 passando**
-
-### 4. Docker
-- `Dockerfile` - Containerização
-- `docker-compose.yml` - Orquestração
-- `requirements.txt` - Atualizado
+Todos os 5 batches de modularização foram implementados, testados e validados. O monólito `dashboard/app.py` foi decomposto em uma arquitetura limpa de **Application Factory**, **Blueprints** e **Services**, mantendo total retrocompatibilidade e 41 testes automatizados cobrindo todo o sistema.
 
 ---
 
-## 📝 Como Continuar
+## 🏗️ Arquitetura Implementada
 
-### 1. Rodar Testes
+```
+blog-dolar/
+├── wsgi.py                     ← Ponto de entrada de produção (Gunicorn / Render)
+├── dashboard/
+│   ├── __init__.py             ← Application Factory (create_app)
+│   ├── app.py                  ← Monólito original (mantido íntegro para compatibilidade)
+│   ├── db.py                   ← Camada PostgreSQL (Neon) com helpers de exclusão e checkpoints
+│   ├── routes/
+│   │   ├── __init__.py         ← Registro centralizado de todos os 15 Blueprints
+│   │   ├── auth.py             ← /login, /logout (CSRF, proteção por sessão)
+│   │   ├── main.py             ← 14 páginas HTML completas protegidas por @login_required
+│   │   ├── api.py              ← /api/health (monitoramento de DNS e conectividade)
+│   │   ├── ideas.py            ← /api/ideas/generate (Gemini & Trends RSS), /add, /delete, /list
+│   │   ├── stats.py            ← /api/stats (visão geral do blog, WP, scheduler, AdCash)
+│   │   ├── articles.py         ← /api/generate, /articles/list, /delete, /verify, /verify/history/delete
+│   │   ├── images.py           ← /api/images/generate, /generate_pin, /variations, /preview_prompt, /list, /delete, /pin_info
+│   │   ├── publish.py          ← /api/publish (publicação direta no WordPress REST API)
+│   │   ├── pipeline.py         ← /api/pipeline, /history, /checkpoints, /checkpoints/clear
+│   │   ├── pinterest.py        ← /api/pinterest/create, /list
+│   │   ├── adcash.py           ← /api/adcash, /refresh, /api/adsterra, /domains
+│   │   ├── traffic.py          ← /api/traffic/ga4, /refresh, /pinterest
+│   │   ├── scheduler.py        ← /api/scheduler/status, /add, /remove, /run_now
+│   │   ├── settings.py         ← /api/settings (GET/POST com mascaramento), /test_wp, /test-gemini, /test_pinterest, /run_script
+│   │   └── misc.py             ← /api/posts, /sitemap.xml
+│   └── services/
+│       ├── __init__.py
+│       ├── helpers.py          ← Utilitários de caminho, JSON I/O, .env e @login_required
+│       ├── gemini.py           ← API Gemini com retries e cadeia de fallback de modelos
+│       ├── wordpress.py        ← WordPress REST publisher, upload de mídia e anti-bot solver
+│       ├── articles.py         ← Extração de frontmatter, contagem de palavras e headings
+│       ├── images.py           ← Prompt builder visual inteligente (_build_pin_prompt)
+│       ├── pipeline.py         ← Orquestração ponta a ponta (Article → Image → WP → Pinterest)
+│       ├── scheduler.py        ← Instância do APScheduler e restauração automática de cron jobs
+│       ├── logging.py          ← Structured JSON logging com contexto de requisição
+│       └── rate_limit.py       ← Configuração de limites com flask-limiter
+└── tests/                      ← 41 testes automatizados (100% passando)
+    ├── conftest.py             ← Fixtures com cliente autenticado e não-autenticado
+    ├── test_api.py             ← Health, login, logout e autenticação
+    ├── test_articles.py        ← Geração, listagem, remoção, extração e verificação SEO
+    ├── test_ideas.py           ← Listagem, adição, exclusão e geração de ideias
+    ├── test_images.py          ← Geração de imagem, pin, preview de prompt e listagem
+    ├── test_logging.py         ← Formatador de logs JSON
+    ├── test_misc.py            ← Listagem de posts WP e geração de sitemap.xml
+    ├── test_monetization.py    ← Relatórios AdCash e Adsterra
+    ├── test_pinterest.py       ← Criação e listagem de pins
+    ├── test_pipeline.py        ← Execução do pipeline, checkpoints e histórico
+    ├── test_publish.py         ← Publicação de artigos no WordPress
+    ├── test_rate_limit.py      ← Verificação do middleware de rate limiting
+    ├── test_scheduler.py       ← Agendamento, status, remoção e execução imediata
+    ├── test_settings.py        ← Mascaramento de senhas e testes de conectividade
+    └── test_traffic.py         ← Métricas GA4 e tráfego de referência do Pinterest
+```
+
+---
+
+## 📊 Tabela de Batches Executados
+
+| Batch | Escopo | Endpoints / Serviços | Testes | Status |
+|---|---|---|---|---|
+| **Batch 1** | Infraestrutura, Helpers, Auth e Páginas | 18 rotas (14 páginas HTML + auth + health) | 6 testes | ✅ Concluído |
+| **Batch 2** | Ideas, Stats e Artigos | 10 endpoints (`/ideas/*`, `/stats`, `/generate`, `/articles/*`, `/verify/*`) | +8 testes (14 total) | ✅ Concluído |
+| **Batch 3** | Images, Publish e Pipeline | 14 endpoints (`/images/*`, `/publish`, `/pipeline/*`) | +11 testes (25 total) | ✅ Concluído |
+| **Batch 4** | Pinterest, Monetização, Tráfego e Scheduler | 13 endpoints (`/pinterest/*`, `/adcash/*`, `/adsterra/*`, `/traffic/*`, `/scheduler/*`) | +10 testes (35 total) | ✅ Concluído |
+| **Batch 5** | Settings, Posts, Sitemap e WSGI | 9 endpoints (`/settings/*`, `/test-gemini`, `/posts`, `/sitemap.xml`, `wsgi.py`) | +6 testes (41 total) | ✅ Concluído |
+
+---
+
+## 🚀 Como Executar
+
+### 1. Rodar os Testes Automatizados
 ```bash
 source venv/bin/activate
 pytest tests/ -v
 ```
 
-### 2. Rodar Dashboard
+### 2. Rodar a Aplicação Modular (Produção / Desenvolvimento)
 ```bash
 source venv/bin/activate
-python dashboard/__init__.py
-# ou
-./start-dashboard.sh
+# Executar diretamente o app factory:
+python wsgi.py
+
+# Ou via Gunicorn (recomendado para Render):
+gunicorn wsgi:app --bind 0.0.0.0:$PORT
 ```
 
-### 3. Rodar com Docker
+### 3. Rodar via Docker
 ```bash
 docker-compose up --build
 ```
 
-### 4. Próximos Passos (Ordem Sugerida)
-
-#### A. Migrar Endpoints (do app.py para routes/)
-1. **API endpoints** → `routes/api.py`
-   - `/api/health` ✓ (já migrado)
-   - `/api/stats`
-   - `/api/ideas/*`
-   - `/api/pipeline/*`
-   - `/api/publish`
-   - `/api/pinterest/*`
-   - `/api/adcash`
-   - `/api/scheduler/*`
-   - `/api/settings`
-
-2. **Main pages** → `routes/main.py`
-   - `/`, `/ideas`, `/generate`, `/articles`, etc. ✓ (já migrado)
-
-3. **Auth** → `routes/auth.py`
-   - `/login`, `/logout` ✓ (já migrado)
-
-#### B. Migrar Services
-- `dashboard/db.py` → `services/database.py`
-- `dashboard/google_auth.py` → `services/google.py`
-- `scripts/gerar_artigos.py` → `services/article_generator.py`
-- `scripts/image_generator.py` → `services/image_generator.py`
-- `scripts/publicar_wp.py` → `services/wordpress.py`
-
-#### C. Adicionar Mais Testes
-```bash
-tests/
-├── test_api.py
-├── test_logging.py
-├── test_rate_limit.py
-├── test_ideas.py       # Faltando
-├── test_pipeline.py    # Faltando
-├── test_publish.py     # Faltando
-└── test_image.py       # Faltando
-```
-
 ---
 
-## 📊 Arquivos Criados
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `dashboard/__init__.py` | App factory |
-| `dashboard/routes/__init__.py` | (criar) |
-| `dashboard/routes/api.py` | API endpoints (parcial) |
-| `dashboard/routes/auth.py` | Autenticação |
-| `dashboard/routes/main.py` | Páginas principais |
-| `dashboard/services/__init__.py` | (criar) |
-| `dashboard/services/logging.py` | JSON logging |
-| `dashboard/services/rate_limit.py` | Rate limiting |
-| `dashboard/models/__init__.py` | (criar) |
-| `tests/conftest.py` | Fixtures do pytest |
-| `tests/test_api.py` | Testes de API |
-| `tests/test_logging.py` | Testes de logging |
-| `tests/test_rate_limit.py` | Testes de rate limit |
-| `Dockerfile` | Containerização |
-| `docker-compose.yml` | Orquestração |
-
----
-
-## 🔧 Configuração
-
-### Variáveis de Ambiente (`.env`)
-```bash
-DASHBOARD_PASSWORD=segura
-GEMINI_API_KEY=your_key
-SITE_URL=https://...
-WP_USER=...
-WP_APP_PASSWORD=...
-ADCASH_API_TOKEN=...
-PINTEREST_ACCESS_TOKEN=...
-DATABASE_URL=postgresql://...
-```
-
-### Docker Compose
-```bash
-docker-compose up
-docker-compose up -d
-docker-compose logs -f
-docker-compose down
-```
-
----
-
-## 🎯 Notas Importantes
-
-1. **Compatibilidade**: `app.py` original mantido para não quebrar nada
-2. **Gradual**: Migrar endpoints um por um, testando cada
-3. **Testes**: Adicionar teste para cada endpoint migrado
-4. **DB**: Manter PostgreSQL para consistência entre deploys
-
----
-
-## 📅 Próximas Sessões
-
-1. Migrar endpoints de ideias (`/api/ideas/*`)
-2. Migrar endpoints de pipeline (`/api/pipeline/*`)
-3. Adicionar testes de integração
-4. Configurar CI/CD (GitHub Actions)
-5. Migrar services externos (gemini, wordpress, etc.)
-
----
-
-**Última atualização**: 2026-09-17
-**Status**: Prioridades altas completas, prontos para migrar endpoints
+**Última atualização**: 2026-09-18  
+**Status Final**: 64 rotas modularizadas em 15 blueprints, 41/41 testes passando, retrocompatibilidade 100% preservada.
