@@ -13,6 +13,10 @@ def register_blueprints(app):
     from .images import images_bp
     from .publish import publish_bp
     from .pipeline import pipeline_bp
+    from .pinterest import pinterest_bp
+    from .adcash import monetization_bp
+    from .traffic import traffic_bp
+    from .scheduler import scheduler_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -23,3 +27,7 @@ def register_blueprints(app):
     app.register_blueprint(images_bp)
     app.register_blueprint(publish_bp)
     app.register_blueprint(pipeline_bp)
+    app.register_blueprint(pinterest_bp)
+    app.register_blueprint(monetization_bp)
+    app.register_blueprint(traffic_bp)
+    app.register_blueprint(scheduler_bp)

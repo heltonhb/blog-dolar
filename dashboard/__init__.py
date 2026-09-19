@@ -56,6 +56,13 @@ def create_app():
     except Exception as e:
         print(f"  ⚠️ DB init: {e}")
 
+    # Restore scheduled pipeline jobs
+    try:
+        from dashboard.services.scheduler import _restore_scheduler_jobs
+        _restore_scheduler_jobs()
+    except Exception as e:
+        print(f"  ⚠️ Scheduler restore: {e}")
+
     return app
 
 
