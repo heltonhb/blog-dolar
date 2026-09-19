@@ -17,11 +17,10 @@ def test_login_page_loads(client):
     assert resp.status_code == 200
 
 
-def test_unauthenticated_redirect(client):
+def test_unauthenticated_redirect(unauth_client, monkeypatch):
     """Test that pages redirect to login when not authenticated."""
-    import os
-    os.environ["DASHBOARD_PASSWORD"] = "test123"
-    resp = client.get("/")
+    monkeypatch.setenv("DASHBOARD_PASSWORD", "test123")
+    resp = unauth_client.get("/")
     # Should redirect to login
     assert resp.status_code == 302
     assert "/login" in resp.headers.get("Location", "")

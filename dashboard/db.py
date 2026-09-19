@@ -127,6 +127,11 @@ def update_idea_status(idea_id, status):
         with conn.cursor() as cur:
             cur.execute("UPDATE ideas SET status=%s WHERE idea_id=%s", (status, idea_id))
 
+def delete_idea(idea_id):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM ideas WHERE idea_id=%s OR id=%s", (idea_id, idea_id))
+
 # ═══════════════════════════════════════════════════════════════════
 # Pipeline History
 # ═══════════════════════════════════════════════════════════════════

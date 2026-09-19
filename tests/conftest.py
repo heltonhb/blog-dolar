@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Pytest fixtures for the dashboard tests."""
+import os
 import sys
 from pathlib import Path
 
@@ -20,5 +21,14 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """Create test client."""
+    """Create authenticated test client by default."""
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess["authenticated"] = True
+    return c
+
+
+@pytest.fixture
+def unauth_client(app):
+    """Create unauthenticated test client."""
     return app.test_client()
