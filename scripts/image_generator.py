@@ -61,7 +61,7 @@ def generate_smart_prompt(
     article_excerpt: str = "",
     keywords: list[str] = None,
     target: str = "pinterest pin",
-    model: str = "gemini-2.0-flash",
+    model: str = "gemini-3.1-flash-lite",
 ) -> str:
     """Use Gemini text model to create an optimal image generation prompt.
 
