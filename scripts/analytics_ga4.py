@@ -158,7 +158,7 @@ def main():
 
     if args.status:
         print("Auth:", auth_status())
-        if not oauth_refresh_token():
+        if not oauth_refresh_token(verbose=True):
             print("⚠️  Sem access token. Rode: python scripts/analytics_ga4.py --auth")
         return
 
@@ -172,12 +172,11 @@ def main():
         print("  python scripts/analytics_ga4.py")
         return
 
-    token = get_access_token(GA4_SCOPE)
+    token = get_access_token(GA4_SCOPE, verbose=True)
     if not token:
         print("❌ Autenticação Google falhou (sem access token).")
-        print("   1. Configure no .env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET")
-        print("   2. Gere o refresh_token: python scripts/analytics_ga4.py --auth")
-        print("   (ou, fluxo antigo: coloque google-search-console.json na raiz)")
+        print("   1. Se faltar credencial: .env com GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET")
+        print("   2. Gere/regenere o refresh_token: python scripts/analytics_ga4.py --auth")
         sys.exit(1)
 
     property_id = _property_id()

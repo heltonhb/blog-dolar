@@ -98,19 +98,44 @@ def oauth_configured() -> bool:
 # --------------------------------------------------------------------------- #
 # OAuth de usuário (Desktop Client ID) — fluxo principal
 # --------------------------------------------------------------------------- #
-def oauth_refresh_token() -> str:
-    """Troca o GOOGLE_REFRESH_TOKEN por um access_token. '' se falhar."""
-    if not oauth_configured():
+def oauth_refresh_token(verbose: bool = False) -> str:
+    """Troca o GOOGLE_REFRESH_TOKEN por um access_token. '' se falhar.
+
+    verbose=True imprime a causa real da falha (ex.: invalid_grant) sem
+    vazar credenciais — importante para não culpar client_id/secret quando
+    o problema é um refresh_token expirado/revogado.
+    """
+    missing = [k for k in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET",
+                           "GOOGLE_REFRESH_TOKEN") if not _env(k)]
+    if missing:
+        if verbose:
+            print(f"❌ Faltam no .env: {', '.join(missing)}")
         return ""
     import httpx
-    resp = httpx.post(_TOKEN_URI, data={
-        "client_id": _env("GOOGLE_CLIENT_ID"),
-        "client_secret": _env("GOOGLE_CLIENT_SECRET"),
-        "refresh_token": _env("GOOGLE_REFRESH_TOKEN"),
-        "grant_type": "refresh_token",
-    }, timeout=15)
+    try:
+        resp = httpx.post(_TOKEN_URI, data={
+            "client_id": _env("GOOGLE_CLIENT_ID"),
+            "client_secret": _env("GOOGLE_CLIENT_SECRET"),
+            "refresh_token": _env("GOOGLE_REFRESH_TOKEN"),
+            "grant_type": "refresh_token",
+        }, timeout=15)
+    except Exception as exc:  # rede/DNS
+        if verbose:
+            print(f"❌ Falha de rede ao contatar oauth2.googleapis.com: {exc}")
+        return ""
     if resp.status_code == 200:
         return resp.json().get("access_token", "")
+    if verbose:
+        try:
+            err = resp.json()
+            desc = err.get("error_description") or err.get("error", "")
+            code = err.get("error", "")
+        except Exception:
+            desc, code = resp.text[:200], ""
+        print(f"❌ Token endpoint HTTP {resp.status_code}: {desc}")
+        if code == "invalid_grant":
+            print("   O GOOGLE_REFRESH_TOKEN expirou ou foi revogado.")
+            print("   Gere outro 1x: python scripts/analytics_ga4.py --auth")
     return ""
 
 
@@ -235,16 +260,17 @@ def _jwt_access_token(creds: dict, scopes: list) -> str:
     return f"{header}.{payload}.{signature_b64}"
 
 
-def get_access_token(scopes: list) -> str:
+def get_access_token(scopes: list, verbose: bool = False) -> str:
     """Retorna um access token Google ('' se não houver credencial).
 
     Prioridade: (1) OAuth de usuário via refresh_token no .env;
                 (2) service account JWT (google-search-console.json).
+    verbose=True detalha a causa da falha de cada tentativa.
     """
     import httpx
 
     # 1) OAuth de usuário — método atual
-    token = oauth_refresh_token()
+    token = oauth_refresh_token(verbose=verbose)
     if token:
         return token
 
