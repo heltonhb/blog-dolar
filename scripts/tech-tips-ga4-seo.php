@@ -106,3 +106,43 @@ function tech_tips_seo_meta_head()
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
 }
 add_action("wp_head", "tech_tips_seo_meta_head", 2);
+
+/* --------------------------------------------------------------------------- *
+ * 3. Canonical na home + noindex nos arquivos (category/author)
+ *    O WP core só emite rel_canonical em páginas singulares; a home fica sem
+ *    canonical e os arquivos de taxonomia/autor ficam indexáveis apesar de
+ *    serem páginas finas. Cede o lugar a um plugin SEO, como acima.
+ * ------------------------------------------------------------------------- */
+function tech_tips_front_canonical()
+{
+    if (is_admin()) {
+        return;
+    }
+    if (defined("WPSEO_VERSION") || defined("RANK_MATH_VERSION")) {
+        return;
+    }
+    if (!(is_front_page() || is_home()) || is_paged() || is_singular()) {
+        return;
+    }
+    $canonical = is_front_page()
+        ? home_url("/")
+        : (int) get_option("page_for_posts");
+    $canonical = is_front_page() ? home_url("/") : get_permalink($canonical);
+    if ($canonical) {
+        echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
+    }
+}
+add_action("wp_head", "tech_tips_front_canonical", 3);
+
+function tech_tips_archive_robots($robots)
+{
+    if (defined("WPSEO_VERSION") || defined("RANK_MATH_VERSION")) {
+        return $robots;
+    }
+    if (is_category() || is_author()) {
+        $robots["noindex"] = true;
+        $robots["follow"] = true;
+    }
+    return $robots;
+}
+add_filter("wp_robots", "tech_tips_archive_robots");
