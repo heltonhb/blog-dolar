@@ -1,103 +1,61 @@
 #!/usr/bin/env python3
+"""IndexNow corrigido: resolve anti-bot do sitemap e submete URLs.
+
+Google NÃO usa IndexNow (usa Search Console). Bing/Yandex/Naver sim.
 """
-IndexNow — Submete URLs para Bing/Yandex sem autenticação.
-Compatível com: Bing, Yandex, Naver, Seznam, Yep.
-Google NÃO suporta IndexNow (usa Search Console).
-"""
-import json, hashlib, httpx
-from pathlib import Path
+import hashlib
+import json
+import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from antibot import get_pagina  # noqa: E402
+from fetch_urls import fetch_post_urls  # noqa: E402
 
 HOST = "tech-tips.ct.ws"
-SITEMAP_URL = f"https://{HOST}/wp-sitemap.xml"
+KEY_FILE = Path(__file__).parent.parent / ".well-known" / "indexnow-key.txt"
 
-def get_urls_from_sitemap() -> list:
-    """Busca URLs do sitemap do WordPress."""
-    resp = httpx.get(SITEMAP_URL, timeout=15)
-    if resp.status_code != 200:
-        print(f"❌ Erro ao acessar sitemap: {resp.status_code}")
-        return []
-    
-    # O sitemap do WP retorna sub-sitemaps
-    urls = []
-    content = resp.text
-    
-    # Extrair URLs do sitemap principal
-    import re
-    sub_sitemaps = re.findall(r'<loc>(.*?)</loc>', content)
-    
-    for sub_url in sub_sitemaps:
-        if 'posts-post' in sub_url:
-            resp2 = httpx.get(sub_url, timeout=15)
-            if resp2.status_code == 200:
-                article_urls = re.findall(r'<loc>(.*?)</loc>', resp2.text)
-                urls.extend(article_urls)
-                print(f"  📄 {sub_url.split('/')[-1]}: {len(article_urls)} URLs")
-    
-    return urls
 
-def submit_to_indexnow(urls: list, key: str = None):
-    """Submete URLs para IndexNow.
-    
-    Se não tiver key, gera uma e salva no .well-known/
-    """
-    if not key:
-        # Gera uma key aleatória
-        key = hashlib.md5(f"{HOST}-{datetime.now().isoformat()}".encode()).hexdigest()
-        print(f"  🔑 Key gerada: {key}")
-        print(f"  📝 Para completar, salve esta key em:")
-        print(f"     https://{HOST}/.well-known/{key}.txt")
-        print(f"     (Arquivo deve conter apenas a key)")
-    
+def obter_key() -> str:
+    """Key estável, salva no .well-known/ (o arquivo sobe via FTP uma vez)."""
+    if KEY_FILE.exists():
+        return KEY_FILE.read_text().strip()
+    key = hashlib.md5(f"{HOST}-indexnow".encode()).hexdigest()
+    KEY_FILE.parent.mkdir(exist_ok=True)
+    KEY_FILE.write_text(key)
+    print(f"🔑 Key gerada: {key}")
+    print(f"   → subir via FTP: htdocs/.well-known/{key}.txt (conteúdo: a key)")
+    return key
+
+
+def main():
+    urls = fetch_post_urls()
+    print(f"📄 {len(urls)} URLs de posts")
+
+    key = obter_key()
+
     payload = {
         "host": HOST,
         "key": key,
         "keyLocation": f"https://{HOST}/.well-known/{key}.txt",
-        "urlList": urls[:100],  # Max 10.000 por request
+        "urlList": urls,
     }
-    
-    # Submete para Bing (principal IndexNow endpoint)
-    resp = httpx.post(
+    req = urllib.request.Request(
         "https://api.indexnow.org/indexnow",
-        json=payload,
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        timeout=30,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json; charset=utf-8",
+                 "User-Agent": "blog-dolar-seo/1.0"},
+        method="POST",
     )
-    
-    if resp.status_code == 200:
-        print(f"✅ IndexNow: {len(urls)} URLs submetidas com sucesso!")
-    elif resp.status_code == 202:
-        print(f"✅ IndexNow: {len(urls)} URLs aceitas (processamento assíncrono)")
-    else:
-        print(f"⚠️ IndexNow: {resp.status_code} - {resp.text[:200]}")
-    
-    return resp.status_code
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            print(f"✅ IndexNow HTTP {r.status} — {len(urls)} URLs aceitas (Bing/Yandex/Naver)")
+    except urllib.error.HTTPError as e:
+        print(f"⚠️ IndexNow HTTP {e.code} — {e.read().decode()[:200]}")
+
 
 if __name__ == "__main__":
-    print("=" * 50)
-    print("  IndexNow — Submissão de URLs")
-    print("=" * 50)
-    print()
-    
-    print("📋 Buscando URLs do sitemap...")
-    urls = get_urls_from_sitemap()
-    
-    if not urls:
-        print("❌ Nenhuma URL encontrada")
-        exit(1)
-    
-    print(f"\n✅ {len(urls)} URLs encontradas")
-    print(f"\n🚀 Submetendo para IndexNow (Bing)...")
-    
-    # Verificar se já existe uma key
-    key_file = Path(__file__).parent.parent / ".well-known" / "indexnow-key.txt"
-    key = None
-    if key_file.exists():
-        key = key_file.read_text().strip()
-        print(f"  🔑 Key existente: {key[:16]}...")
-    
-    submit_to_indexnow(urls, key)
-    
-    print(f"\n💡 Para Google, use o Search Console:")
-    print(f"   https://search.google.com/search-console")
-    print(f"   → Inspecionar URL → Solicitar indexação")
+    main()

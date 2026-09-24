@@ -60,6 +60,44 @@
         </div>
     </div>
 
+    <!-- Bing Webmaster Tools -->
+    <div style="margin-bottom: 32px;">
+        <div class="section-title">
+            <i class="fa-brands fa-microsoft" style="color: #008373;"></i>
+            Bing (impressões da busca — cobre Bing + Yahoo + DuckDuckGo)
+        </div>
+        <div class="stat-card" id="bing-card">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <div class="stat-value" id="bing-impressions" style="font-size: 1.4rem;">-</div>
+                    <div class="stat-label">Impressões (30d)</div>
+                </div>
+                <div>
+                    <div class="stat-value" id="bing-clicks" style="font-size: 1.4rem;">-</div>
+                    <div class="stat-label">Cliques (30d)</div>
+                </div>
+                <div>
+                    <div class="stat-value" id="bing-ctr" style="font-size: 1.4rem;">-</div>
+                    <div class="stat-label">CTR</div>
+                </div>
+                <div>
+                    <div class="stat-value" id="bing-days" style="font-size: 1.4rem;">-</div>
+                    <div class="stat-label">Dias com dados</div>
+                </div>
+            </div>
+            <div id="bing-top-queries"></div>
+            <p style="color: var(--text-secondary);" id="bing-status">Carregando dados do Bing...</p>
+            <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-blue" onclick="refreshBing()" style="padding: 8px 16px;">🔄 Atualizar agora</button>
+                <span id="bing-alert" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+            </div>
+            <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
+                📊 Puxa impressões e cliques via Bing Webmaster Tools API. Requer BING_API_KEY no .env
+                (painel do Bing → Settings → Preferences → API access).
+            </p>
+        </div>
+    </div>
+
     <!-- Trafego por Origem (GA4 — mede o Pinterest) -->
     <div style="margin-bottom: 32px;">
         <div class="section-title">
@@ -282,7 +320,75 @@ async function refreshGa4() {
     }
 }
 
+async function loadBing() {
+    const statusEl = document.getElementById('bing-status');
+    const queriesEl = document.getElementById('bing-top-queries');
+    try {
+        const resp = await fetch('/api/traffic/bing');
+        const data = await resp.json();
+        if (!data.success) {
+            statusEl.textContent = 'ℹ️ ' + (data.error || 'Sem dados do Bing ainda.');
+            ['bing-impressions','bing-clicks','bing-ctr','bing-days']
+                .forEach(id => { document.getElementById(id).textContent = '—'; });
+            queriesEl.innerHTML = '';
+            return;
+        }
+        const t = data.totals || {};
+        document.getElementById('bing-impressions').textContent = (t.impressions || 0).toLocaleString();
+        document.getElementById('bing-clicks').textContent = (t.clicks || 0).toLocaleString();
+        document.getElementById('bing-ctr').textContent = (t.ctr || 0) + '%';
+        document.getElementById('bing-days').textContent = (data.by_day || []).length;
+
+        const queries = data.top_queries || [];
+        if (queries.length) {
+            queriesEl.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 12px;">
+                    <thead><tr>
+                        <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border-color);">Consulta</th>
+                        <th style="text-align:right; padding:8px 12px; border-bottom:1px solid var(--border-color);">Impressões</th>
+                        <th style="text-align:right; padding:8px 12px; border-bottom:1px solid var(--border-color);">Cliques</th>
+                    </tr></thead>
+                    <tbody>
+                        ${queries.slice(0, 10).map(q => `
+                            <tr>
+                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${q.query}</td>
+                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${q.impressions.toLocaleString()}</td>
+                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${q.clicks.toLocaleString()}</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>`;
+        } else {
+            queriesEl.innerHTML = '';
+        }
+        statusEl.textContent = 'Dados de ' + (data.fetched_at ? new Date(data.fetched_at).toLocaleString() : '?');
+    } catch(e) {
+        statusEl.textContent = 'Erro ao carregar: ' + e.message;
+    }
+}
+
+async function refreshBing() {
+    const alertEl = document.getElementById('bing-alert');
+    const btn = event.target;
+    alertEl.textContent = 'Buscando dados do Bing Webmaster Tools...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/api/traffic/bing/refresh', { method: 'POST' });
+        const data = await resp.json();
+        if (data.success) {
+            alertEl.textContent = '✅ Dados atualizados.';
+            loadBing();
+        } else {
+            alertEl.textContent = '❌ ' + (data.error || data.detail || 'Falha ao atualizar.');
+        }
+    } catch(e) {
+        alertEl.textContent = '❌ ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 loadAnalytics();
 loadGa4();
+loadBing();
 </script>
 {% endblock %}

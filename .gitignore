@@ -34,3 +34,7 @@ dashboard/data/.env
 
 # Prevent credential leaks
 test_upload.py
+.well-known/
+dashboard/data/*.md
+dashboard/data/*.txt
+scripts/*.bak.php

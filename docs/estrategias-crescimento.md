@@ -70,6 +70,48 @@
 
 ## 🔧 AUTOMAÇÕES CRIADAS
 
+### Distribuição — Dev.to (república com canonical, 24/09/2026)
+Anti-bloqueio do problema do Pinterest/ct.ws: o conteúdo vive no Dev.to
+(audiência deles) e o SEO consolida no blog via `canonical_url`.
+
+```bash
+uv run python scripts/publish_devto.py --list          # 7 candidatos dev (check WP)
+uv run python scripts/publish_devto.py <slug> --dry-run # payload sem publicar
+uv run python scripts/publish_devto.py <slug>           # publica RASCUNHO (com CTA)
+uv run python scripts/publish_devto.py --all            # todos os candidatos
+uv run python scripts/publish_devto.py --cta           # aplica CTA nos já publicados
+```
+- Requer `DEVTO_API_KEY` no .env (dev.to → Settings → Extensions → DEV API Keys)
+- CTA de rodapé ("Originally published on Tech Tips") injetado automaticamente
+  em todo artigo novo; `--cta` aplica retroativamente nos publicados (idempotente)
+- ⚠️ Varnish do dev.to bloqueia UA `Python-urllib` com 403 vazio — o script
+  já usa UA custom; se API falhar com 403, é isso
+- Suporte anti-bot: `scripts/antibot.py` resolve o challenge AES uma vez
+  (cookie vale 6h p/ GET) — base para `fetch_wp_post.py` (REST WP por slug)
+  e `fetch_urls.py` (sitemap)
+
+### SEO — Internal linking + Bing (24/09/2026)
+- `scripts/internal_links.py`: calcula similaridade Jaccard entre posts
+  (título + corpo completo, stopwords removidas) e insere bloco
+  "Related Articles" com até 3 links em cada post. Idempotente
+  (regenera o bloco sem duplicar). `--dry-run` mostra o plano, `--apply` aplica.
+- ⚠️ **Aprendizado crítico**: o anti-bot da InfinityFree valida o User-Agent
+  na ESCRITA (POST/PUT) — `Mozilla/5.0` passa, UA customizado recebe o
+  challenge AES mesmo com cookie válido. E responde HTTP 200 com HTML do
+  challenge, fingindo sucesso. Todos os PUT devem validar o CORPO (JSON?),
+  não só o status.
+- ⚠️ **IndexNow não funciona no ct.ws**: o anti-bot intercepta até
+  `/.well-known/<key>.txt`, então o bot do Bing nunca valida a key (422).
+  Para Bing/Yandex: importar o site no Bing Webmaster Tools
+  (https://www.bing.com/webmasters → Importar do Google Search Console,
+  1 clique) — o Bingbot renderiza JS, como o Google.
+- `scripts/limpar_cache.py`: limpa o cache do WP Super Cache via FTP —
+  rodar SEMPRE após mudanças no site (senão nada aparece).
+- Estado: 10/11 posts com bloco "Related Articles" no ar (verificado
+  no HTML público). O 11º (top-essential-tech-tips) ficou sem links por
+  similaridade abaixo do limiar 0.06 — correto, link forçado é ruído.
+
+
 ### Dashboard (http://localhost:5000)
 - Gerador de ideias com IA
 - Gerador de artigos com Gemini API
