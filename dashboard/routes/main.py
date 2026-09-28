@@ -63,11 +63,11 @@ def verify():
     return render_template("verify.html")
 
 
-@main_bp.route("/adcash")
+@main_bp.route("/adsense")
 @login_required
-def adcash():
-    """AdCash stats page."""
-    return render_template("adcash.html")
+def adsense():
+    """AdSense account / site status page."""
+    return render_template("adsense.html")
 
 
 @main_bp.route("/pipeline")
@@ -89,13 +89,6 @@ def settings():
 def scheduler():
     """Scheduler page."""
     return render_template("scheduler.html")
-
-
-@main_bp.route("/adsterra")
-@login_required
-def adsterra():
-    """Adsterra ad network stats page."""
-    return render_template("adsterra.html")
 
 
 @main_bp.route("/traffic")

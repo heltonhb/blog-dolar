@@ -15,6 +15,7 @@ def register_blueprints(app):
     from .pipeline import pipeline_bp
     from .pinterest import pinterest_bp
     from .adcash import monetization_bp
+    from .adsense import adsense_bp
     from .traffic import traffic_bp
     from .scheduler import scheduler_bp
     from .settings import settings_bp
@@ -32,6 +33,7 @@ def register_blueprints(app):
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(pinterest_bp)
     app.register_blueprint(monetization_bp)
+    app.register_blueprint(adsense_bp)
     app.register_blueprint(traffic_bp)
     app.register_blueprint(scheduler_bp)
     app.register_blueprint(settings_bp)

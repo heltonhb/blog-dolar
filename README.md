@@ -92,7 +92,7 @@ Acesse `http://localhost:5001` após iniciar o `app.py`.
 | `/pipeline` | Pipeline completo com checkpoints |
 | `/scheduler` | Agendador integrado (APScheduler) |
 | `/pinterest` | Gerenciar pins |
-| `/adcash` | Stats de receita (API real) |
+| `/adsense` | Informações AdSense + verificação da tag/ads.txt no site |
 | `/settings` | Editar `.env` via UI |
 
 ---
@@ -126,9 +126,13 @@ Acesse `http://localhost:5001` após iniciar o `app.py`.
 - **Heurístico**: contagem de palavras, H2/H3, links, imagens, meta description
 - **Gemini AI**: análise editorial completa — readability, keyword density, sugestões de melhoria, veredicto SEO
 
-### AdCash (`/adcash`)
-- Chamada real à **Publisher API** (`/api/v2/stats`)
-- Exibe revenue, impressões, cliques, eCPM por dia
+### AdSense (`/adsense`)
+- Mostra publisher ID, site declarado e acesso rápido ao painel do AdSense
+- **Verificação ao vivo** (`/api/adsense/status`): script `adsbygoogle`, meta `google-adsense-account` e linha do Google no `ads.txt`
+- Lista as pendências da conta (mensagem de consentimento CMP para EEA/UK/Suíça)
+
+### AdCash / Adsterra (APIs legadas)
+- Endpoints `/api/adcash`, `/api/adsterra` continuam disponíveis, mas as abas de UI foram removidas
 
 ---
 
