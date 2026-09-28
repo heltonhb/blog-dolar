@@ -30,6 +30,11 @@ except ImportError:
     os.system(f"pip install httpx -q")
     import httpx
 
+try:
+    from image_cache import env_value, get_cached, image_cache_key, put_cached
+except ImportError:  # imported as scripts.image_generator
+    from scripts.image_cache import env_value, get_cached, image_cache_key, put_cached
+
 
 # ---------------------------------------------------------------------------
 #  Constants
@@ -479,6 +484,123 @@ def generate_image_together(
 #  Multi-provider Fallback
 # ---------------------------------------------------------------------------
 
+def generate_image_huggingface(
+    prompt: str,
+    api_key: str = "",
+    width: int = 1024,
+    height: int = 1024,
+    **kwargs,
+) -> bytes:
+    """Generate an image via Hugging Face Inference Providers (needs HF_TOKEN).
+
+    Anonymous access is rejected (401), so this provider is only part of the
+    chain when ``IMAGE_PROVIDER=huggingface`` **and** a token is configured.
+    """
+    model = env_value("HF_IMAGE_MODEL", "black-forest-labs/FLUX.1-schnell")
+    url = f"https://router.huggingface.co/hf-inference/models/{model}"
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    payload = {"inputs": prompt, "parameters": {"width": width, "height": height}}
+
+    resp = httpx.post(url, json=payload, headers=headers, timeout=120)
+    if resp.status_code in (401, 403):
+        raise RuntimeError("Hugging Face: HF_TOKEN ausente ou inválido")
+    resp.raise_for_status()
+
+    content_type = resp.headers.get("content-type", "")
+    if "image" in content_type:
+        data = resp.content
+    else:
+        # Providers sometimes answer JSON (error object or base64 payload)
+        try:
+            body = resp.json()
+        except Exception:
+            data = resp.content
+        else:
+            if isinstance(body, dict) and body.get("error"):
+                raise RuntimeError(f"Hugging Face: {body['error']}")
+            if isinstance(body, dict) and body.get("image"):
+                import base64 as _b64
+                data = _b64.b64decode(body["image"])
+            else:
+                data = resp.content
+
+    if len(data) < 5000:
+        raise ValueError(f"Hugging Face returned too-small image ({len(data)} bytes)")
+    return data
+
+
+# ---------------------------------------------------------------------------
+#  Multi-provider fallback (IMAGE_PROVIDER + prompt cache)
+# ---------------------------------------------------------------------------
+
+# Providers tried (in order) when IMAGE_PROVIDER is unset or "auto".
+AUTO_ORDER = ("together-flux", "gemini-imagen", "pollinations")
+
+# Accepted IMAGE_PROVIDER spellings -> canonical provider name.
+PROVIDER_ALIASES = {
+    "auto": "auto",
+    "together": "together-flux",
+    "together-flux": "together-flux",
+    "gemini": "gemini-imagen",
+    "imagen": "gemini-imagen",
+    "gemini-imagen": "gemini-imagen",
+    "huggingface": "huggingface",
+    "hf": "huggingface",
+    "pollinations": "pollinations",
+}
+
+
+def _normalize_provider(value: str) -> str:
+    """Map a raw IMAGE_PROVIDER value to a canonical name ('auto' if unknown)."""
+    return PROVIDER_ALIASES.get((value or "auto").strip().lower(), "auto")
+
+
+def _provider_chain(preferred: str, available: list[str]) -> list[str]:
+    """Order the providers to try.
+
+    ``preferred`` (from IMAGE_PROVIDER) goes first; the remaining providers
+    follow in auto order so a failure never kills the generation. An
+    unavailable/unknown preference silently degrades to the auto order.
+    """
+    preferred = _normalize_provider(preferred)
+    auto = [p for p in AUTO_ORDER if p in available]
+    if preferred == "auto" or preferred not in available:
+        return auto
+    return [preferred] + [p for p in auto if p != preferred]
+
+
+def _provider_callers(api_key: str, usage: str) -> dict:
+    """Map of provider name -> zero-arg callable for the given usage."""
+    callers = {}
+
+    together_key = env_value("TOGETHER_API_KEY", "")
+    if together_key:
+        w, h = DIMENSIONS.get(usage, (1024, 1024))
+        callers["together-flux"] = lambda p: generate_image_together(
+            p, api_key=together_key, width=w, height=h
+        )
+
+    if api_key:
+        aspect = ASPECT_RATIOS.get(usage, "1:1")
+        callers["gemini-imagen"] = lambda p: generate_image_gemini(
+            api_key, p, aspect_ratio=aspect
+        )
+
+    hf_token = env_value("HF_TOKEN", "") or env_value("HUGGINGFACE_API_TOKEN", "")
+    if hf_token:
+        w, h = DIMENSIONS.get(usage, (1024, 1024))
+        callers["huggingface"] = lambda p: generate_image_huggingface(
+            p, api_key=hf_token, width=w, height=h
+        )
+
+    # Pollinations (fallback - no API key needed)
+    w, h = DIMENSIONS.get(usage, (1024, 1024))
+    callers["pollinations"] = lambda p: generate_image_pollinations(
+        p, width=w, height=h
+    )
+    return callers
+
+
 def generate_image(
     prompt: str,
     api_key: str = "",
@@ -487,53 +609,56 @@ def generate_image(
 ) -> tuple[bytes, str]:
     """Generate an image using the best available provider.
 
-    Tries Gemini Imagen first, then falls back to Pollinations.ai.
+    Order comes from IMAGE_PROVIDER (``auto`` | ``gemini`` | ``pollinations`` |
+    ``together`` | ``huggingface``), with automatic fallback to the rest of the
+    chain. Results are cached in ``cache/images/`` keyed by the hash of the
+    prompt + usage + provider (TTL: IMAGE_CACHE_TTL_DAYS, default 7 days), so
+    retries and repeated pipeline runs cost no API calls.
 
     Args:
         prompt: Image generation prompt
-        api_key: Gemini API key (required for Gemini, optional for Pollinations fallback)
+        api_key: Gemini API key (required for Gemini, optional for the others)
         usage: Target usage - 'pinterest', 'featured', 'inline', or 'square'
 
     Returns:
         Tuple of (image_bytes, provider_name)
     """
-    providers = []
+    callers = _provider_callers(api_key, usage)
+    raw_preferred = env_value("IMAGE_PROVIDER", "auto")
+    if _normalize_provider(raw_preferred) == "auto" and (
+        raw_preferred or "auto"
+    ).strip().lower() not in ("", "auto"):
+        print(f"  ⚠️ IMAGE_PROVIDER desconhecido: {raw_preferred!r} — usando 'auto'")
 
-    # Together AI FLUX (high quality) - needs TOGETHER_API_KEY
-    together_key = os.environ.get("TOGETHER_API_KEY", "")
-    if together_key:
-        w, h = DIMENSIONS.get(usage, (1024, 1024))
-        providers.append({
-            "name": "together-flux",
-            "fn": lambda p: generate_image_together(p, api_key=together_key, width=w, height=h),
-        })
+    chain = _provider_chain(raw_preferred, list(callers))
+    if not chain:
+        raise RuntimeError("Nenhum provider de imagem disponível (sem chaves de API).")
 
-    # Gemini Imagen (good quality) - needs API key
-    if api_key:
-        aspect = ASPECT_RATIOS.get(usage, "1:1")
-        providers.append({
-            "name": "gemini-imagen",
-            "fn": lambda p: generate_image_gemini(api_key, p, aspect_ratio=aspect),
-        })
+    # 1) Cache: any provider in the chain with a fresh entry wins (no API call)
+    for name in chain:
+        cached = get_cached(image_cache_key(prompt, usage, name))
+        if cached and len(cached) > 5000:
+            print(f"  📦 Imagem servida do cache ({name}, {len(cached) // 1024}KB)")
+            return cached, name
 
-    # Pollinations (fallback - no API key needed)
-    w, h = DIMENSIONS.get(usage, (1024, 1024))
-    providers.append({
-        "name": "pollinations",
-        "fn": lambda p: generate_image_pollinations(p, width=w, height=h),
-    })
-
+    # 2) Generate through the chain, caching the first success
     last_err = None
-    for provider in providers:
+    for name in chain:
         try:
-            print(f"  🎨 Tentando {provider['name']}...")
-            image_bytes = provider["fn"](prompt)
+            print(f"  🎨 Tentando {name}...")
+            image_bytes = callers[name](prompt)
             if len(image_bytes) > 5000:
-                print(f"  ✅ Imagem gerada via {provider['name']} ({len(image_bytes) // 1024}KB)")
-                return image_bytes, provider["name"]
+                put_cached(
+                    image_cache_key(prompt, usage, name),
+                    image_bytes,
+                    meta={"provider": name, "usage": usage, "prompt": prompt[:200]},
+                )
+                print(f"  ✅ Imagem gerada via {name} ({len(image_bytes) // 1024}KB)")
+                return image_bytes, name
+            last_err = f"{name} retornou imagem muito pequena"
         except Exception as e:
             last_err = str(e)
-            print(f"  ⚠️ {provider['name']} falhou: {e}")
+            print(f"  ⚠️ {name} falhou: {e}")
             continue
 
     raise RuntimeError(f"Todos os providers falharam. Último erro: {last_err}")

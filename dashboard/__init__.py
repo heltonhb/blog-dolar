@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Application factory for Flask."""
-import hashlib
 import os
 import sys
 from pathlib import Path
@@ -16,13 +15,17 @@ def create_app():
 
     app = Flask(__name__)
 
-    # Configuration
-    app.secret_key = os.environ.get(
-        "FLASK_SECRET_KEY",
-        hashlib.sha256(
-            os.environ.get("DASHBOARD_PASSWORD", "blog-dolar").encode()
-        ).hexdigest()
-    )
+    # Configuration — never a deterministic fallback (session forgery risk).
+    # Project root must be importable even when this file is run directly
+    # (`python dashboard/__init__.py` puts dashboard/, not the root, on sys.path).
+    project_root = str(Path(__file__).resolve().parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+    from dashboard.services.security import get_secret_key, install_csrf
+
+    app.secret_key = get_secret_key()
+    install_csrf(app)
 
     # Ensure scripts/ and dashboard/ are in sys.path for legacy imports
     dashboard_dir = str(Path(__file__).resolve().parent)

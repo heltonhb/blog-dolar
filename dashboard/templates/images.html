@@ -33,6 +33,17 @@
     <i class="fa-solid fa-spinner fa-spin"></i> Gerando pin... <span id="gen-progress"></span>
 </div>
 
+<!-- Cache de imagens (reuso de prompts repetidos = zero cota de API) -->
+<div style="margin-top: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <span id="cache-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 20px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: var(--accent-green); font-size: 0.85rem;">
+        <i class="fa-solid fa-database"></i> <span id="cache-info">Carregando cache...</span>
+    </span>
+    <button class="btn btn-orange" id="btn-clear-cache" onclick="clearImageCache()" style="font-size: 0.85rem; padding: 8px 16px;">
+        <i class="fa-solid fa-broom"></i> Limpar cache
+    </button>
+    <span id="cache-status" style="color: var(--text-secondary); font-size: 0.8rem;"></span>
+</div>
+
 <!-- Gallery -->
 <div style="margin-top: 30px;">
     <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-regular fa-images"></i> Imagens Geradas</h2>
@@ -52,6 +63,34 @@
 <script>
 let articlesList = [];
 let imagesList = [];
+
+function loadCacheInfo() {
+    fetch('/api/images/cache').then(r => r.json()).then(d => {
+        if (!d.success) return;
+        document.getElementById('cache-info').textContent =
+            `${d.files} imagens · ${d.size_mb} MB · TTL ${d.ttl_days}d · ${d.provider}`;
+    }).catch(() => {
+        document.getElementById('cache-info').textContent = 'cache indisponível';
+    });
+}
+
+function clearImageCache() {
+    const btn = document.getElementById('btn-clear-cache');
+    const status = document.getElementById('cache-status');
+    btn.disabled = true;
+    status.textContent = 'Limpando...';
+    fetch('/api/images/cache', {method: 'DELETE'})
+        .then(r => r.json())
+        .then(d => {
+            btn.disabled = false;
+            status.textContent = `Cache limpo (${d.removed} arquivos)`;
+            setTimeout(loadCacheInfo, 1500);
+        })
+        .catch(() => {
+            btn.disabled = false;
+            status.textContent = 'Falha ao limpar o cache';
+        });
+}
 
 function loadGallery() {
     Promise.all([
@@ -203,5 +242,6 @@ function esc(s) {
 }
 
 loadGallery();
+loadCacheInfo();
 </script>
 {% endblock %}

@@ -195,6 +195,29 @@ def api_preview_prompt():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@images_bp.route("/cache")
+@login_required
+def api_image_cache_stats():
+    """Cache state: files, size, TTL and the active IMAGE_PROVIDER."""
+    from dashboard.services.image_cache import summary
+    return jsonify({"success": True, **summary()})
+
+
+@images_bp.route("/cache", methods=["DELETE"])
+@login_required
+def api_image_cache_clear():
+    """Clear the image cache (?expired=1 keeps fresh entries)."""
+    from dashboard.services.image_cache import purge_all, purge_expired, summary
+    only_expired = request.args.get("expired") == "1"
+    removed = purge_expired() if only_expired else purge_all()
+    return jsonify({
+        "success": True,
+        "removed": removed,
+        "scope": "expired" if only_expired else "all",
+        "stats": summary(),
+    })
+
+
 @images_bp.route("/list")
 @login_required
 def api_list_images():

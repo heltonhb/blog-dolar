@@ -26,11 +26,15 @@ Thumbs.db
 instance/
 *.log
 
+# Generated image cache (regenerável)
+cache/
+
 # Dashboard data (keep structure, ignore content)
 dashboard/data/*.json
 dashboard/static/images/*.png
 dashboard/data/dashboard.db
 dashboard/data/.env
+dashboard/data/flask_secret_key
 
 # Prevent credential leaks
 test_upload.py

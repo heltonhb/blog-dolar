@@ -21,6 +21,33 @@
 </head>
 <body>
 
+    <!-- CSRF: attach the session token to every same-origin mutating fetch() -->
+    <script>
+        window.__CSRF_TOKEN = "{{ csrf_token }}";
+        (function () {
+            const nativeFetch = window.fetch.bind(window);
+            const MUTATING = ["POST", "PUT", "PATCH", "DELETE"];
+            window.fetch = function (input, init) {
+                init = init || {};
+                const url = typeof input === "string" ? input : (input && input.url) || "";
+                const method = String(init.method || (input && input.method) || "GET").toUpperCase();
+                const sameOrigin = url.charAt(0) === "/" || url.indexOf(window.location.origin) === 0;
+                if (MUTATING.indexOf(method) !== -1 && sameOrigin && window.__CSRF_TOKEN) {
+                    if (init.headers instanceof Headers) {
+                        init.headers.set("X-CSRF-Token", window.__CSRF_TOKEN);
+                    } else if (Array.isArray(init.headers)) {
+                        init.headers.push(["X-CSRF-Token", window.__CSRF_TOKEN]);
+                    } else {
+                        init.headers = Object.assign({}, init.headers || {}, {
+                            "X-CSRF-Token": window.__CSRF_TOKEN
+                        });
+                    }
+                }
+                return nativeFetch(input, init);
+            };
+        })();
+    </script>
+
     <!-- Hamburger (mobile only) -->
     <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
         <i class="fa-solid fa-bars"></i> <span style="font-size:0.85rem;">Menu</span>

@@ -62,6 +62,8 @@ Copie `.env.example` para `.env` e preencha:
 | `SITE_URL` | URL do seu WordPress |
 | `WP_USER` | Usuário do WordPress |
 | `WP_APP_PASSWORD` | WP Admin → Usuários → Perfil → Senhas de Aplicativo |
+| `IMAGE_PROVIDER` | Opcional: provedor de imagem preferido (`auto`/`gemini`/`pollinations`/`together`/`huggingface`) |
+| `IMAGE_CACHE_TTL_DAYS` | Opcional: TTL do cache de imagens (padrão 7) |
 | `ADCASH_API_TOKEN` | Painel Publisher AdCash |
 | `PINTEREST_ACCESS_TOKEN` | [developers.pinterest.com](https://developers.pinterest.com) |
 
@@ -103,6 +105,15 @@ Acesse `http://localhost:5001` após iniciar o `app.py`.
 - **Autenticação** com `DASHBOARD_PASSWORD` no `.env`
 - Todas as rotas protegidas por `@login_required`
 - Credenciais nunca hardcoded
+- **CSRF** em toda requisição mutante (POST/PUT/PATCH/DELETE): token
+  injetado nos templates e enviado automaticamente pelo `fetch()` patchado no
+  `layout.html` — API aceita o campo `csrf_token` ou o header `X-CSRF-Token`
+- **Rate limit no `/login`**: 5 senhas erradas em 15 min por IP → HTTP 429
+  (`dashboard/services/login_throttle.py`); login bem-sucedido zera o contador
+- **`FLASK_SECRET_KEY`**: usa a variável de ambiente; se ausente, gera chave
+  aleatória e a persiste em `dashboard/data/flask_secret_key` (chmod 600) —
+  nunca um fallback determinístico, que permitiria forjar cookies de sessão
+- Testes: `tests/test_security.py` cobre CSRF, throttle e secret key
 
 ### Pipeline Automático (`/pipeline`)
 1. Gera artigo com Gemini (ou reutiliza existente)
@@ -125,6 +136,17 @@ Acesse `http://localhost:5001` após iniciar o `app.py`.
 ### Verificação SEO (`/verify`)
 - **Heurístico**: contagem de palavras, H2/H3, links, imagens, meta description
 - **Gemini AI**: análise editorial completa — readability, keyword density, sugestões de melhoria, veredicto SEO
+
+### Imagens (provedor + cache)
+- **`IMAGE_PROVIDER`**: ordem de geração — `auto` (padrão: together-flux →
+  gemini-imagen → pollinations), ou force `gemini`, `pollinations`, `together`
+  ou `huggingface` (exige `HF_TOKEN`). O escolhido vai para frente da fila e os
+  demais permanecem como fallback.
+- **Cache em `cache/images/`**: chave = SHA-256 de `usage + provider + prompt`;
+  TTL `IMAGE_CACHE_TTL_DAYS` (7 dias), expirados apagados automaticamente.
+  Reexecutar o pipeline / repetir um prompt não gasta cota de API.
+- **API**: `GET /api/images/cache` (arquivos, tamanho, TTL, provider ativo) e
+  `DELETE /api/images/cache` (`?expired=1` limpa só os vencidos).
 
 ### AdSense (`/adsense`)
 - Mostra publisher ID, site declarado e acesso rápido ao painel do AdSense

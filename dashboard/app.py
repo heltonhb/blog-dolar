@@ -18,8 +18,6 @@ import json
 import os
 import re
 import ftplib
-import hashlib
-import secrets
 import subprocess
 import sys
 from io import BytesIO
@@ -36,8 +34,14 @@ from flask import (
     redirect, url_for, session,
 )
 
+# Project root must be importable so dashboard.services.* resolve when this
+# file is executed directly (`python dashboard/app.py`).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dashboard.services.security import get_secret_key, install_csrf  # noqa: E402
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", hashlib.sha256(b"blog-dolar-secret-2026").hexdigest())
+app.secret_key = get_secret_key()
+install_csrf(app)
 
 # Add directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent))  # dashboard/ (for db.py)
@@ -204,20 +208,32 @@ def login_required(f):
 
 @app.route("/login", methods=["GET", "POST"])
 def login_page():
+    from dashboard.services.login_throttle import (
+        client_ip, is_locked, register_failure, reset as reset_failures,
+        seconds_left,
+    )
+    from dashboard.services.security import rotate_csrf_token
+
     error = ""
+    ip = client_ip(request)
     if request.method == "POST":
-        # CSRF validation
-        if request.form.get("csrf_token") != session.get("csrf_token") or not session.get("csrf_token"):
-            return "CSRF token missing or invalid", 403
+        if is_locked(ip):
+            return render_template(
+                "login.html",
+                error=f"Muitas tentativas. Tente novamente em {seconds_left(ip)}s.",
+            ), 429
         password = request.form.get("password", "")
         if password == _get_dashboard_password():
+            reset_failures(ip)
             session["authenticated"] = True
+            rotate_csrf_token()
             return redirect(url_for("index"))
+        register_failure(ip)
         error = "Senha incorreta."
 
-    token = secrets.token_hex(32)
-    session["csrf_token"] = token
-    return render_template("login.html", error=error, csrf_token=token)
+    # CSRF is enforced globally (dashboard.services.security.install_csrf);
+    # the token itself is injected by the template context processor.
+    return render_template("login.html", error=error)
 
 @app.route("/logout")
 def logout():
@@ -1694,6 +1710,29 @@ def api_list_images():
     return jsonify(images)
 
 
+@app.route("/api/images/cache")
+@login_required
+def api_image_cache_stats():
+    """Cache state: files, size, TTL and the active IMAGE_PROVIDER."""
+    from dashboard.services.image_cache import summary
+    return jsonify({"success": True, **summary()})
+
+
+@app.route("/api/images/cache", methods=["DELETE"])
+@login_required
+def api_image_cache_clear():
+    """Clear the image cache (?expired=1 keeps fresh entries)."""
+    from dashboard.services.image_cache import purge_all, purge_expired, summary
+    only_expired = request.args.get("expired") == "1"
+    removed = purge_expired() if only_expired else purge_all()
+    return jsonify({
+        "success": True,
+        "removed": removed,
+        "scope": "expired" if only_expired else "all",
+        "stats": summary(),
+    })
+
+
 @app.route("/api/images/delete/<filename>", methods=["DELETE"])
 @login_required
 def api_delete_image(filename):
@@ -2572,11 +2611,8 @@ if __name__ == "__main__":
                 k, _, v = line.partition("=")
                 os.environ.setdefault(k.strip(), v.strip())
 
-    # Set secret key from env if available
-    app.secret_key = os.environ.get(
-        "FLASK_SECRET_KEY",
-        hashlib.sha256(os.environ.get("DASHBOARD_PASSWORD", "blog-dolar").encode()).hexdigest()
-    )
+    # Secret key resolved centrally (env -> persisted random key file)
+    app.secret_key = get_secret_key()
 
     # Restore scheduled jobs from persistence
     _restore_scheduler_jobs()
