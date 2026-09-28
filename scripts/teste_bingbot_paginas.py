@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 
 UAS = {
     "Googlebot": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",

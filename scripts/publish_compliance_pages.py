@@ -3,7 +3,7 @@
 
 from dashboard.services.wordpress import _antibot_session, _env
 
-site_url = _env("SITE_URL", "https://tech-tips.ct.ws").rstrip("/")
+site_url = _env("SITE_URL", "https://techtips.dpdns.org").rstrip("/")
 wp_user = _env("WP_USER", "")
 wp_pass = _env("WP_APP_PASSWORD", "")
 auth = (wp_user, wp_pass)
@@ -16,7 +16,7 @@ pages = [
         "content": """
 <h2>Privacy Policy for Tech Tips</h2>
 <p><em>Last Updated: September 18, 2026</em></p>
-<p>At <strong>Tech Tips</strong>, accessible from <a href="https://tech-tips.ct.ws">https://tech-tips.ct.ws</a>, one of our main priorities is the privacy of our visitors. This Privacy Policy document outlines the types of information that is collected and recorded by Tech Tips and how we use it.</p>
+<p>At <strong>Tech Tips</strong>, accessible from <a href="https://techtips.dpdns.org">https://techtips.dpdns.org</a>, one of our main priorities is the privacy of our visitors. This Privacy Policy document outlines the types of information that is collected and recorded by Tech Tips and how we use it.</p>
 
 <h3>1. Log Files</h3>
 <p>Tech Tips follows a standard procedure of using log files. These files log visitors when they visit websites. The information collected by log files includes internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks. These are not linked to any information that is personally identifiable. The purpose of the information is for analyzing trends, administering the site, tracking users movement on the website, and gathering demographic information.</p>
@@ -45,7 +45,7 @@ pages = [
 <p>Another part of our priority is adding protection for children while using the internet. We encourage parents and guardians to observe, participate in, and/or monitor and guide their online activity. Tech Tips does not knowingly collect any Personal Identifiable Information from children under the age of 13.</p>
 
 <h3>7. Consent & Contact Us</h3>
-<p>By using our website, you hereby consent to our Privacy Policy and agree to its terms. If you have additional questions or require more information about our Privacy Policy, do not hesitate to contact us at <a href="mailto:contact@tech-tips.ct.ws">contact@tech-tips.ct.ws</a>.</p>
+<p>By using our website, you hereby consent to our Privacy Policy and agree to its terms. If you have additional questions or require more information about our Privacy Policy, do not hesitate to contact us at <a href="mailto:contact@techtips.dpdns.org">contact@techtips.dpdns.org</a>.</p>
 """,
     },
     {
@@ -53,7 +53,7 @@ pages = [
         "slug": "about-us",
         "content": """
 <h2>About Tech Tips</h2>
-<p>Welcome to <strong>Tech Tips</strong> (<a href="https://tech-tips.ct.ws">tech-tips.ct.ws</a>) — your go-to destination for practical, clear, and actionable technology advice, software guides, gadget evaluations, and digital tips.</p>
+<p>Welcome to <strong>Tech Tips</strong> (<a href="https://techtips.dpdns.org">techtips.dpdns.org</a>) — your go-to destination for practical, clear, and actionable technology advice, software guides, gadget evaluations, and digital tips.</p>
 
 <h3>Our Mission</h3>
 <p>Technology moves fast, but staying informed should not feel overwhelming. Our mission is to simplify complex technological concepts and provide everyday users, creators, and professionals with dependable guides that make computing, gadgets, and internet tools work seamlessly for them.</p>
@@ -70,7 +70,7 @@ pages = [
 <p>We believe in honest, transparent, and user-centric journalism. Our recommendations are curated independently to prioritize usability, reliability, and value. When we feature products or services, we prioritize real-world utility over marketing hype.</p>
 
 <h3>Get In Touch</h3>
-<p>We love hearing from our readers! Whether you have a question about one of our guides, feedback on our content, or an idea for a future topic, please feel free to reach out to our team via our <a href="/contact">Contact Page</a> or by emailing us directly at <a href="mailto:contact@tech-tips.ct.ws">contact@tech-tips.ct.ws</a>.</p>
+<p>We love hearing from our readers! Whether you have a question about one of our guides, feedback on our content, or an idea for a future topic, please feel free to reach out to our team via our <a href="/contact">Contact Page</a> or by emailing us directly at <a href="mailto:contact@techtips.dpdns.org">contact@techtips.dpdns.org</a>.</p>
 """,
     },
     {
@@ -81,7 +81,7 @@ pages = [
 <p><em>Last Updated: September 18, 2026</em></p>
 
 <h3>1. Acceptance of Terms</h3>
-<p>By accessing and using <strong>Tech Tips</strong> (<a href="https://tech-tips.ct.ws">https://tech-tips.ct.ws</a>), you agree to comply with and be bound by these Terms of Service. If you do not agree with any part of these terms, you should discontinue use of this site immediately.</p>
+<p>By accessing and using <strong>Tech Tips</strong> (<a href="https://techtips.dpdns.org">https://techtips.dpdns.org</a>), you agree to comply with and be bound by these Terms of Service. If you do not agree with any part of these terms, you should discontinue use of this site immediately.</p>
 
 <h3>2. Informational & Educational Disclaimer</h3>
 <p>All content provided on Tech Tips is for educational and informational purposes only. While we endeavor to provide accurate and updated information, we make no representations or warranties of any kind regarding completeness, accuracy, or suitability of the information contained on the site. Any reliance you place on such information is strictly at your own risk.</p>
@@ -99,7 +99,7 @@ pages = [
 <p>We reserve the right to revise these Terms of Service at any time without prior notice. By continuing to use the site, you agree to be bound by the current version of these Terms.</p>
 
 <h3>7. Contact</h3>
-<p>If you have any questions regarding these Terms of Service, please contact us at <a href="mailto:contact@tech-tips.ct.ws">contact@tech-tips.ct.ws</a>.</p>
+<p>If you have any questions regarding these Terms of Service, please contact us at <a href="mailto:contact@techtips.dpdns.org">contact@techtips.dpdns.org</a>.</p>
 """,
     },
     {
@@ -111,9 +111,9 @@ pages = [
 
 <h3>How to Reach Us</h3>
 <ul>
-    <li><strong>General Inquiries:</strong> <a href="mailto:contact@tech-tips.ct.ws">contact@tech-tips.ct.ws</a></li>
-    <li><strong>Editorial & Corrections:</strong> <a href="mailto:editorial@tech-tips.ct.ws">editorial@tech-tips.ct.ws</a></li>
-    <li><strong>Advertising & Partnerships:</strong> <a href="mailto:partners@tech-tips.ct.ws">partners@tech-tips.ct.ws</a></li>
+    <li><strong>General Inquiries:</strong> <a href="mailto:contact@techtips.dpdns.org">contact@techtips.dpdns.org</a></li>
+    <li><strong>Editorial & Corrections:</strong> <a href="mailto:editorial@techtips.dpdns.org">editorial@techtips.dpdns.org</a></li>
+    <li><strong>Advertising & Partnerships:</strong> <a href="mailto:partners@techtips.dpdns.org">partners@techtips.dpdns.org</a></li>
 </ul>
 
 <h3>Response Time</h3>

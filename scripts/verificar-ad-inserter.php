@@ -2,7 +2,7 @@
 /**
  * Verificar Configuração do Ad Inserter
  * 
- * Acesse: https://tech-tips.ct.ws/verificar-ad-inserter.php
+ * Acesse: https://techtips.dpdns.org/verificar-ad-inserter.php
  */
 
 $wp_load = dirname(__FILE__) . '/wp-load.php';

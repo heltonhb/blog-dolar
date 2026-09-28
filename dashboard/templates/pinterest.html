@@ -152,12 +152,12 @@ function renderPinGrid(results) {
         const title = info ? info.title : pin.filename.replace('pin-', '').replace('.png', '').replace(/-/g, ' ');
         const desc = info ? (info.description || info.excerpt || '') : '';
         const bridgeUrl = info && info.bridge_url ? info.bridge_url : '';
-        const postUrl = info && info.post_url ? info.post_url : (info ? info.link : 'https://tech-tips.ct.ws');
+        const postUrl = info && info.post_url ? info.post_url : (info ? info.link : 'https://techtips.dpdns.org');
         const link = bridgeUrl || postUrl;
         const articleFile = info ? info.article_file : '';
         const tags = info ? (info.tags || []) : [];
 
-        const pinUrl = 'https://tech-tips.ct.ws/wp-content/uploads/' + pin.filename;
+        const pinUrl = 'https://techtips.dpdns.org/wp-content/uploads/' + pin.filename;
         const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(link) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title + (tags.length ? ' #' + tags.join(' #') : ''));
 
         return `

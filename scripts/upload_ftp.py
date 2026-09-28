@@ -92,7 +92,7 @@ with open(temp_path, 'rb') as f:
     ftp.storbinary('STOR wp_publish.php', f)
 
 print('\nScript PHP uploadado!')
-print('Para publicar, acesse: http://tech-tips.ct.ws/wp_publish.php')
+print('Para publicar, acesse: http://techtips.dpdns.org/wp_publish.php')
 print('OU publique manualmente pelo wp-admin quando o site voltar')
 
 ftp.quit()

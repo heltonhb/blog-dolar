@@ -8,8 +8,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from antibot import get_pagina  # noqa: E402
 
 URLS = [
-    "https://tech-tips.ct.ws/2026/09/19/how-to-learn-git-version-control/",
-    "https://tech-tips.ct.ws/",
+    "https://techtips.dpdns.org/2026/09/19/how-to-learn-git-version-control/",
+    "https://techtips.dpdns.org/",
 ]
 
 

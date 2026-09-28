@@ -34,7 +34,7 @@ services:
       - key: PINTEREST_BOARD_ID
         sync: false
       - key: SITE_URL
-        value: https://tech-tips.ct.ws
+        value: https://techtips.dpdns.org
       - key: WP_USER
         sync: false
       - key: WP_APP_PASSWORD

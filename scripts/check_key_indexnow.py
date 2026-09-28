@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from antibot import get_pagina, obter_cookie  # noqa: E402
 
 key = "bcf6a1f7356bdd9c03994d747ba7aa49"
-url = f"https://tech-tips.ct.ws/.well-known/{key}.txt"
+url = f"https://techtips.dpdns.org/.well-known/{key}.txt"
 
 cookie = obter_cookie()
 print(f"cookie: {cookie[:12]}…")

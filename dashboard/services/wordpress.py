@@ -25,7 +25,7 @@ def _solve_challenge(html: str, site_url: str = ""):
 
     # Fetch aes.js from the site
     if not site_url:
-        site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
+        site_url = _env("SITE_URL", "https://techtips.dpdns.org")
     try:
         aes_resp = _httpx.get(f"{site_url.rstrip('/')}/aes.js", timeout=10, verify=False)
         aes_js = aes_resp.text
@@ -66,7 +66,7 @@ def _antibot_session(site_url: str = ""):
 
     if not site_url:
         env = _load_env_dict()
-        site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
+        site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
 
     domain = urlparse(site_url).hostname
     client = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
@@ -110,7 +110,7 @@ _byethost_session = _antibot_session
 def _wp_publish(article: dict, status: str = "publish") -> dict:
     """Publish via WordPress REST API. Returns {success, id, link, error}."""
     env = _load_env_dict()
-    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
+    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
     wp_user = env.get("WP_USER") or _env("WP_USER", "")
     wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
 
@@ -157,7 +157,7 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
 def _wp_upload_media(image_bytes: bytes, filename: str, alt_text: str = "") -> dict:
     """Upload image to WP media library. Returns {success, id, url, error}."""
     env = _load_env_dict()
-    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
+    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
     wp_user = env.get("WP_USER") or _env("WP_USER", "")
     wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
 

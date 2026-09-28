@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Relatório semanal de indexação — tech-tips.ct.ws (Search Console).
+"""Relatório semanal de indexação — techtips.dpdns.org (Search Console).
 
 Cruza o sitemap vivo com a URL Inspection API:
   1. Baixa wp-sitemap.xml + filhos (atravessa o challenge AES da
@@ -34,8 +34,8 @@ DATA_DIR = PROJECT_ROOT / "dashboard" / "data"
 JSON_OUT = DATA_DIR / "indexacao_relatorio.json"
 MD_OUT = DATA_DIR / "indexacao_relatorio.md"
 
-SITE = "https://tech-tips.ct.ws"
-SITE_SC = "https://tech-tips.ct.ws/"  # siteUrl registrado no Search Console
+SITE = "https://techtips.dpdns.org"
+SITE_SC = "https://techtips.dpdns.org/"  # siteUrl registrado no Search Console
 
 
 def _import_deps():
@@ -145,7 +145,7 @@ def write_report(results: list, changes: dict, prev_date: str) -> dict:
 
     res = report["resumo"]
     linhas = [
-        "# Relatório de indexação — tech-tips.ct.ws",
+        "# Relatório de indexação — techtips.dpdns.org",
         "",
         f"Gerado em {report['gerado_em'][:19].replace('T', ' ')}",
         "",

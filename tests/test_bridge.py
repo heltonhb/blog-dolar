@@ -14,9 +14,9 @@ from dashboard.services.bridge import (
 def test_extract_slug_from_url_or_slug():
     """Test extracting clean slugs from various URL formats and strings."""
     assert extract_slug_from_url_or_slug("cool-laptops-2026") == "cool-laptops-2026"
-    assert extract_slug_from_url_or_slug("https://tech-tips.ct.ws/?p=my-article-slug") == "my-article-slug"
-    assert extract_slug_from_url_or_slug("https://tech-tips.ct.ws/2026/09/03/best-monitors/") == "best-monitors"
-    assert extract_slug_from_url_or_slug("https://tech-tips.ct.ws/responsive-web-design-best-practices-2024/") == "responsive-web-design-best-practices-2024"
+    assert extract_slug_from_url_or_slug("https://techtips.dpdns.org/?p=my-article-slug") == "my-article-slug"
+    assert extract_slug_from_url_or_slug("https://techtips.dpdns.org/2026/09/03/best-monitors/") == "best-monitors"
+    assert extract_slug_from_url_or_slug("https://techtips.dpdns.org/responsive-web-design-best-practices-2024/") == "responsive-web-design-best-practices-2024"
     assert extract_slug_from_url_or_slug("") == ""
 
 
@@ -36,7 +36,7 @@ def test_bridge_page_renders_with_fallback_slug(client):
     assert 'property="og:title"' in html
     assert 'property="og:image"' in html
     assert 'name="p:domain_verify"' in html
-    assert "https://tech-tips.ct.ws/responsive-web-design-best-practices-2024/" in html
+    assert "https://techtips.dpdns.org/responsive-web-design-best-practices-2024/" in html
     assert "Acessar Artigo Completo" in html
 
 

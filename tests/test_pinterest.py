@@ -24,8 +24,8 @@ def test_pinterest_create_mocked(client, monkeypatch):
         resp = client.post("/api/pinterest/create", json={
             "title": "Best Laptops 2026",
             "description": "Discover top laptops for programming and gaming in 2026.",
-            "link": "https://tech-tips.ct.ws/?p=best-laptops-2026",
-            "image_url": "https://tech-tips.ct.ws/wp-content/uploads/pin-test.png",
+            "link": "https://techtips.dpdns.org/?p=best-laptops-2026",
+            "image_url": "https://techtips.dpdns.org/wp-content/uploads/pin-test.png",
         })
         assert resp.status_code == 200
         data = resp.get_json()

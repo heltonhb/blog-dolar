@@ -61,11 +61,11 @@ def test_adsterra_domains_mocked(client, monkeypatch):
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = [{"id": 1, "domain": "tech-tips.ct.ws", "status": "active"}]
+    mock_resp.json.return_value = [{"id": 1, "domain": "techtips.dpdns.org", "status": "active"}]
 
     with patch("httpx.get", return_value=mock_resp):
         resp = client.get("/api/adsterra/domains")
         assert resp.status_code == 200
         data = resp.get_json()
         assert isinstance(data, list)
-        assert data[0]["domain"] == "tech-tips.ct.ws"
+        assert data[0]["domain"] == "techtips.dpdns.org"

@@ -131,7 +131,7 @@ You have the right to:
 
 Contact Us
 If you have questions about this policy, contact us at:
-- Email: privacy@tech-tips.ct.ws
+- Email: privacy@techtips.dpdns.org
 
 This Privacy Policy is generated for informational purposes and should be reviewed by a legal professional."""
 
@@ -162,7 +162,7 @@ Why Trust Us?
 
 Connect With Us
 Have a question or suggestion? We'd love to hear from you!
-- Email: hello@tech-tips.ct.ws
+- Email: hello@techtips.dpdns.org
 
 Thank you for visiting Blog em Dolar!"""
 
@@ -194,7 +194,7 @@ We are not liable for any damages arising from your use of this site.
 We reserve the right to modify these terms at any time.
 
 7. Contact
-For questions about these terms, email: legal@tech-tips.ct.ws"""
+For questions about these terms, email: legal@techtips.dpdns.org"""
 
 # ============================================================
 # GERAÇÃO DE INSTRUÇÕES PARA WORDPRESS
@@ -208,7 +208,7 @@ def generate_wordpress_instructions():
 ============================================================
 
 1. ACESSAR O WORDPRESS
-   URL: https://tech-tips.ct.ws/wp-admin
+   URL: https://techtips.dpdns.org/wp-admin
    Usuário: heltonhb
    Senha: (sua senha)
 

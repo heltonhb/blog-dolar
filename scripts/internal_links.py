@@ -11,10 +11,14 @@ Uso:
 """
 import json
 import re
+import ssl
 import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+# Cadeia SSL do addon vem incompleta (mesmo tratamento de antibot.get())
+_SSL_NOVERIFY = ssl._create_unverified_context()
 
 sys.path.insert(0, str(Path(__file__).parent))
 from antibot import SITE  # noqa: E402
@@ -147,7 +151,7 @@ def _atualizar_post(post_id: int, novo_content: str) -> bool:
             headers=headers, method="PUT",
         )
         try:
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=30, context=_SSL_NOVERIFY) as r:
                 return r.read().decode(errors="replace")
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"HTTP {e.code}: {e.read().decode()[:150]}") from e

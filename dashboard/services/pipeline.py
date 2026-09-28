@@ -134,7 +134,7 @@ def _run_pipeline_logic(keyword: str, pin_prompt: str = "", skip_publish: bool =
     """Execute the full pipeline: Article -> Image -> WordPress -> Pinterest."""
     steps = []
     pipeline_slug = re.sub(r'[^a-z0-9-]', '-', keyword.lower().strip())[:60]
-    site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
+    site_url = _env("SITE_URL", "https://techtips.dpdns.org")
 
     # ---- Step 1: Article ----
     if article_filename:

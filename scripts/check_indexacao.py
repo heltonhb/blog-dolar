@@ -57,9 +57,9 @@ def main():
 
     # 2. Métricas de search analytics (90 dias) — por query e por página
     site_entry = {s.get("siteUrl"): s for s in sites.get("siteEntry", [])}
-    target = "https://tech-tips.ct.ws/"
+    target = "https://techtips.dpdns.org/"
     if target not in site_entry:
-        print("[aviso] tech-tips.ct.ws não verificado no Search Console")
+        print("[aviso] techtips.dpdns.org não verificado no Search Console")
     print(f"[alvo] {target}")
     api_path = urllib.parse.quote(target, safe="")
 

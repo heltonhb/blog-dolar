@@ -18,7 +18,7 @@ sys.path.insert(0, ROOT)
 import ftplib
 import httpx
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 MUPLUGIN_LOCAL = os.path.join(ROOT, "scripts", "tech-tips-ga4-seo.php")
 MUPLUGIN_REMOTE = "htdocs/wp-content/mu-plugins/tech-tips-ga4-seo.php"
 
@@ -32,7 +32,7 @@ def _env(key, default=""):
 
 
 def antibot_client() -> httpx.Client:
-    domain = "tech-tips.ct.ws"
+    domain = "techtips.dpdns.org"
     client = httpx.Client(timeout=30, verify=False, follow_redirects=True)
     resp = client.get(f"{SITE}/", timeout=20)
     html = resp.text

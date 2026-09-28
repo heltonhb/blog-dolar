@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 key = os.environ["BING_API_KEY"]
-site = os.environ.get("SITE_URL", "https://tech-tips.ct.ws")
+site = os.environ.get("SITE_URL", "https://techtips.dpdns.org")
 
 r = httpx.get(
     "https://ssl.bing.com/webmaster/api.svc/json/GetQueryStats",

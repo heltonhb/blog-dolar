@@ -34,8 +34,8 @@ def test_pipeline_run_mocked(client):
         "article": "2026-09-18_test.md",
         "title": "Test Title",
         "image": "pin-test.png",
-        "image_url": "https://tech-tips.ct.ws/wp-content/uploads/pin-test.png",
-        "post_url": "https://tech-tips.ct.ws/?p=test",
+        "image_url": "https://techtips.dpdns.org/wp-content/uploads/pin-test.png",
+        "post_url": "https://techtips.dpdns.org/?p=test",
         "steps": [
             {"step": "article", "status": "ok"},
             {"step": "image", "status": "ok"},

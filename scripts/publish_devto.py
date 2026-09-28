@@ -14,6 +14,8 @@ Uso:
     python publish_devto.py <slug>              # publica como RASCUNHO
     python publish_devto.py --all               # todos os candidatos
     python publish_devto.py --cta               # aplica o CTA nos já publicados
+    python publish_devto.py --domain            # migra canonical/corpo p/ o domínio novo
+    python publish_devto.py --domain --dry-run  # mostra sem aplicar
 """
 import html as _html
 import json
@@ -39,9 +41,13 @@ UA = "blog-dolar-publisher/1.0 (republish with canonical)"
 # CTA de rodapé — tráfego Dev.to → blog (onde os anúncios monetizam)
 CTA_MARCADOR = "Originally published on"
 CTA_FOOTER = (
-    "\n\n---\n\n*Originally published on [Tech Tips](https://tech-tips.ct.ws/) "
+    "\n\n---\n\n*Originally published on [Tech Tips](https://techtips.dpdns.org/) "
     "— practical technology guides and tips, every week.*\n"
 )
+
+# Migração Plano G: domínio antigo → novo (usado por --domain)
+ANTIGO_DOMINIO = "https://tech-tips.ct.ws"
+NOVO_DOMINIO = "https://techtips.dpdns.org"
 
 
 def _com_cta(body_md: str) -> str:
@@ -272,10 +278,84 @@ def aplicar_cta_publicados() -> int:
     return alterados
 
 
+def _get_artigo(article_id: int, key: str) -> dict | None:
+    """GET do artigo completo (com canonical_url e body_markdown)."""
+    req = urllib.request.Request(
+        f"{DEVTO_API}/articles/{article_id}",
+        headers={"api-key": key, "Accept": "application/json", "User-Agent": UA},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=API_TIMEOUT) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError:
+        return None
+
+
+def atualizar_dominio(dry_run: bool = False) -> int:
+    """Migra canonical_url e links no corpo dos artigos publicados de
+    techtips.dpdns.org → techtips.dpdns.org. Faz PUT só quando há mudança.
+    """
+    key = os.getenv("DEVTO_API_KEY", "")
+    if not key:
+        print("⚠️  DEVTO_API_KEY ausente — nada a fazer")
+        return 0
+
+    def _headers(extra: dict | None = None) -> dict:
+        h = {"api-key": key, "Accept": "application/json", "User-Agent": UA}
+        if extra:
+            h.update(extra)
+        return h
+
+    req = urllib.request.Request(
+        f"{DEVTO_API}/articles/me/all?per_page=100", headers=_headers()
+    )
+    with urllib.request.urlopen(req, timeout=API_TIMEOUT) as r:
+        me = json.loads(r.read().decode())
+
+    alterados = 0
+    for a in me:
+        if not isinstance(a, dict) or not a.get("published"):
+            continue
+        full = _get_artigo(a["id"], key)
+        if not full:
+            continue
+        cu = full.get("canonical_url") or ""
+        body = full.get("body_markdown") or ""
+        novo_cu = cu.replace(ANTIGO_DOMINIO, NOVO_DOMINIO)
+        novo_body = body.replace(ANTIGO_DOMINIO, NOVO_DOMINIO)
+        if novo_cu == cu and novo_body == body:
+            print(f"  · já no domínio novo: {a['title'][:55]}")
+            continue
+        if dry_run:
+            print(f"  ~ {a['title'][:55]}\n      canonical: {cu} → {novo_cu}")
+            alterados += 1
+            continue
+        put = urllib.request.Request(
+            f"{DEVTO_API}/articles/{a['id']}",
+            data=json.dumps(
+                {"article": {"canonical_url": novo_cu, "body_markdown": novo_body}}
+            ).encode(),
+            headers=_headers({"Content-Type": "application/json"}),
+            method="PUT",
+        )
+        try:
+            with urllib.request.urlopen(put, timeout=API_TIMEOUT) as r:
+                if r.status == 200:
+                    alterados += 1
+                    print(f"  ✓ {a['title'][:55]} → {novo_cu}")
+        except urllib.error.HTTPError as e:
+            print(f"  ✗ {a['title'][:45]}: HTTP {e.code} — {e.read().decode()[:150]}")
+    return alterados
+
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
         print(__doc__)
+        return
+    if args[0] == "--domain":
+        n = atualizar_dominio(dry_run="--dry-run" in args)
+        print(f"\n{n} artigo(s) migrado(s) para {NOVO_DOMINIO}")
         return
     if args[0] == "--list":
         print(f"Candidatos dev ({len(SLUGS_DEV)}):")

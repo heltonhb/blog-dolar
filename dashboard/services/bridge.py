@@ -72,7 +72,7 @@ def get_bridge_url(slug: str, post_url: str = "") -> str:
     """Return the public bridge URL for a given slug."""
     clean_slug = extract_slug_from_url_or_slug(slug or post_url)
     if not clean_slug:
-        return post_url or _env("SITE_URL", "https://tech-tips.ct.ws")
+        return post_url or _env("SITE_URL", "https://techtips.dpdns.org")
 
     base = get_bridge_base_url()
     return f"{base}/p/{clean_slug}"
@@ -81,7 +81,7 @@ def get_bridge_url(slug: str, post_url: str = "") -> str:
 def resolve_article_for_bridge(slug: str) -> dict:
     """Resolve full article data, image, highlights, and destination for a bridge page."""
     clean_slug = extract_slug_from_url_or_slug(slug)
-    site_url = _env("SITE_URL", "https://tech-tips.ct.ws").rstrip("/")
+    site_url = _env("SITE_URL", "https://techtips.dpdns.org").rstrip("/")
     target_post_url = f"{site_url}/{clean_slug}/"
     pinterest_verify = _env("PINTEREST_VERIFY_TOKEN", "7c1931644caa7c83f03544d37d48d8f7")
 

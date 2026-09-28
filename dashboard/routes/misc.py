@@ -21,7 +21,7 @@ misc_bp = Blueprint("misc", __name__)
 def api_posts():
     """List published posts from WordPress via REST API."""
     env = _load_env_dict()
-    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
+    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
     wp_user = env.get("WP_USER") or _env("WP_USER", "")
     wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
 
@@ -56,7 +56,7 @@ def api_posts():
 @misc_bp.route("/sitemap.xml")
 def sitemap():
     """Generate XML sitemap for Google Search Console."""
-    site_url = _env("SITE_URL", "https://tech-tips.ct.ws").rstrip('/')
+    site_url = _env("SITE_URL", "https://techtips.dpdns.org").rstrip('/')
     posts_xml = ""
 
     # Attempt to query database if accessible

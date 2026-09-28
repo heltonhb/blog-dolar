@@ -19,7 +19,7 @@ def limpar_cache() -> int:
     removidos = 0
 
     try:
-        ftp.cwd("htdocs/wp-content/cache/page_enhanced")
+        ftp.cwd("techtips.dpdns.org/htdocs/wp-content/cache/page_enhanced")
     except ftplib.error_perm:
         print("ℹ️ page_enhanced inexistente — cache já limpo")
         ftp.quit()

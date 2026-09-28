@@ -83,7 +83,7 @@ def api_test_wp():
     """Test WordPress REST API connection and authentication."""
     try:
         env = _load_env_dict()
-        site_url = env.get("SITE_URL") or _env("SITE_URL", "https://tech-tips.ct.ws")
+        site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
         wp_user = env.get("WP_USER") or _env("WP_USER", "")
         wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
 

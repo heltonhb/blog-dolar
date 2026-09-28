@@ -23,7 +23,7 @@ try:
 except ImportError:
     HAS_HTTPX = False
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 
 
 def _env(key, default=""):
@@ -68,7 +68,7 @@ def solve_challenge_stdlib(html):
 def wp_session():
     """httpx.Client com cookie anti-bot, ou None se falhar."""
     import httpx
-    domain = "tech-tips.ct.ws"
+    domain = "techtips.dpdns.org"
     client = httpx.Client(timeout=30, verify=False, follow_redirects=True)
     resp = client.get(f"{SITE}/", timeout=15)
     html = resp.text

@@ -9,7 +9,7 @@ Uso:
 
 Depende de:
   - .env: BING_API_KEY (gerada no painel: Settings → Preferences → API access)
-  - .env: SITE_URL (default https://tech-tips.ct.ws)
+  - .env: SITE_URL (default https://techtips.dpdns.org)
 
 API: https://ssl.bing.com/webmaster/api.svc/json/GetQueryStats
 Datas vêm em /Date(ms)/ — convertidas para ISO.
@@ -60,7 +60,7 @@ def _fetch(endpoint: str, api_key: str, site_url: str, timeout: int = 25) -> dic
 def fetch_bing_stats(days: int = 30) -> dict:
     """Impressões/cliques por dia + top queries, limitados a `days`."""
     api_key = os.environ.get("BING_API_KEY", "").strip()
-    site_url = os.environ.get("SITE_URL", "https://tech-tips.ct.ws").strip()
+    site_url = os.environ.get("SITE_URL", "https://techtips.dpdns.org").strip()
     if not api_key:
         return {"success": False, "error": "BING_API_KEY ausente no .env "
                 "(gere em Bing Webmaster Tools → Settings → Preferences → API access)"}

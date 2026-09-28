@@ -26,7 +26,7 @@ def api_pinterest_create():
         if not access_token or not board_id:
             return jsonify({"success": False, "error": "Pinterest não configurado (ACCESS_TOKEN ou BOARD_ID ausente)."}), 400
 
-        site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
+        site_url = _env("SITE_URL", "https://techtips.dpdns.org")
         raw_link = data.get("link", site_url)
         use_bridge = data.get("use_bridge", True) and is_bridge_enabled()
         if use_bridge and ("/p/" not in raw_link and "/bridge/" not in raw_link):

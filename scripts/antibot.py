@@ -10,8 +10,9 @@ import re
 import subprocess
 import tempfile
 import urllib.request
+import ssl
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 
 _cookie_cache: str = ""
 
@@ -21,7 +22,8 @@ def get(url: str, cookie: str = "") -> str:
     if cookie:
         headers["Cookie"] = f"__test={cookie}"
     req = urllib.request.Request(url, headers=headers)
-    return urllib.request.urlopen(req, timeout=30).read().decode(errors="replace")
+    context = ssl._create_unverified_context()
+    return urllib.request.urlopen(req, timeout=30, context=context).read().decode(errors="replace")
 
 
 def solve_challenge(html: str) -> str:

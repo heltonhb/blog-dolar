@@ -32,7 +32,21 @@ function tech_tips_ga4_head()
 add_action("wp_head", "tech_tips_ga4_head", 1);
 
 /* ---------------------------------------------------------------------------
- * 2. SEO meta description + og tags
+ * 2. AdSense — global site tag (publisher ID do site)
+ *    Alcunha do script: ca-pub-6258036451330976
+ * ------------------------------------------------------------------------- */
+function tech_tips_adsense_head()
+{
+    ?>
+    <!-- AdSense global site tag via mu-plugin -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6258036451330976" crossorigin="anonymous"></script>
+    <meta name="google-adsense-account" content="ca-pub-6258036451330976">
+    <?php
+}
+add_action("wp_head", "tech_tips_adsense_head", 4);
+
+/* ---------------------------------------------------------------------------
+ * 3. SEO meta description + og tags
  *    Fonte da description: excerpt do post (o pipeline salva o meta_description
  *    lá). Canonical NÃO é emitido aqui — o WP core já emite via rel_canonical.
  *    Se um plugin SEO (Yoast/RankMath) estiver ativo, não emitimos nada.
@@ -107,8 +121,8 @@ function tech_tips_seo_meta_head()
 }
 add_action("wp_head", "tech_tips_seo_meta_head", 2);
 
-/* --------------------------------------------------------------------------- *
- * 3. Canonical na home + noindex nos arquivos (category/author)
+/* ---------------------------------------------------------------------------
+ * 4. Canonical na home + noindex nos arquivos (category/author)
  *    O WP core só emite rel_canonical em páginas singulares; a home fica sem
  *    canonical e os arquivos de taxonomia/autor ficam indexáveis apesar de
  *    serem páginas finas. Cede o lugar a um plugin SEO, como acima.

@@ -13,7 +13,7 @@ import urllib.error
 sys.path.insert(0, "scripts")
 from check_indexacao import get_access_token
 
-SITE = "https://tech-tips.ct.ws/"
+SITE = "https://techtips.dpdns.org/"
 
 URLS = [
     f"{SITE}",

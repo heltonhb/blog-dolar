@@ -28,7 +28,7 @@ def test_publish_success_mocked(client):
         "---\ntitle: Mock Publish Title\nslug: mock-publish-test\nmeta_description: Meta\ntags: ['wp']\n---\n\n<p>Article body</p>",
         encoding="utf-8"
     )
-    mock_wp_res = {"success": True, "id": 9999, "link": "https://tech-tips.ct.ws/2026/09/mock-publish-test/"}
+    mock_wp_res = {"success": True, "id": 9999, "link": "https://techtips.dpdns.org/2026/09/mock-publish-test/"}
 
     try:
         with patch("dashboard.routes.publish._wp_publish", return_value=mock_wp_res):
@@ -37,7 +37,7 @@ def test_publish_success_mocked(client):
             data = resp.get_json()
             assert data["success"] is True
             assert data["post_id"] == 9999
-            assert "tech-tips.ct.ws" in data["url"]
+            assert "techtips.dpdns.org" in data["url"]
     finally:
         if test_article.exists():
             test_article.unlink()

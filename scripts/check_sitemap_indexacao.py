@@ -13,7 +13,7 @@ from check_indexacao import get_access_token, api_get
 def check_site_live():
     print("\n=== SITE AO VIVO ===")
     for path in ("/", "/robots.txt", "/sitemap.xml", "/sitemap.php", "/google36841e3dc65b42a5.html"):
-        url = f"https://tech-tips.ct.ws{path}"
+        url = f"https://techtips.dpdns.org{path}"
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=15) as r:
@@ -27,7 +27,7 @@ def check_site_live():
 
 def check_sitemaps(token):
     print("\n=== SITEMAPS NO SEARCH CONSOLE ===")
-    target = "https://tech-tips.ct.ws/"
+    target = "https://techtips.dpdns.org/"
     api_path = urllib.parse.quote(target, safe="")
     data, code = api_get(
         f"https://www.googleapis.com/webmasters/v3/sites/{api_path}/sitemaps", token
@@ -47,7 +47,7 @@ def check_sitemaps(token):
 def check_daily_impressions(token):
     """Dados dia a dia para achar quando as impressões começaram."""
     print("\n=== IMPRESSÕES DIA A DIA (últimos 30 dias) ===")
-    target = "https://tech-tips.ct.ws/"
+    target = "https://techtips.dpdns.org/"
     api_path = urllib.parse.quote(target, safe="")
     body = json.dumps({
         "startDate": "2026-08-20",

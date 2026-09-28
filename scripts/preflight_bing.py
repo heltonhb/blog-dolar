@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from antibot import get, solve_challenge  # noqa: E402
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 
 UAS = {
     "sem UA (Python)": "Python-urllib/3.12",

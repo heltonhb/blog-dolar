@@ -235,7 +235,7 @@ def api_pin_info(filename: str):
     for f in _articles_dir().glob("*.md"):
         if extract_slug_from_filename(f.name) == slug:
             info = _extract_article_info(f)
-            site_url = _env("SITE_URL", "https://tech-tips.ct.ws")
+            site_url = _env("SITE_URL", "https://techtips.dpdns.org")
             post_url = f"{site_url.rstrip('/')}/?p={info['slug']}"
             bridge_url = get_bridge_url(info['slug'], post_url)
             default_link = bridge_url if is_bridge_enabled() else post_url

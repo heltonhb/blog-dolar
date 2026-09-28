@@ -11,7 +11,7 @@ import sys
 import tempfile
 import urllib.request
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 
 
 def get(url: str, cookie: str = "") -> str:

@@ -2,7 +2,7 @@ User-agent: *
 Disallow: /wp-admin/
 Allow: /wp-admin/admin-ajax.php
 
-Sitemap: https://tech-tips.byethost4.com/sitemap.xml
+Sitemap: https://techtips.dpdns.org/wp-sitemap.xml
 
 User-agent: Googlebot
 Allow: /

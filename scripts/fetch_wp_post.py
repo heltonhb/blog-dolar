@@ -7,6 +7,7 @@ o cookie __test é resolvido UMA vez (antibot.obter_cookie) e reusado.
 import base64
 import json
 import os
+import ssl
 import sys
 from pathlib import Path
 
@@ -38,8 +39,12 @@ def _rest_get(url: str) -> str:
         if extra:
             headers.update(extra)
         req = urllib.request.Request(url, headers=headers)
+        # O addon da InfinityFree serve a cadeia SSL incompleta (só o cert
+        # folha, sem o intermediário) → verificação falha. Mesmo tratamento
+        # já usado em antibot.get().
+        context = ssl._create_unverified_context()
         try:
-            return urllib.request.urlopen(req, timeout=30).read().decode()
+            return urllib.request.urlopen(req, timeout=30, context=context).read().decode()
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"REST respondeu {e.code}") from e
 

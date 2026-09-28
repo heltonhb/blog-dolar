@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from antibot import get_pagina  # noqa: E402
 from fetch_urls import fetch_post_urls  # noqa: E402
 
-HOST = "tech-tips.ct.ws"
+HOST = "techtips.dpdns.org"
 KEY_FILE = Path(__file__).parent.parent / ".well-known" / "indexnow-key.txt"
 
 

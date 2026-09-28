@@ -13,7 +13,7 @@ api_bp = Blueprint("api", __name__)
 def api_health():
     """Health check endpoint (public, no auth required)."""
     checks = {}
-    for host in ["tech-tips.ct.ws", "api3.adsterratools.com"]:
+    for host in ["techtips.dpdns.org", "api3.adsterratools.com"]:
         try:
             socket.gethostbyname(host)
             checks[host] = "ok"

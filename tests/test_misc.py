@@ -17,7 +17,7 @@ def test_posts_get_mocked(client, monkeypatch):
             "title": {"rendered": "Hello World Post"},
             "slug": "hello-world-post",
             "date": "2026-09-18T12:00:00",
-            "link": "https://tech-tips.ct.ws/2026/09/hello-world-post/",
+            "link": "https://techtips.dpdns.org/2026/09/hello-world-post/",
             "content": {"rendered": "<p>Welcome to tech tips.</p>"}
         }
     ]

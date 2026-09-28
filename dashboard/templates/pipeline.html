@@ -182,8 +182,8 @@ function runPipeline() {
         document.getElementById('steps-container').innerHTML = renderSteps(data.steps || []);
 
         if (data.success) {
-            const pinUrl = data.image_url || ('https://tech-tips.ct.ws/wp-content/uploads/' + esc(data.image));
-            const safeLink = data.bridge_url || data.post_url || 'https://tech-tips.ct.ws';
+            const pinUrl = data.image_url || ('https://techtips.dpdns.org/wp-content/uploads/' + esc(data.image));
+            const safeLink = data.bridge_url || data.post_url || 'https://techtips.dpdns.org';
             const pinTitle = esc(data.title || '');
             const pinDesc = 'Read this guide on our blog!';
 
@@ -303,7 +303,7 @@ function loadPins() {
             const title = articleName.replace('.md', '').replace(/_/g, ' ').replace(/\d{4}-\d{2}-\d{2}_/, '').replace(/-/g, ' ');
 
             // Build Pinterest share URL
-            const wpLink = 'https://tech-tips.ct.ws';
+            const wpLink = 'https://techtips.dpdns.org';
             const pinUrl = pin.image_url || (window.location.origin + '/static/images/' + pin.filename);
             const pinterestUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(wpLink) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title);
 

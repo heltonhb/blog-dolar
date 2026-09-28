@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 import httpx
 
-SITE = "https://tech-tips.ct.ws"
+SITE = "https://techtips.dpdns.org"
 
 
 def _env(key, default=""):
@@ -23,7 +23,7 @@ def _env(key, default=""):
 
 def antibot_client():
     from ler_sitemap import solve_challenge
-    domain = "tech-tips.ct.ws"
+    domain = "techtips.dpdns.org"
     client = httpx.Client(timeout=30, verify=False, follow_redirects=True)
     resp = client.get(f"{SITE}/", timeout=20)
     if "toNumbers" in resp.text and "slowAES" in resp.text:
