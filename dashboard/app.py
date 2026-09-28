@@ -581,32 +581,16 @@ def _solve_challenge(html: str):
             pass
 
 def _byethost_session():
-    """Create an httpx Client with the ByetHost anti-bot cookie resolved."""
-    import httpx as _httpx
-    client = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
-    try:
-        resp = client.get("https://techtips.dpdns.org/", timeout=15)
-        html = resp.text
-        if "toNumbers" in html and "slowAES" in html:
-            cookie_val = _solve_challenge(html)
-            if cookie_val:
-                client.cookies.set("__test", cookie_val, domain=".ct.ws")
-                try:
-                    test = client.get("https://techtips.dpdns.org/wp-json/", timeout=10)
-                    if test.status_code == 200 and "name" in test.text[:200]:
-                        return client
-                except Exception:
-                    pass
-                try:
-                    client.get("https://techtips.dpdns.org/?i=1", timeout=10)
-                except Exception:
-                    pass
-                raise RuntimeError("Falha ao resolver anti-bot do ByetHost: cookie inválido. Tente novamente.")
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Falha ao conectar com ByetHost: {e}")
-    return client
+    """Create an httpx Client with the ByetHost anti-bot cookie resolved.
+
+    Delegates to dashboard.services.wordpress._antibot_session, which sets the
+    cookie for the CURRENT site hostname (SITE_URL) — the previous local
+    implementation hardcoded domain='.ct.ws', a leftover from the old
+    tech-tips.ct.ws domain, so the cookie was never sent to
+    techtips.dpdns.org and every publish failed with "cookie inválido".
+    """
+    from dashboard.services.wordpress import _antibot_session
+    return _antibot_session()
 
 
 def _cleanup_ftp(host, user, password):

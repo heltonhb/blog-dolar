@@ -13,90 +13,142 @@ from .helpers import _env, _load_env_dict
 # ---------------------------------------------------------------------------
 
 def _solve_challenge(html: str, site_url: str = ""):
-    """Solve ByetHost/InfinityFree AES challenge. Uses Node.js slowAES."""
+    """Solve ByetHost/InfinityFree AES challenge.
+
+    Tries Node.js (running the site's own slowAES) first, then falls back to
+    pure-Python AES-CBC via pycryptodome — works even where Node.js is absent
+    (e.g. some PaaS images). slowAES uses lenient PKCS7, so padding is only
+    stripped when the length byte is in range.
+    """
     matches = re.findall(r'toNumbers\("([0-9a-f]+)"\)', html)
     if len(matches) < 3:
         return None
     a, b, c = matches[0], matches[1], matches[2]
 
-    import httpx as _httpx
-    import subprocess as _sp
-    import tempfile as _tmp
-
-    # Fetch aes.js from the site
     if not site_url:
         site_url = _env("SITE_URL", "https://techtips.dpdns.org")
+
+    # --- Attempt 1: Node.js with the site's own slowAES ---
     try:
+        import httpx as _httpx
+        import subprocess as _sp
+        import tempfile as _tmp
+
         aes_resp = _httpx.get(f"{site_url.rstrip('/')}/aes.js", timeout=10, verify=False)
         aes_js = aes_resp.text
-    except Exception:
-        return None
-
-    # Node.js script using the real slowAES
-    node_code = (
-        aes_js + "\n"
-        'function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}\n'
-        'function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}\n'
-        f'var a=toNumbers("{a}"),b=toNumbers("{b}"),c=toNumbers("{c}");\n'
-        'console.log(toHex(slowAES.decrypt(c,2,a,b)));\n'
-    )
-
-    tmpfile = None
-    try:
-        with _tmp.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
-            f.write(node_code)
-            tmpfile = f.name
-        result = _sp.run(["node", tmpfile], capture_output=True, text=True, timeout=10)
-        cookie = result.stdout.strip()
-        return cookie if cookie else None
-    except Exception:
-        return None
-    finally:
-        if tmpfile:
+        if "slowAES" in aes_js:  # /aes.js may itself be swapped by the challenge page
+            node_code = (
+                aes_js + "\n"
+                'function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}\n'
+                'function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}\n'
+                f'var a=toNumbers("{a}"),b=toNumbers("{b}"),c=toNumbers("{c}");\n'
+                'console.log(toHex(slowAES.decrypt(c,2,a,b)));\n'
+            )
+            tmpfile = None
             try:
-                os.unlink(tmpfile)
-            except Exception:
-                pass
+                with _tmp.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
+                    f.write(node_code)
+                    tmpfile = f.name
+                result = _sp.run(["node", tmpfile], capture_output=True, text=True, timeout=10)
+                cookie = result.stdout.strip()
+                if cookie:
+                    return cookie
+            finally:
+                if tmpfile:
+                    try:
+                        os.unlink(tmpfile)
+                    except Exception:
+                        pass
+    except Exception:
+        pass  # Node missing/failed → fall through to pure-Python solver
+
+    # --- Attempt 2: pure-Python AES-CBC (pycryptodome) ---
+    try:
+        from Crypto.Cipher import AES
+
+        cipher = AES.new(bytes.fromhex(a), AES.MODE_CBC, bytes.fromhex(b))
+        decrypted = cipher.decrypt(bytes.fromhex(c))
+        pad_len = decrypted[-1]
+        if 1 <= pad_len <= 16:
+            decrypted = decrypted[:-pad_len]
+        return decrypted.hex()
+    except Exception:
+        return None
+
+
+# Cache of solved cookies: domain -> (cookie_value, timestamp)
+_ANTIBOT_COOKIE_CACHE: dict = {}
 
 
 def _antibot_session(site_url: str = ""):
-    """Create an httpx Client with the anti-bot cookie resolved."""
+    """Create an httpx Client with the anti-bot cookie resolved.
+
+    The solved cookie is cached per domain (server-side valid 6h, reused for
+    5h) so repeated calls in one process don't re-solve the challenge and trip
+    InfinityFree rate limiting. Verification is retried before giving up.
+    """
+    import time as _time
     import httpx as _httpx
     from urllib.parse import urlparse
 
     if not site_url:
         env = _load_env_dict()
         site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
+    base = site_url.rstrip("/")
+    domain = urlparse(site_url).hostname or ""
 
-    domain = urlparse(site_url).hostname
-    client = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
-    try:
-        resp = client.get(f"{site_url.rstrip('/')}/", timeout=15)
+    def _client_with(cookie_val: str = ""):
+        c = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
+        if cookie_val:
+            c.cookies.set("__test", cookie_val, domain=domain)
+        return c
+
+    def _verified(client) -> bool:
+        try:
+            test = client.get(f"{base}/wp-json/", timeout=15)
+            return test.status_code == 200 and "name" in test.text[:200]
+        except Exception:
+            return False
+
+    # 1) Reuse cached cookie
+    cached = _ANTIBOT_COOKIE_CACHE.get(domain)
+    if cached and _time.time() - cached[1] < 5 * 3600:
+        client = _client_with(cached[0])
+        if _verified(client):
+            return client
+
+    # 2) Fresh solve, up to 2 attempts
+    last_error = ""
+    for _attempt in range(2):
+        client = _client_with()
+        try:
+            resp = client.get(f"{base}/", timeout=20)
+        except Exception as e:
+            raise RuntimeError(f"Falha ao conectar com {domain}: {e}")
         html = resp.text
-        if "toNumbers" in html and "slowAES" in html:
-            cookie_val = _solve_challenge(html, site_url)
-            if cookie_val:
-                client.cookies.set("__test", cookie_val, domain=domain)
-                # Verify the cookie works
-                try:
-                    test = client.get(f"{site_url.rstrip('/')}/wp-json/", timeout=10)
-                    if test.status_code == 200 and "name" in test.text[:200]:
-                        return client
-                except Exception:
-                    pass
-                # Retry with extra request
-                try:
-                    client.get(f"{site_url.rstrip('/')}/?i=1", timeout=10)
-                except Exception:
-                    pass
-                raise RuntimeError(
-                    f"Falha ao resolver anti-bot de {domain}: cookie inválido. Tente novamente."
-                )
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Falha ao conectar com {domain}: {e}")
-    return client
+        if "toNumbers" not in html or "slowAES" not in html:
+            return client  # no challenge present
+        cookie_val = _solve_challenge(html, base)
+        if not cookie_val:
+            last_error = "desafio não pôde ser decifrado (Node.js e pycryptodome falharam)"
+            continue
+        client = _client_with(cookie_val)
+        if _verified(client):
+            _ANTIBOT_COOKIE_CACHE[domain] = (cookie_val, _time.time())
+            return client
+        # one extra hop the challenge expects, then re-verify
+        try:
+            client.get(f"{base}/?i=1", timeout=15)
+        except Exception:
+            pass
+        if _verified(client):
+            _ANTIBOT_COOKIE_CACHE[domain] = (cookie_val, _time.time())
+            return client
+        last_error = f"cookie recusado ao testar {base}/wp-json/"
+
+    raise RuntimeError(
+        f"Falha ao resolver anti-bot de {domain}: {last_error or 'cookie inválido'}. Tente novamente."
+    )
 
 
 # Keep backward-compatible alias

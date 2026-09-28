@@ -1,4 +1,37 @@
-# MIGRATION_CHECKLIST — Plano G (update 2026-09-27)
+# MIGRATION_CHECKLIST — Plano G (update 2026-09-28)
+
+## ✅ STATUS 28/09 — re-verificação completa (sem regressões)
+
+- [x] **Suíte de testes: `81 passed`** (rodada 2 limpa; a 1ª rodada teve 18
+  falhas transitórias por timeout na Postgres remota do Neon, não do código).
+- [x] Varredura anti-anúncios **16/16 URLs limpas**.
+- [x] Saúde do domínio novo (`scripts/saude_dominio_novo.py`): title OK,
+  canonical + `og:url` = `https://techtips.dpdns.org/`, GA4 `G-G01J573W6J`,
+  **0 refs a ct.ws**, robots.txt e ads.txt corretos
+  (`google.com, pub-6258036451330976, DIRECT, f08c47fec0942fa0`).
+- [x] Sitemap do WP: índice com 4 sub-sitemaps → **18 URLs** (11 posts, 5
+  páginas, 1 categoria, 1 autor), **0 com ct.ws**.
+- [x] Anti-bot AES: **Googlebot e bingbot recebem conteúdo real** (ads.txt = 59
+  bytes corretos); navegador normal recebe o challenge JS. Crawlers não ficam
+  bloqueados.
+- [x] **Pendência opcional do repo RESOLVIDA**: `sitemap.php`, `robots.txt`,
+  `robots_new.txt` e `sitemap_static.xml` já **não citam mais ct.ws**
+  (contagem `grep -c 'ct.ws'` = 0 em todos).
+- [~] **301 do domínio antigo — IMPOSSÍVEL de confirmar porque o host está
+  FORA DO AR**: teste via `check-host.net` com 3 nós externos (Suíça, Reino
+  Unido, EUA) → **"Connection timed out" nos 3**. Não é bloqueio da rede local
+  do agente: `tech-tips.ct.ws` → `199.59.243.225` não responde porta 80/443
+  de lugar nenhum. O `.htaccess` com o 301 está no lugar, mas não há servidor
+  para servi-lo. Consequência: o Google eventualmente abandona o domínio
+  antigo sozinho; só vale reimplementar o redirect se o host antigo voltar
+  (ou apontar o DNS do ct.ws para a InfinityFree e redirecionar lá).
+- [ ] Cadeia SSL **continua incompleta**: `openssl s_client` mostra só o cert
+  folha (`CN=techtips.dpdns.org`, emissor `Let's Encrypt/YR1`) — o
+  intermediário `YR1` não é enviado. Browsers e Google resolvem via AIA;
+  `curl`/`requests` com verificação estrita falham (por isso os scripts usam
+  contexto não verificado). Ação: painel InfinityFree → SSL/TLS.
+
+---
 
 ## ✅ STATUS 27/09 — Etapas 5–7 executadas
 
@@ -22,11 +55,12 @@
 - [x] Testes: **47 passed**.
 
 ### Pendências
-- [ ] **Confirmar o 301 de `tech-tips.ct.ws` num browser**: do ambiente do agente
-  o host (199.59.243.225) não responde (timeout em 80/443). O `.htaccess` está no
-  lugar certo — pode ser bloqueio de rede local ou o host antigo fora do ar.
+- [x] ~~Confirmar o 301 de `tech-tips.ct.ws` num browser~~ → **diagnóstico
+  28/09: host antigo fora do ar (3 nós externos com timeout)**. Ver STATUS
+  28/09 acima.
 - [ ] **Passo 3 (USUÁRIO)**: AdSense / Search Console / Bing no domínio novo.
-- [ ] Opcional: `sitemap.php` e `robots.txt` do repo ainda citam ct.ws.
+- [x] ~~Opcional: `sitemap.php` e `robots.txt` do repo ainda citam ct.ws~~ →
+  verificado 28/09: nenhum arquivo do repo cita mais ct.ws.
 - [ ] Corrigir a cadeia SSL completa no painel, se algum browser reclamar.
 
 ---
