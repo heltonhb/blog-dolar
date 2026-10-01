@@ -43,6 +43,10 @@ app = Flask(__name__)
 app.secret_key = get_secret_key()
 install_csrf(app)
 
+# Register blueprints
+from dashboard.routes import register_blueprints
+register_blueprints(app)
+
 # Add directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent))  # dashboard/ (for db.py)
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))  # scripts/

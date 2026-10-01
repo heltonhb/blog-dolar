@@ -194,7 +194,7 @@ async function loadAnalytics() {
     try {
         // ── Top cards: traffic metrics from GA4 ──────────────────────
         try {
-            const gaResp = await fetch('/api/traffic/pinterest');
+            const gaResp = await fetch('/api/traffic/pinterest', { credentials: 'same-origin' });
             const gaData = await gaResp.json();
             if (gaData.success) {
                 const total = gaData.total_sessions || 0;
@@ -218,7 +218,7 @@ async function loadAnalytics() {
         }
 
         // ── Articles table & index status (from WordPress) ──────────
-        const resp = await fetch('/api/posts');
+        const resp = await fetch('/api/posts', { credentials: 'same-origin' });
         const posts = await resp.json();
 
         // Index status
@@ -269,7 +269,7 @@ async function loadGa4() {
     const statusEl = document.getElementById('ga4-status');
     const contentEl = document.getElementById('ga4-content');
     try {
-        const resp = await fetch('/api/traffic/pinterest');
+        const resp = await fetch('/api/traffic/pinterest', { credentials: 'same-origin' });
         const data = await resp.json();
         if (!data.success) {
             statusEl.textContent = 'ℹ️ ' + (data.error || 'GA4 ainda sem dados. Ative o Site Kit e colete visitas primeiro.');
@@ -549,9 +549,11 @@ async function refreshBing() {
     }
 }
 
-loadAnalytics();
-loadGa4();
-loadBing();
-loadGa4Timeseries(); // Load timeseries on init
+document.addEventListener('DOMContentLoaded', function() {
+    loadAnalytics();
+    loadGa4();
+    loadBing();
+    loadGa4Timeseries(); // Load timeseries on init
+});
 </script>
 {% endblock %}
