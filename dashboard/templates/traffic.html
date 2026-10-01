@@ -90,7 +90,7 @@
             <div id="bing-top-queries"></div>
             <p style="color: var(--text-secondary);" id="bing-status">Carregando dados do Bing...</p>
             <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-blue" onclick="refreshBing()" style="padding: 8px 16px;">🔄 Atualizar agora</button>
+                <button class="btn btn-blue" id="bing-refresh-btn" onclick="refreshBing(event)" style="padding: 8px 16px;">🔄 Atualizar agora</button>
                 <span id="bing-alert" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
             </div>
             <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
@@ -110,7 +110,7 @@
             <p style="color: var(--text-secondary);" id="ga4-status">Verificando dados...</p>
             <div id="ga4-content" style="margin-top: 12px;"></div>
             <div style="margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-blue" onclick="refreshGa4()" style="padding: 8px 16px;">🔄 Atualizar agora</button>
+                <button class="btn btn-blue" id="ga4-refresh-btn" onclick="refreshGa4(event)" style="padding: 8px 16px;">🔄 Atualizar agora</button>
                 <span id="ga4-alert" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
             </div>
             <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
@@ -129,7 +129,7 @@
             <div class="chart-loading" id="ga4-timeseries-status">Carregando série temporal...</div>
             <canvas id="ga4-timeseries-chart" width="400" height="200" style="display:none;"></canvas>
             <div style="margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-blue" onclick="refreshGa4Timeseries()" style="padding: 8px 16px;">🔄 Atualizar agora</button>
+                <button class="btn btn-blue" id="ga4-timeseries-refresh-btn" onclick="refreshGa4Timeseries(event)" style="padding: 8px 16px;">🔄 Atualizar agora</button>
                 <span id="ga4-timeseries-alert" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
             </div>
             <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
@@ -190,43 +190,46 @@
 </div>
 
 <script>
+let _currentSeriesData = null;
+
 async function loadAnalytics() {
+    // ── Top cards: traffic metrics from GA4 ──────────────────────
     try {
-        // ── Top cards: traffic metrics from GA4 ──────────────────────
-        try {
-            const gaResp = await fetch('/api/traffic/pinterest', { credentials: 'same-origin' });
-            const gaData = await gaResp.json();
-            if (gaData.success) {
-                const total = gaData.total_sessions || 0;
-                const pinterestSessions = gaData.pinterest ? gaData.pinterest.sessions : 0;
-                const sourcesCount = (gaData.all_sources || []).length;
-                const pct = total > 0 ? (pinterestSessions / total * 100).toFixed(1) + '%' : '—';
+        const gaResp = await fetch('/api/traffic/pinterest', { credentials: 'same-origin' });
+        const gaData = await gaResp.json();
+        if (gaData.success) {
+            const total = gaData.total_sessions || 0;
+            const pinterestSessions = gaData.pinterest ? gaData.pinterest.sessions : 0;
+            const sourcesCount = (gaData.all_sources || []).length;
+            const pct = total > 0 ? (pinterestSessions / total * 100).toFixed(1) + '%' : '—';
 
-                document.getElementById('traffic-total-sessions').textContent = total.toLocaleString();
-                document.getElementById('traffic-pinterest-sessions').textContent = pinterestSessions.toLocaleString();
-                document.getElementById('traffic-sources-count').textContent = sourcesCount;
-                document.getElementById('traffic-pinterest-pct').textContent = pct;
-            } else {
-                document.getElementById('traffic-total-sessions').textContent = '—';
-                document.getElementById('traffic-pinterest-sessions').textContent = '—';
-                document.getElementById('traffic-sources-count').textContent = '—';
-                document.getElementById('traffic-pinterest-pct').textContent = '—';
-            }
-        } catch(e) {
-            ['traffic-total-sessions','traffic-pinterest-sessions','traffic-sources-count','traffic-pinterest-pct']
-                .forEach(id => { document.getElementById(id).textContent = '—'; });
+            document.getElementById('traffic-total-sessions').textContent = total.toLocaleString();
+            document.getElementById('traffic-pinterest-sessions').textContent = pinterestSessions.toLocaleString();
+            document.getElementById('traffic-sources-count').textContent = sourcesCount;
+            document.getElementById('traffic-pinterest-pct').textContent = pct;
+        } else {
+            document.getElementById('traffic-total-sessions').textContent = '—';
+            document.getElementById('traffic-pinterest-sessions').textContent = '—';
+            document.getElementById('traffic-sources-count').textContent = '—';
+            document.getElementById('traffic-pinterest-pct').textContent = '—';
         }
+    } catch(e) {
+        ['traffic-total-sessions','traffic-pinterest-sessions','traffic-sources-count','traffic-pinterest-pct']
+            .forEach(id => { document.getElementById(id).textContent = '—'; });
+    }
 
-        // ── Articles table & index status (from WordPress) ──────────
+    // ── Articles table & index status (from WordPress) ──────────
+    try {
         const resp = await fetch('/api/posts', { credentials: 'same-origin' });
         const posts = await resp.json();
+        const postsList = Array.isArray(posts) ? posts : [];
 
         // Index status
         document.getElementById('index-status').innerHTML = `
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div>
                     <span class="badge badge-green">IndexNow (Bing/Yandex)</span>
-                    <p style="margin-top: 4px; font-size: 0.85rem; color: var(--text-secondary);">${posts.length} URLs submetidas</p>
+                    <p style="margin-top: 4px; font-size: 0.85rem; color: var(--text-secondary);">${postsList.length} URLs submetidas</p>
                 </div>
                 <div>
                     <span class="badge badge-blue">Google Sitemap</span>
@@ -242,26 +245,30 @@ async function loadAnalytics() {
         // Articles table
         const tbody = document.getElementById('articles-table');
         tbody.innerHTML = '';
-        posts.slice(0, 15).forEach(p => {
-            const title = p.title || 'Sem título';
-            const date = p.date || '';
-            const slug = p.slug || '';
-            tbody.innerHTML += `
-                <tr>
-                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</td>
-                    <td style="white-space: nowrap;">${date}</td>
-                    <td><span class="badge badge-green">Publicado</span></td>
-                    <td>
-                        <a href="https://techtips.dpdns.org/${slug}/" target="_blank" style="color: var(--accent-blue); text-decoration: none; font-size: 0.85rem;">
-                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver
-                        </a>
-                    </td>
-                </tr>
-            `;
-        });
-
+        if (postsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 16px;">Nenhum artigo encontrado ou WordPress inacessível no momento.</td></tr>';
+        } else {
+            postsList.slice(0, 15).forEach(p => {
+                const title = p.title || 'Sem título';
+                const date = p.date || '';
+                const slug = p.slug || '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</td>
+                        <td style="white-space: nowrap;">${date}</td>
+                        <td><span class="badge badge-green">Publicado</span></td>
+                        <td>
+                            <a href="https://techtips.dpdns.org/${slug}/" target="_blank" style="color: var(--accent-blue); text-decoration: none; font-size: 0.85rem;">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
     } catch(e) {
-        console.error('Error loading analytics:', e);
+        console.error('Error loading posts:', e);
+        document.getElementById('articles-table').innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 16px;">Erro ao carregar artigos do WordPress.</td></tr>';
     }
 }
 
@@ -307,10 +314,10 @@ async function loadGa4() {
                 <tbody>
                     ${(data.all_sources || []).map(s => `
                         <tr style="${s.source && s.source.toLowerCase().includes('pinterest') ? 'background: rgba(230,0,35,0.08); font-weight:600;' : ''}">
-                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${s.channel}</td>
-                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${s.source}</td>
-                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${s.sessions.toLocaleString()}</td>
-                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${s.users.toLocaleString()}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${s.channel || '—'}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${s.source || '—'}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${(s.sessions || 0).toLocaleString()}</td>
+                            <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${(s.users || 0).toLocaleString()}</td>
                         </tr>`
                     ).join('') || '<tr><td colspan="4" style="padding:12px; color:var(--text-secondary); text-align:center;">Sem dados de origem.</td></tr>'}
                 </tbody>
@@ -321,24 +328,25 @@ async function loadGa4() {
     }
 }
 
-async function refreshGa4() {
+async function refreshGa4(ev) {
     const alertEl = document.getElementById('ga4-alert');
-    const btn = event.target;
+    const btn = (ev && ev.target) || document.getElementById('ga4-refresh-btn');
     alertEl.textContent = 'Buscando dados do Google Analytics (pode levar ~1 min)...';
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
     try {
-        const resp = await fetch('/api/traffic/ga4/refresh', { method: 'POST' });
+        const resp = await fetch('/api/traffic/ga4/refresh', { method: 'POST', credentials: 'same-origin' });
         const data = await resp.json();
         if (data.success) {
             alertEl.textContent = '✅ Dados atualizados.';
             loadGa4();
+            loadAnalytics();
         } else {
             alertEl.textContent = '❌ ' + (data.error || 'Falha ao atualizar.');
         }
     } catch(e) {
         alertEl.textContent = '❌ ' + e.message;
     } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
     }
 }
 
@@ -347,7 +355,7 @@ async function loadGa4Timeseries() {
     const statusEl = document.getElementById('ga4-timeseries-status');
     const chartEl = document.getElementById('ga4-timeseries-chart');
     try {
-        const resp = await fetch('/api/traffic/ga4/timeseries');
+        const resp = await fetch('/api/traffic/ga4/timeseries', { credentials: 'same-origin' });
         const data = await resp.json();
         if (!data.success) {
             statusEl.textContent = 'ℹ️ ' + (data.error || 'Sem dados de série temporal ainda.');
@@ -360,7 +368,7 @@ async function loadGa4Timeseries() {
             chartEl.style.display = 'none';
             return;
         }
-        // Prepare data for Chart.js (we'll draw a simple line chart using Canvas API)
+        _currentSeriesData = series;
         const labels = series.map(point => point.date);
         const values = series.map(point => point.sessions);
         statusEl.textContent = 'Última atualização: ' + (data.fetched_at ? new Date(data.fetched_at).toLocaleString() : '?');
@@ -374,99 +382,143 @@ async function loadGa4Timeseries() {
 }
 
 function drawLineChart(canvas, labels, values, yLabel, color) {
+    if (!canvas) return;
+    const container = canvas.parentElement;
+    if (container && container.clientWidth > 100) {
+        canvas.width = Math.max(300, container.clientWidth - 40);
+    }
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-    const padding = { left: 40, right: 20, top: 20, bottom: 30 };
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
+    const padding = { left: 45, right: 25, top: 25, bottom: 35 };
+    const chartWidth = Math.max(10, width - padding.left - padding.right);
+    const chartHeight = Math.max(10, height - padding.top - padding.bottom);
 
-    // Clear
+    const computed = window.getComputedStyle(document.body);
+    const bgSecondary = (computed && computed.getPropertyValue('--bg-secondary').trim()) || '#1e293b';
+    const borderColor = (computed && computed.getPropertyValue('--border-color').trim()) || '#334155';
+    const textSecondary = (computed && computed.getPropertyValue('--text-secondary').trim()) || '#94a3b8';
+
+    // Clear background
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = var(--bg-secondary);
+    ctx.fillStyle = bgSecondary;
     ctx.fillRect(0, 0, width, height);
 
+    if (!values || values.length === 0) return;
+
+    const minVal = 0;
+    const maxVal = Math.max(Math.max(...values), 5);
+    const yRange = maxVal - minVal;
+    const xStep = labels.length > 1 ? chartWidth / (labels.length - 1) : 0;
+
+    // Grid lines and Y labels
+    const gridSteps = 4;
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = textSecondary;
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= gridSteps; i++) {
+        const y = padding.top + (chartHeight * i) / gridSteps;
+        const val = Math.round(maxVal - (i / gridSteps) * maxVal);
+        ctx.fillText(val, padding.left - 8, y + 3);
+
+        if (i > 0 && i < gridSteps) {
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(width - padding.right, y);
+            ctx.stroke();
+        }
+    }
+
     // Axes
-    ctx.strokeStyle = var(--border-color);
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padding.left, padding.top);
-    ctx.lineTo(padding.left, height - padding.bottom); // Y axis
-    ctx.lineTo(width - padding.right, height - padding.bottom); // X axis
+    ctx.lineTo(padding.left, height - padding.bottom);
+    ctx.lineTo(width - padding.right, height - padding.bottom);
     ctx.stroke();
 
-    // Grid lines (optional)
-    ctx.strokeStyle = 'rgba(200,200,200,0.2)';
-    ctx.lineWidth = 0.5;
-    for (let i = 1; i < 5; i++) {
-        const y = padding.top + (chartHeight * i) / 5;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, y);
-        ctx.lineTo(width - padding.right, y);
-        ctx.stroke();
-    }
+    // Area fill
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
 
-    // Data
-    if (values.length === 0) return;
-    const maxVal = Math.max(...values);
-    const minVal = Math.min(...values);
-    const yRange = maxVal - minVal || 1; // avoid division by zero
-    const xStep = chartWidth / (labels.length - 1 || 1);
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
     ctx.beginPath();
     labels.forEach((label, i) => {
         const x = padding.left + i * xStep;
         const y = height - padding.bottom - ((values[i] - minVal) / yRange) * chartHeight;
-        if (i === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(padding.left + (labels.length - 1) * xStep, height - padding.bottom);
+    ctx.lineTo(padding.left, height - padding.bottom);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    labels.forEach((label, i) => {
+        const x = padding.left + i * xStep;
+        const y = height - padding.bottom - ((values[i] - minVal) / yRange) * chartHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
     });
     ctx.stroke();
 
     // Points
-    ctx.fillStyle = color;
     labels.forEach((label, i) => {
         const x = padding.left + i * xStep;
         const y = height - padding.bottom - ((values[i] - minVal) / yRange) * chartHeight;
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.arc(x, y, 3.5, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
         ctx.fill();
     });
 
-    // Labels X
-    ctx.fillStyle = var(--text-secondary);
+    // Date labels
+    ctx.fillStyle = textSecondary;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
+    const labelInterval = Math.max(1, Math.ceil(labels.length / 8));
     labels.forEach((label, i) => {
-        const x = padding.left + i * xStep;
-        const y = height - padding.bottom + 15;
-        // Format date: YYYYMMDD -> DD/MM
-        const formatted = label.slice(6,8) + '/' + label.slice(4,6);
-        ctx.fillText(formatted, x, y);
+        if (i % labelInterval === 0 || i === labels.length - 1) {
+            const x = padding.left + i * xStep;
+            const y = height - padding.bottom + 16;
+            let formatted = String(label);
+            if (formatted.length === 8) {
+                formatted = formatted.slice(6, 8) + '/' + formatted.slice(4, 6);
+            }
+            ctx.fillText(formatted, x, y);
+        }
     });
 
-    // Label Y (optional)
-    ctx.fillStyle = var(--text-secondary);
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'right';
+    // Y-axis label
     ctx.save();
-    ctx.translate(15, padding.top + chartHeight/2);
-    ctx.rotate(-Math.PI/2);
+    ctx.fillStyle = textSecondary;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.translate(14, padding.top + chartHeight / 2);
+    ctx.rotate(-Math.PI / 2);
     ctx.fillText(yLabel, 0, 0);
     ctx.restore();
 }
 
-async function refreshGa4Timeseries() {
+async function refreshGa4Timeseries(ev) {
     const alertEl = document.getElementById('ga4-timeseries-alert');
-    const btn = event.target;
+    const btn = (ev && ev.target) || document.getElementById('ga4-timeseries-refresh-btn');
     alertEl.textContent = 'Buscando série temporal do Google Analytics (pode levar ~1 min)...';
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
     try {
-        const resp = await fetch('/api/traffic/ga4/timeseries/refresh', { method: 'POST' });
+        const resp = await fetch('/api/traffic/ga4/timeseries/refresh', { method: 'POST', credentials: 'same-origin' });
         const data = await resp.json();
         if (data.success) {
             alertEl.textContent = '✅ Dados atualizados.';
@@ -477,16 +529,16 @@ async function refreshGa4Timeseries() {
     } catch(e) {
         alertEl.textContent = '❌ ' + e.message;
     } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
     }
 }
 
-// --- BING (existing) ---
+// --- BING ---
 async function loadBing() {
     const statusEl = document.getElementById('bing-status');
     const queriesEl = document.getElementById('bing-top-queries');
     try {
-        const resp = await fetch('/api/traffic/bing');
+        const resp = await fetch('/api/traffic/bing', { credentials: 'same-origin' });
         const data = await resp.json();
         if (!data.success) {
             statusEl.textContent = 'ℹ️ ' + (data.error || 'Sem dados do Bing ainda.');
@@ -514,8 +566,8 @@ async function loadBing() {
                         ${queries.slice(0, 10).map(q => `
                             <tr>
                                 <td style="padding:8px 12px; border-bottom:1px solid var(--border-color);">${q.query}</td>
-                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${q.impressions.toLocaleString()}</td>
-                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${q.clicks.toLocaleString()}</td>
+                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${(q.impressions || 0).toLocaleString()}</td>
+                                <td style="padding:8px 12px; border-bottom:1px solid var(--border-color); text-align:right;">${(q.clicks || 0).toLocaleString()}</td>
                             </tr>`).join('')}
                     </tbody>
                 </table>`;
@@ -528,13 +580,13 @@ async function loadBing() {
     }
 }
 
-async function refreshBing() {
+async function refreshBing(ev) {
     const alertEl = document.getElementById('bing-alert');
-    const btn = event.target;
+    const btn = (ev && ev.target) || document.getElementById('bing-refresh-btn');
     alertEl.textContent = 'Buscando dados do Bing Webmaster Tools...';
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
     try {
-        const resp = await fetch('/api/traffic/bing/refresh', { method: 'POST' });
+        const resp = await fetch('/api/traffic/bing/refresh', { method: 'POST', credentials: 'same-origin' });
         const data = await resp.json();
         if (data.success) {
             alertEl.textContent = '✅ Dados atualizados.';
@@ -545,15 +597,26 @@ async function refreshBing() {
     } catch(e) {
         alertEl.textContent = '❌ ' + e.message;
     } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
     }
 }
+
+window.addEventListener('resize', function() {
+    if (_currentSeriesData && _currentSeriesData.length > 0) {
+        const chartEl = document.getElementById('ga4-timeseries-chart');
+        if (chartEl && chartEl.style.display !== 'none') {
+            const labels = _currentSeriesData.map(point => point.date);
+            const values = _currentSeriesData.map(point => point.sessions);
+            drawLineChart(chartEl, labels, values, 'Sessões', '#3b82f6');
+        }
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     loadAnalytics();
     loadGa4();
     loadBing();
-    loadGa4Timeseries(); // Load timeseries on init
+    loadGa4Timeseries();
 });
 </script>
 {% endblock %}
