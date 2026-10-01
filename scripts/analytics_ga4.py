@@ -2,10 +2,12 @@
 """
 GA4 Traffic Fetcher — puxa sessões por origem na Google Analytics Data API
 e grava cache em dashboard/data/analytics_source.json.
+Também pode gerar série temporal diária de sessões.
 
 Uso:
-  python scripts/analytics_ga4.py                    # últimos 30 dias
+  python scripts/analytics_ga4.py                    # últimos 30 dias (por origem)
   python scripts/analytics_ga4.py --days 7 --source  # só origem pinterest.com
+  python scripts/analytics_ga4.py --timeseries       # série temporal diária (últimos 30 dias)
 
 Depende de:
   - dashboard/google_auth.py (OAuth de usuário — Desktop Client ID)
@@ -33,6 +35,7 @@ from google_auth import (  # noqa: E402
 
 DATA_DIR = PROJECT_ROOT / "dashboard" / "data"
 CACHE_FILE = DATA_DIR / "analytics_source.json"
+TIMESERIES_CACHE_FILE = DATA_DIR / "analytics_timeseries.json"
 
 
 def _property_id() -> str:
@@ -130,22 +133,76 @@ def fetch_by_source(token: str, property_id: str, days: int) -> dict:
         sessions = int(mets[0]["value"]) if mets else 0
         users = int(mets[1]["value"]) if len(mets) > 1 else 0
         sources.append({
-            "channel": channel, "source": source,
-            "sessions": sessions, "users": users,
+            "channel": channel,
+            "source": source,
+            "sessions": sessions,
+            "users": users,
         })
 
-    return {"success": True, "property_id": property_id,
-            "days": days, "sources": sources,
-            "fetched_at": datetime.now().isoformat()}
+    return {
+        "success": True,
+        "property_id": property_id,
+        "days": days,
+        "sources": sources,
+        "fetched_at": datetime.now().isoformat(),
+    }
 
 
-def save_cache(data: dict):
+def fetch_time_series(token: str, property_id: str, days: int) -> dict:
+    """Chama GA4 Data API: sessões diárias (série temporal)."""
+    import httpx
+
+    end = datetime.now()
+    start = end - timedelta(days=days)
+
+    payload = {
+        "dateRanges": [
+            {"startDate": start.strftime("%Y-%m-%d"), "endDate": end.strftime("%Y-%m-%d")}
+        ],
+        "dimensions": [{"name": "date"}],
+        "metrics": [{"name": "sessions"}],
+        "orderBys": [{"dimension": {"dimensionName": "date"}}],
+        "limit": days,  # one row per day
+    }
+
+    resp = httpx.post(
+        f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        return {"success": False, "error": f"HTTP {resp.status_code}: {resp.text[:300]}"}
+
+    data = resp.json()
+    rows = data.get("rows", [])
+    series = []
+    for r in rows:
+        dims = r.get("dimensionValues", [])
+        mets = r.get("metricValues", [])
+        date_str = dims[0]["value"] if dims else ""
+        sessions = int(mets[0]["value"]) if mets else 0
+        series.append({
+            "date": date_str,
+            "sessions": sessions,
+        })
+
+    return {
+        "success": True,
+        "property_id": property_id,
+        "days": days,
+        "series": series,
+        "fetched_at": datetime.now().isoformat(),
+    }
+
+
+def save_cache(data: dict, filepath: Path = CACHE_FILE):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    CACHE_FILE.write_text(json.dumps(data, indent=2, default=str))
+    filepath.write_text(json.dumps(data, indent=2, default=str))
 
 
 def main():
-    parser = argparse.ArgumentParser(description="GA4 traffic by source")
+    parser = argparse.ArgumentParser(description="GA4 traffic by source or time series")
     parser.add_argument("--days", type=int, default=30)
     parser.add_argument("--source", type=str, default="",
                         help="Filtra e imprime apenas um source (ex: pinterest.com)")
@@ -154,6 +211,8 @@ def main():
                         help="Fluxo OAuth 1x no navegador: gera e salva o refresh_token no .env")
     parser.add_argument("--status", action="store_true",
                         help="Mostra o estado da autenticação Google")
+    parser.add_argument("--timeseries", action="store_true",
+                        help="Retorna série temporal diária de sessões (em vez de breakdown por origem)")
     args = parser.parse_args()
 
     if args.status:
@@ -170,6 +229,9 @@ def main():
         print("  python scripts/analytics_ga4.py --list-properties")
         print("  (ou informe GA4_PROPERTY_ID no .env) e depois:")
         print("  python scripts/analytics_ga4.py")
+        if args.timeseries:
+            print("  ou para série temporal:")
+            print("  python scripts/analytics_ga4.py --timeseries")
         return
 
     token = get_access_token(GA4_SCOPE, verbose=True)
@@ -195,25 +257,37 @@ def main():
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         (DATA_DIR / "analytics_config.json").write_text(json.dumps(cfg, indent=2))
 
-    result = fetch_by_source(token, property_id, args.days)
-    if not result.get("success"):
-        print(f"❌ {result.get('error')}")
-        sys.exit(1)
-
-    save_cache(result)
-
-    if args.source:
-        match = [s for s in result["sources"] if s["source"].lower() == args.source.lower()]
-        if match:
-            s = match[0]
-            print(f"{s['source']}: {s['sessions']} sessões / {s['users']} usuários")
-        else:
-            print(f"ℹ️  Fonte '{args.source}' sem sessões nos últimos {args.days} dias.")
+    if args.timeseries:
+        result = fetch_time_series(token, property_id, args.days)
+        if not result.get("success"):
+            print(f"❌ {result.get('error')}")
+            sys.exit(1)
+        save_cache(result, TIMESERIES_CACHE_FILE)
+        if args.source:
+            # For timeseries, source filter doesn't apply; just note
+            print(f"ℹ️  Filtro de source ignorado em modo timeseries.")
+        print(f"✅ {result['days']} dias — sessões diárias:")
+        for point in result["series"]:
+            print(f"   {point['date']}: {point['sessions']} sessões")
+        print(f"\nCached em {TIMESERIES_CACHE_FILE.name}")
     else:
-        print(f"✅ {result['days']} dias — sessões por origem:")
-        for s in result["sources"]:
-            print(f"   {s['channel']:<12} {s['source']:<25} {s['sessions']:>5} sessões  {s['users']:>4} usuários")
-        print(f"\nCached em {CACHE_FILE.name}")
+        result = fetch_by_source(token, property_id, args.days)
+        if not result.get("success"):
+            print(f"❌ {result.get('error')}")
+            sys.exit(1)
+        save_cache(result)
+        if args.source:
+            match = [s for s in result["sources"] if s["source"].lower() == args.source.lower()]
+            if match:
+                s = match[0]
+                print(f"{s['source']}: {s['sessions']} sessões / {s['users']} usuários")
+            else:
+                print(f"ℹ️  Fonte '{args.source}' sem sessões nos últimos {args.days} dias.")
+        else:
+            print(f"✅ {result['days']} dias — sessões por origem:")
+            for s in result["sources"]:
+                print(f"   {s['channel']:<12} {s['source']:<25} {s['sessions']:>5} sessões  {s['users']:>4} usuários")
+            print(f"\nCached em {CACHE_FILE.name}")
 
 
 if __name__ == "__main__":

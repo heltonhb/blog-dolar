@@ -48,6 +48,45 @@ def api_traffic_ga4_refresh():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@traffic_bp.route("/ga4/timeseries")
+@login_required
+def api_traffic_ga4_timeseries():
+    """Return cached GA4 time series (daily sessions)."""
+    return jsonify(_load_json("analytics_timeseries.json", {
+        "success": False,
+        "error": "sem dados de série temporal ainda",
+    }))
+
+
+@traffic_bp.route("/ga4/timeseries/refresh", methods=["POST"])
+@login_required
+def api_traffic_ga4_timeseries_refresh():
+    """Execute scripts/analytics_ga4.py --timeseries to pull live GA4 time series into cache."""
+    try:
+        script = _scripts_dir() / "analytics_ga4.py"
+        if not script.exists():
+            return jsonify({"success": False, "error": "script analytics_ga4.py não encontrado"}), 500
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--days", "30", "--timeseries"],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            cwd=str(script.parent.parent),
+        )
+        out = (result.stdout or "") + ("\n" + result.stderr if result.stderr else "")
+        data = _load_json("analytics_timeseries.json", {})
+        if data.get("success"):
+            return jsonify({"success": True, "stats": data, "console": out[-1200:]})
+        return jsonify({
+            "success": False,
+            "error": out[-1200:],
+            "detail": "Script rodou mas não gerou dados de série temporal. Verifique a credencial do Site Kit.",
+        }), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @traffic_bp.route("/pinterest")
 @login_required
 def api_traffic_pinterest():

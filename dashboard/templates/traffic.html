@@ -17,6 +17,8 @@
     .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
     .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
     .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .chart-container { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 24px; }
+    .chart-loading { text-align: center; padding: 40px; color: var(--text-secondary); }
 </style>
 
 <div style="padding: 24px; max-width: 1200px;">
@@ -98,7 +100,7 @@
         </div>
     </div>
 
-    <!-- Trafego por Origem (GA4 — mede o Pinterest) -->
+    <!-- Tráfego por Origem (GA4 — mede o Pinterest) -->
     <div style="margin-bottom: 32px;">
         <div class="section-title">
             <i class="fa-brands fa-pinterest" style="color: #e60023;"></i>
@@ -113,6 +115,25 @@
             </div>
             <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
                 📈 Busca as sessões por origem via Google Analytics Data API. Requer o Site Kit (GA4) ativo e os dados já coletados. Para visualizar o painel completo, abra seu Google Analytics.
+            </p>
+        </div>
+    </div>
+
+    <!-- Série Temporal de Sessões (GA4) -->
+    <div style="margin-bottom: 32px;">
+        <div class="section-title">
+            <i class="fa-solid fa-chart-line"></i>
+            Sessões Diárias (Últimos 30 dias)
+        </div>
+        <div class="chart-container" id="ga4-timeseries-card">
+            <div class="chart-loading" id="ga4-timeseries-status">Carregando série temporal...</div>
+            <canvas id="ga4-timeseries-chart" width="400" height="200" style="display:none;"></canvas>
+            <div style="margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-blue" onclick="refreshGa4Timeseries()" style="padding: 8px 16px;">🔄 Atualizar agora</button>
+                <span id="ga4-timeseries-alert" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+            </div>
+            <p style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">
+                📈 Série temporal diária de sessões via Google Analytics Data API.
             </p>
         </div>
     </div>
@@ -293,7 +314,8 @@ async function loadGa4() {
                         </tr>`
                     ).join('') || '<tr><td colspan="4" style="padding:12px; color:var(--text-secondary); text-align:center;">Sem dados de origem.</td></tr>'}
                 </tbody>
-            </table>`;
+            </table>
+        `;
     } catch(e) {
         statusEl.textContent = 'Erro ao carregar: ' + e.message;
     }
@@ -320,6 +342,146 @@ async function refreshGa4() {
     }
 }
 
+// --- TIMESERIES ---
+async function loadGa4Timeseries() {
+    const statusEl = document.getElementById('ga4-timeseries-status');
+    const chartEl = document.getElementById('ga4-timeseries-chart');
+    try {
+        const resp = await fetch('/api/traffic/ga4/timeseries');
+        const data = await resp.json();
+        if (!data.success) {
+            statusEl.textContent = 'ℹ️ ' + (data.error || 'Sem dados de série temporal ainda.');
+            chartEl.style.display = 'none';
+            return;
+        }
+        const series = data.series || [];
+        if (series.length === 0) {
+            statusEl.textContent = 'ℹ️ Nenhum dado de série temporal disponível.';
+            chartEl.style.display = 'none';
+            return;
+        }
+        // Prepare data for Chart.js (we'll draw a simple line chart using Canvas API)
+        const labels = series.map(point => point.date);
+        const values = series.map(point => point.sessions);
+        statusEl.textContent = 'Última atualização: ' + (data.fetched_at ? new Date(data.fetched_at).toLocaleString() : '?');
+        statusEl.style.display = 'none';
+        chartEl.style.display = 'block';
+        drawLineChart(chartEl, labels, values, 'Sessões', '#3b82f6');
+    } catch(e) {
+        statusEl.textContent = 'Erro ao carregar: ' + e.message;
+        console.error(e);
+    }
+}
+
+function drawLineChart(canvas, labels, values, yLabel, color) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = { left: 40, right: 20, top: 20, bottom: 30 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+
+    // Clear
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = var(--bg-secondary);
+    ctx.fillRect(0, 0, width, height);
+
+    // Axes
+    ctx.strokeStyle = var(--border-color);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, height - padding.bottom); // Y axis
+    ctx.lineTo(width - padding.right, height - padding.bottom); // X axis
+    ctx.stroke();
+
+    // Grid lines (optional)
+    ctx.strokeStyle = 'rgba(200,200,200,0.2)';
+    ctx.lineWidth = 0.5;
+    for (let i = 1; i < 5; i++) {
+        const y = padding.top + (chartHeight * i) / 5;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+    }
+
+    // Data
+    if (values.length === 0) return;
+    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values);
+    const yRange = maxVal - minVal || 1; // avoid division by zero
+    const xStep = chartWidth / (labels.length - 1 || 1);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    labels.forEach((label, i) => {
+        const x = padding.left + i * xStep;
+        const y = height - padding.bottom - ((values[i] - minVal) / yRange) * chartHeight;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    ctx.stroke();
+
+    // Points
+    ctx.fillStyle = color;
+    labels.forEach((label, i) => {
+        const x = padding.left + i * xStep;
+        const y = height - padding.bottom - ((values[i] - minVal) / yRange) * chartHeight;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+    });
+
+    // Labels X
+    ctx.fillStyle = var(--text-secondary);
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    labels.forEach((label, i) => {
+        const x = padding.left + i * xStep;
+        const y = height - padding.bottom + 15;
+        // Format date: YYYYMMDD -> DD/MM
+        const formatted = label.slice(6,8) + '/' + label.slice(4,6);
+        ctx.fillText(formatted, x, y);
+    });
+
+    // Label Y (optional)
+    ctx.fillStyle = var(--text-secondary);
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.save();
+    ctx.translate(15, padding.top + chartHeight/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+}
+
+async function refreshGa4Timeseries() {
+    const alertEl = document.getElementById('ga4-timeseries-alert');
+    const btn = event.target;
+    alertEl.textContent = 'Buscando série temporal do Google Analytics (pode levar ~1 min)...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/api/traffic/ga4/timeseries/refresh', { method: 'POST' });
+        const data = await resp.json();
+        if (data.success) {
+            alertEl.textContent = '✅ Dados atualizados.';
+            loadGa4Timeseries();
+        } else {
+            alertEl.textContent = '❌ ' + (data.error || 'Falha ao atualizar.');
+        }
+    } catch(e) {
+        alertEl.textContent = '❌ ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// --- BING (existing) ---
 async function loadBing() {
     const statusEl = document.getElementById('bing-status');
     const queriesEl = document.getElementById('bing-top-queries');
@@ -390,5 +552,6 @@ async function refreshBing() {
 loadAnalytics();
 loadGa4();
 loadBing();
+loadGa4Timeseries(); // Load timeseries on init
 </script>
 {% endblock %}
