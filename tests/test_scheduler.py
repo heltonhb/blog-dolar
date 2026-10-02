@@ -10,12 +10,16 @@ import pytest
 
 @pytest.fixture
 def scheduler_on(monkeypatch):
-    """Enable the scheduler for the duration of a test."""
+    """Enable the scheduler for the duration of a test.
+
+    The single-instance election is stubbed out: it is about Postgres
+    connectivity, which is covered by its own test. Stubbing it keeps these
+    tests focused on the HTTP surface and independent of a live database.
+    """
     from dashboard.services import scheduler as scheduler_mod
 
     monkeypatch.setenv("ENABLE_SCHEDULER", "1")
-    # No DATABASE_URL in the sandbox => _try_acquire_instance_lock() returns True
-    # (single local process), which is the path we want to test here.
+    monkeypatch.setattr(scheduler_mod, "_try_acquire_instance_lock", lambda: True)
     monkeypatch.setattr(scheduler_mod, "_scheduler", None, raising=False)
     monkeypatch.setattr(scheduler_mod, "_scheduler_owns_lock", False, raising=False)
     yield scheduler_mod

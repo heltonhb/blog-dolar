@@ -28,12 +28,19 @@ def get_conn_params():
 
 @contextmanager
 def get_conn():
-    """Context manager for PostgreSQL connection."""
+    """Context manager for PostgreSQL connection.
+
+    TLS is required by default (Neon/production), but ``sslmode`` can be set
+    to ``disable`` in DATABASE_URL for a local container that has no TLS. The
+    parameter is only forced when the URL does not already specify one, so an
+    explicit choice in the URL always wins.
+    """
     url = get_conn_params()
     if not url:
         raise RuntimeError("DATABASE_URL não configurada")
-    
-    conn = psycopg2.connect(url, sslmode='require')
+
+    kwargs = {} if 'sslmode=' in url else {'sslmode': 'require'}
+    conn = psycopg2.connect(url, **kwargs)
     conn.autocommit = False
     try:
         yield conn

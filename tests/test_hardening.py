@@ -197,7 +197,23 @@ def test_security_headers_present(client):
 def test_session_cookie_is_hardened(app):
     assert app.config["SESSION_COOKIE_HTTPONLY"] is True
     assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
-    assert app.config["SESSION_COOKIE_SECURE"] is True
+    # Secure is on by default and only disabled when FORCE_HTTPS=0 (local dev
+    # and CI run plain http). Never assert the raw value: the suite sets that.
+    import os
+    force_https = os.environ.get("FORCE_HTTPS", "1").strip().lower() not in ("0", "false", "no")
+    assert app.config["SESSION_COOKIE_SECURE"] is force_https
+
+
+def test_session_cookie_secure_is_the_default(app, monkeypatch):
+    """Without FORCE_HTTPS=0 the cookie must require TLS.
+
+    Guards the production default even though CI sets FORCE_HTTPS=0 to run over
+    plain http.
+    """
+    from dashboard import create_app
+    monkeypatch.delenv("FORCE_HTTPS", raising=False)
+    fresh = create_app()
+    assert fresh.config["SESSION_COOKIE_SECURE"] is True
 
 
 def test_proxy_fix_trusts_exactly_one_hop(app):

@@ -11,6 +11,32 @@ jobs:
     name: Tests, lint and security
     runs-on: ubuntu-latest
 
+    # Routes reach Postgres through dashboard/db.py, so the suite needs a real
+    # database. A throwaway service container, never the production Neon.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: blog
+          POSTGRES_PASSWORD: blog
+          POSTGRES_DB: blog_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # sslmode=disable: the service container has no TLS. Production (Neon)
+      # keeps TLS because its DATABASE_URL has no sslmode, so db.get_conn()
+      # forces sslmode='require'.
+      DATABASE_URL: postgresql://blog:blog@localhost:5432/blog_test?sslmode=disable
+      DASHBOARD_PASSWORD: ci-placeholder-password
+      FORCE_HTTPS: "0"
+      SKIP_SCHEDULER: "1"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,9 +50,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # The suite sandboxes BLOG_DOLAR_ROOT (tests/conftest.py) and skips
-      # DB/scheduler init, so no secrets are needed here and nothing touches
-      # the production database.
+      # tests/conftest.py sandboxes BLOG_DOLAR_ROOT, so the suite never writes to
+      # the checked-out tree. DATABASE_URL above points at the throwaway service.
       - name: Run tests
         run: pytest tests/ -v
 

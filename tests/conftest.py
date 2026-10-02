@@ -28,9 +28,27 @@ def _build_sandbox() -> None:
     (SANDBOX / "dashboard" / "data").mkdir(parents=True)
     (SANDBOX / "dashboard" / "static" / "images").mkdir(parents=True)
 
+    # The suite must NOT depend on the developer's real .env: it is absent on
+    # CI, and relying on it made every authenticated test fail there (503 from
+    # login_required's fail-closed path). Build a self-contained one instead.
     real_env = REPO_ROOT / ".env"
+    seed = SANDBOX / ".env"
     if real_env.exists():
-        shutil.copy(real_env, SANDBOX / ".env")
+        # Copy through so the real file is never written to, keeping the
+        # caller's credentials out of the sandbox.
+        shutil.copy(real_env, seed)
+    else:
+        seed.write_text("", encoding="utf-8")
+
+    # login_required fails closed (503) when no password is configured, so the
+    # suite must always provide one to reach any protected route.
+    text = seed.read_text(encoding="utf-8")
+    if "DASHBOARD_PASSWORD=" not in text:
+        text += "DASHBOARD_PASSWORD=test-suite-password\n"
+    if "FORCE_HTTPS=" not in text:
+        # The sandbox is plain http; a Secure cookie would never be sent back.
+        text += "FORCE_HTTPS=0\n"
+    seed.write_text(text, encoding="utf-8")
 
     # Some tests assert against real content (a bridge page resolves a specific
     # published slug). Copy read-only fixtures; nothing writes back to the repo.
