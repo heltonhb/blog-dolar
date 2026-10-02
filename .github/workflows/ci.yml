@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests, lint and security
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Matches the Dockerfile floor. Pinning lower than the container would
+          # let syntax through that production cannot parse.
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # The suite sandboxes BLOG_DOLAR_ROOT (tests/conftest.py) and skips
+      # DB/scheduler init, so no secrets are needed here and nothing touches
+      # the production database.
+      - name: Run tests
+        run: pytest tests/ -v
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # Gates the build on any HIGH/MEDIUM finding in the code that actually
+      # runs. scripts/ holds one-off migration helpers and is excluded on
+      # purpose; dashboard/, wsgi.py and tests/ are not.
+      - name: Security scan (bandit)
+        run: bandit -r dashboard wsgi.py tests -ll
