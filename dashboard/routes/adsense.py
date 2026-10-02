@@ -49,7 +49,7 @@ def _fetch(path: str):
         return resp.status_code, resp.text, ""
     except Exception as err:
         try:
-            resp = httpx.get(url, timeout=20, verify=False, follow_redirects=True)
+            resp = httpx.get(url, timeout=20, follow_redirects=True)
             return resp.status_code, resp.text, f"anti-bot não resolvido ({err})"
         except Exception as err2:
             return None, "", str(err2)

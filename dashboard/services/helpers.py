@@ -8,7 +8,7 @@ import sys
 from functools import wraps
 from pathlib import Path
 
-from flask import jsonify, redirect, request, session, url_for
+from flask import current_app, jsonify, redirect, request, session, url_for
 
 
 # ---------------------------------------------------------------------------
@@ -151,12 +151,28 @@ def _get_dashboard_password() -> str:
 
 
 def login_required(f):
-    """Decorator: redirect to /login if not authenticated."""
+    """Decorator: redirect to /login if not authenticated.
+
+    Fails CLOSED: with no ``DASHBOARD_PASSWORD`` configured there is no way to
+    authenticate, so every protected route is refused (503) instead of served.
+    The previous "open mode" fallback meant a missing/typo'd env var on a fresh
+    deploy silently exposed the whole dashboard - including /api/settings and
+    the script runner - to anyone who found the URL.
+    """
     @wraps(f)
     def decorated(*args, **kwargs):
         if not _get_dashboard_password():
-            # No password set -> open mode (backwards compatible)
-            return f(*args, **kwargs)
+            current_app.logger.error(
+                "DASHBOARD_PASSWORD não configurado - acesso negado a %s "
+                "(defina a variável no .env / no ambiente)", request.path
+            )
+            if request.path.startswith("/api/"):
+                return jsonify({
+                    "success": False,
+                    "error": "Dashboard desabilitado: DASHBOARD_PASSWORD não configurado",
+                }), 503
+            return ("DASHBOARD_PASSWORD não configurado", 503)
+
         if not session.get("authenticated"):
             if request.path.startswith("/api/"):
                 return jsonify({"success": False, "error": "Não autenticado"}), 401

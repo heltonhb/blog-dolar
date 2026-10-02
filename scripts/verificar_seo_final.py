@@ -24,7 +24,7 @@ def _env(key, default=""):
 def antibot_client():
     from ler_sitemap import solve_challenge
     domain = "techtips.dpdns.org"
-    client = httpx.Client(timeout=30, verify=False, follow_redirects=True)
+    client = httpx.Client(timeout=30, follow_redirects=True)
     resp = client.get(f"{SITE}/", timeout=20)
     if "toNumbers" in resp.text and "slowAES" in resp.text:
         cookie = solve_challenge(resp.text)

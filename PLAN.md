@@ -45,6 +45,33 @@ Fatiamento vertical: cada tarefa é um pedaço completo que deixa o sistema func
   `import sys` → `_scripts_dir()` estourava `NameError` nas rotas
   `/api/traffic/ga4|bing/refresh` e `/api/run_script` do entrypoint factory.
 
+### Fase 3.1 — Hardening bloqueadores (CONCLUÍDA em 01/10)
+Auditoria crítica encontrou quatro bloqueadores de produção. Todos corrigidos
+com teste de regressão em `tests/test_hardening.py` (17 testes).
+- [x] T13: `/api/run_script` deixou de ser execução remota de código. Antes
+  aceitava qualquer caminho sob `scripts/` **e argv livre**, com o `.env` inteiro
+  injetado no processo — uma requisição autenticada = RCE total. Agora há
+  allowlist `ALLOWED_SCRIPTS` em `dashboard/routes/settings.py`, validação de
+  nome de arquivo (sem `/`, `\`, `..`, sem caminho absoluto), `resolve()` +
+  `is_relative_to()` e **zero argumentos vindos da requisição**.
+  `GET /api/run_script/allowed` lista o permitido. A cópia em `dashboard/app.py`
+  foi removida; a rota passa a ser servida só pelo blueprint.
+- [x] T14: `login_required` passou a **falhar fechado**. Sem
+  `DASHBOARD_PASSWORD` não existe autenticação possível, então todas as rotas
+  protegidas respondem 503 + `logger.error` (antes: "open mode", expondo o
+  dashboard inteiro num deploy com env var faltando). `/login` também explica a
+  causa em vez de dizer "senha incorreta".
+- [x] T15: TLS sempre verificado — removidos todos os `verify=False`
+  (`services/wordpress.py`, `routes/adsense.py`, `app.py` e 6 scripts). O
+  cliente do WordPress envia Basic auth e o Pinterest envia bearer token.
+  `test_no_verify_false_in_source` é o guard estático contra regressão.
+- [x] T16: `ProxyFix(x_for=1, x_proto=1, x_host=1)` + cookies
+  `HttpOnly`/`SameSite=Lax`/`Secure` (12h) + headers `nosniff`, `DENY`,
+  `Referrer-Policy`, CSP e HSTS. `client_ip()` do throttle passou a usar o
+  `remote_addr` já corrigido pelo ProxyFix — ler `X-Forwarded-For` cru permitia
+  trocar de identidade a cada tentativa e burlar o limite de login.
+  Login passou a comparar a senha com `hmac.compare_digest`.
+
 ### Fase 4 — Automação
 - [ ] T9: Adicionar `PINTEREST_REFRESH_TOKEN` e endpoint `/api/pinterest/refresh`
 - [ ] T10: Atualizar `scripts/pinterest_publish.py` para usar refresh automático em 401/403

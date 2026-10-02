@@ -18,7 +18,7 @@ FTP_PASS = os.environ.get('FTP_PASS', '')
 def check_server():
     """Verifica se o servidor está respondendo"""
     try:
-        client = httpx.Client(verify=False, timeout=10)
+        client = httpx.Client(timeout=10)
         resp = client.get(f"{SITE_URL}/debug.php")
         return resp.status_code == 200, resp.text
     except Exception as e:

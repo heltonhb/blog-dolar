@@ -104,16 +104,44 @@ Acesse `http://localhost:5001` após iniciar o `app.py`.
 ### Segurança
 - **Autenticação** com `DASHBOARD_PASSWORD` no `.env`
 - Todas as rotas protegidas por `@login_required`
+- **Fail-closed**: sem `DASHBOARD_PASSWORD` configurado o dashboard recusa
+  todas as rotas protegidas (HTTP 503 + log `ERROR`) em vez de abrir o acesso.
+  Sem senha não existe autenticação — não há modo aberto.
 - Credenciais nunca hardcoded
+- **`/api/run_script` com allowlist**: só executa scripts de manutenção
+  declarados em `ALLOWED_SCRIPTS` (`dashboard/routes/settings.py`), apenas pelo
+  nome do arquivo (sem `/`, `\`, `..` nem caminho absoluto), com
+  `resolve()` + `is_relative_to()` para confirmar que o alvo está dentro de
+  `scripts/`, e **sem argumentos vindos da requisição**. Os scripts rodam com
+  os próprios defaults.
+  - `GET /api/run_script/allowed` lista o que é permitido
+- **TLS sempre verificado**: nenhum módulo desliga a validação de certificado
+  (`verify=False`). As requisições ao WordPress levam Basic auth e ao Pinterest
+  bearer token — romper o TLS significaria credencial em claro.
+  Teste estático `test_no_verify_false_in_source` impede a regressão.
 - **CSRF** em toda requisição mutante (POST/PUT/PATCH/DELETE): token
   injetado nos templates e enviado automaticamente pelo `fetch()` patchado no
   `layout.html` — API aceita o campo `csrf_token` ou o header `X-CSRF-Token`
 - **Rate limit no `/login`**: 5 senhas erradas em 15 min por IP → HTTP 429
-  (`dashboard/services/login_throttle.py`); login bem-sucedido zera o contador
+  (`dashboard/services/login_throttle.py`); login bem-sucedido zera o contador.
+  A identidade vem do `remote_addr` já corrigido pelo `ProxyFix` — ler o
+  `X-Forwarded-For` cru permitiria trocar de identidade a cada tentativa.
 - **`FLASK_SECRET_KEY`**: usa a variável de ambiente; se ausente, gera chave
   aleatória e a persiste em `dashboard/data/flask_secret_key` (chmod 600) —
   nunca um fallback determinístico, que permitiria forjar cookies de sessão
-- Testes: `tests/test_security.py` cobre CSRF, throttle e secret key
+- **Login em tempo constante** (`hmac.compare_digest`) e rotação do token CSRF
+  após autenticação (session fixation).
+- **`ProxyFix`** (x_for/x_proto/x_host = 1): atrás do proxy do Render o WSGI vê
+  o IP do proxy, o que tornava o rate limit global e quebrava as URLs das
+  bridge pages. Confia exatamente um salto.
+- **Cookies de sessão**: `HttpOnly`, `SameSite=Lax`, `Secure` (desligue com
+  `FORCE_HTTPS=0` só para dev local em http) e validade de 12h.
+- **Headers de segurança**: `X-Content-Type-Options`, `X-Frame-Options: DENY`,
+  `Referrer-Policy`, CSP (`object-src 'none'`, `base-uri 'self'`,
+  `frame-ancestors 'none'`) e HSTS quando servido por https.
+- Testes: `tests/test_security.py` cobre CSRF, throttle e secret key;
+  `tests/test_hardening.py` cobre a allowlist do runner, o fail-closed, o TLS e
+  os headers/cookies.
 
 ### Pipeline Automático (`/pipeline`)
 1. Gera artigo com Gemini (ou reutiliza existente)

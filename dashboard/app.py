@@ -555,7 +555,7 @@ def _solve_challenge(html: str):
     import subprocess as _sp
     import tempfile as _tmp
     try:
-        aes_resp = _httpx.get("https://techtips.dpdns.org/aes.js", timeout=10, verify=False)
+        aes_resp = _httpx.get("https://techtips.dpdns.org/aes.js", timeout=10)
         aes_js = aes_resp.text
     except Exception:
         return None
@@ -2300,7 +2300,7 @@ def api_test_wp():
         if not wp_user or not wp_pass:
             return jsonify({"success": False, "error": "Configure WP_USER e WP_APP_PASSWORD"})
         resp = _httpx.get(f"{site_url}/wp-json/wp/v2/users/me",
-                          auth=(wp_user, wp_pass), timeout=10, verify=False)
+                          auth=(wp_user, wp_pass), timeout=10)
         if resp.status_code == 200:
             user = resp.json()
             return jsonify({"success": True, "message": f"Conectado como: {user.get('name', 'Unknown')}"})
@@ -2312,39 +2312,10 @@ def api_test_wp():
 # ---------------------------------------------------------------------------
 #  Generic script runner (legacy)
 # ---------------------------------------------------------------------------
-
-@app.route("/api/run_script", methods=["POST"])
-@login_required
-def api_run_script():
-    try:
-        data = request.json
-        script_name = data.get("script_name", "")
-        args = data.get("args", [])
-        if not script_name:
-            return jsonify({"success": False, "error": "script_name obrigatório"}), 400
-
-        script_path = _scripts_dir() / script_name
-        if not script_path.exists():
-            return jsonify({"success": False, "error": f"Script não encontrado: {script_name}"})
-
-        venv_python = Path(app.root_path).parent / "venv" / "bin" / "python"
-        python_bin = str(venv_python) if venv_python.exists() else sys.executable
-
-        env = os.environ.copy()
-        env.update(_load_env_dict())
-
-        result = subprocess.run(
-            [python_bin, str(script_path)] + args,
-            env=env, capture_output=True, text=True, timeout=300,
-        )
-        return jsonify({
-            "success": result.returncode == 0,
-            "output": result.stdout + "\n" + result.stderr,
-        })
-    except subprocess.TimeoutExpired:
-        return jsonify({"success": False, "output": "Timeout: script demorou mais de 5 minutos"})
-    except Exception as e:
-        return jsonify({"success": False, "output": str(e)})
+# REMOVED: the free-form runner (any script under scripts/ + arbitrary argv,
+# with the whole .env injected) was a remote-code-execution hole. The route is
+# now served exclusively by the allow-listed implementation in
+# dashboard/routes/settings.py, which takes no request-controlled arguments.
 
 
 # ---------------------------------------------------------------------------

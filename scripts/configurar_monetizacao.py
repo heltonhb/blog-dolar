@@ -27,7 +27,7 @@ ADCASH_ZONE_ID = "suhf5fqztw"
 def check_server():
     """Verifica se o servidor está respondendo"""
     try:
-        client = httpx.Client(verify=False, timeout=15)
+        client = httpx.Client(timeout=15)
         resp = client.get(f"{SITE_URL}/debug.php")
         if resp.status_code == 200:
             return True, resp.text
@@ -54,7 +54,7 @@ def upload_via_ftp(local_path, remote_path):
 def run_config_via_http():
     """Executa config-ad-cash.php via HTTP"""
     try:
-        client = httpx.Client(verify=False, timeout=30)
+        client = httpx.Client(timeout=30)
         
         # Primeiro acesso (GET) para carregar o formulário
         resp = client.get(f"{SITE_URL}/config-ad-cash.php")
@@ -76,7 +76,7 @@ def run_config_via_http():
 def verify_ads():
     """Verifica se os anúncios estão aparecendo"""
     try:
-        client = httpx.Client(verify=False, timeout=15)
+        client = httpx.Client(timeout=15)
         resp = client.get(SITE_URL)
         
         content = resp.text.lower()
@@ -125,7 +125,7 @@ def main():
     # Passo 3: Verificar wp-admin
     print("\n[3/5] Verificando wp-admin...")
     try:
-        client = httpx.Client(verify=False, timeout=15)
+        client = httpx.Client(timeout=15)
         resp = client.get(f"{SITE_URL}/wp-admin/")
         if resp.status_code in [200, 302]:
             print(f"  ✅ wp-admin acessível (status: {resp.status_code})")

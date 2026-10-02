@@ -69,7 +69,7 @@ def wp_session():
     """httpx.Client com cookie anti-bot, ou None se falhar."""
     import httpx
     domain = "techtips.dpdns.org"
-    client = httpx.Client(timeout=30, verify=False, follow_redirects=True)
+    client = httpx.Client(timeout=30, follow_redirects=True)
     resp = client.get(f"{SITE}/", timeout=15)
     html = resp.text
     if "toNumbers" in html and "slowAES" in html:

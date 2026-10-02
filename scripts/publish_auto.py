@@ -130,7 +130,7 @@ def upload_via_ftp(php_content, body_content):
 
 def execute_via_http():
     """Execute the PHP file via HTTP, handling anti-bot challenge"""
-    client = httpx.Client(verify=False, timeout=30, follow_redirects=True)
+    client = httpx.Client(timeout=30, follow_redirects=True)
     
     # First request - get the anti-bot challenge
     resp = client.get(f"{SITE_URL}/auto-publish.php")

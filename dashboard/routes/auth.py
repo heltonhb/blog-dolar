@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Authentication routes."""
+import hmac
+
 from flask import Blueprint, redirect, render_template, request, session, url_for
 
 from dashboard.services.helpers import _get_dashboard_password
@@ -20,6 +22,13 @@ def login_page():
     error = ""
     ip = client_ip(request)
 
+    # Fail closed with an explanation instead of a misleading "wrong password".
+    if not _get_dashboard_password():
+        return render_template(
+            "login.html",
+            error="DASHBOARD_PASSWORD não configurado — o dashboard está desabilitado.",
+        ), 503
+
     if request.method == "POST":
         if is_locked(ip):
             return render_template(
@@ -28,9 +37,13 @@ def login_page():
             ), 429
 
         password = request.form.get("password", "")
-        if password == _get_dashboard_password():
+        # Constant-time comparison: a plain == leaks the password length/prefix
+        # through response timing.
+        expected = _get_dashboard_password().encode("utf-8")
+        if hmac.compare_digest(password.encode("utf-8", "replace"), expected):
             reset_failures(ip)
             session["authenticated"] = True
+            session.permanent = True  # honours PERMANENT_SESSION_LIFETIME
             rotate_csrf_token()  # fresh token after privilege change
             return redirect(url_for("main.index"))
         register_failure(ip)

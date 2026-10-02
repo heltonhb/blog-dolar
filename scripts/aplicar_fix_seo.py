@@ -33,7 +33,7 @@ def _env(key, default=""):
 
 def antibot_client() -> httpx.Client:
     domain = "techtips.dpdns.org"
-    client = httpx.Client(timeout=30, verify=False, follow_redirects=True)
+    client = httpx.Client(timeout=30, follow_redirects=True)
     resp = client.get(f"{SITE}/", timeout=20)
     html = resp.text
     if "toNumbers" in html and "slowAES" in html:

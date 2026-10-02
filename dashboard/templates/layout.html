@@ -171,28 +171,32 @@
         });
 
         // ─── Script Runner ──────────────────────────────────────────
-        function runScript(scriptName, args = [], terminalSelector = '.terminal-body') {
+        // The API only executes allow-listed maintenance scripts and ignores
+        // any arguments, so nothing user-controlled reaches the process argv.
+        function runScript(scriptName, terminalSelector = '.terminal-body') {
             const terminal = document.querySelector(terminalSelector);
             if(terminal) {
-                terminal.innerHTML += `<br>> Executando ${scriptName}... aguarde.<br>`;
+                terminal.innerHTML += `<br>> Executando ${esc(scriptName)}... aguarde.<br>`;
                 terminal.scrollTop = terminal.scrollHeight;
             }
-            
+
             fetch('/api/run_script', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({script_name: scriptName, args: args})
+                body: JSON.stringify({script_name: scriptName})
             })
-            .then(res => res.json())
-            .then(data => {
-                if(terminal) {
-                    const output = data.output.replace(/\n/g, '<br>');
-                    terminal.innerHTML += `> Resultado:<br>${output}<br>`;
-                    terminal.scrollTop = terminal.scrollHeight;
+            .then(async res => {
+                const data = await res.json();
+                if(!terminal) return;
+                if(!res.ok) {
+                    terminal.innerHTML += `<br>> Bloqueado (${res.status}): ${esc(data.error || 'erro')}<br>`;
+                } else {
+                    terminal.innerHTML += `> Resultado:<br>${esc(data.output || '')}<br>`;
                 }
+                terminal.scrollTop = terminal.scrollHeight;
             })
             .catch(err => {
-                if(terminal) terminal.innerHTML += `<br>> Erro: ${err}<br>`;
+                if(terminal) terminal.innerHTML += `<br>> Erro: ${esc(err)}<br>`;
             });
         }
     </script>

@@ -21,6 +21,24 @@ from dashboard.services.wordpress import _antibot_session
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/api")
 
+# ---------------------------------------------------------------------------
+#  Script runner allowlist
+# ---------------------------------------------------------------------------
+# The runner used to accept ANY path under scripts/ plus free-form argv, with the
+# whole .env (DATABASE_URL, WP_APP_PASSWORD, GOOGLE_REFRESH_TOKEN...) injected
+# into the child process. One authenticated request was full remote code
+# execution. Only these known, side-effect-bounded maintenance scripts may run,
+# and they take NO arguments from the request body.
+ALLOWED_SCRIPTS: dict[str, str] = {
+    "analytics_ga4.py": "Puxa métricas do GA4 para o cache",
+    "analytics_bing.py": "Puxa métricas do Bing Webmaster para o cache",
+    "indexnow_submit.py": "Envia URLs ao IndexNow",
+    "check_indexacao.py": "Consulta indexação no Google Search Console",
+    "check_sitemap_indexacao.py": "Checa o sitemap no Search Console",
+    "relatorio_indexacao.py": "Gera relatório de indexação",
+    "fetch_wp_post.py": "Baixa um post do WordPress para inspeção",
+}
+
 
 def _is_masked(value: str) -> bool:
     """Return True if the value looks like a masked secret (should not be saved)."""
@@ -163,36 +181,61 @@ def api_test_pinterest():
 @settings_bp.route("/run_script", methods=["POST"])
 @login_required
 def api_run_script():
-    """Execute a python script in scripts/ (legacy utility runner)."""
+    """Execute one allow-listed maintenance script from scripts/ (no argv)."""
+    script_name = (request.json or {}).get("script_name", "") or ""
+
+    # Bare filename only: no separators, no traversal, no absolute paths.
+    if not script_name or "/" in script_name or "\\" in script_name or ".." in script_name:
+        return jsonify({
+            "success": False,
+            "error": "script_name inválido: use apenas o nome do arquivo",
+        }), 400
+
+    if script_name not in ALLOWED_SCRIPTS:
+        return jsonify({
+            "success": False,
+            "error": f"Script não permitido: {script_name}",
+            "allowed": sorted(ALLOWED_SCRIPTS),
+        }), 403
+
+    # Resolve and confirm the target really is a file inside scripts/.
+    scripts_root = _scripts_dir().resolve()
+    script_path = (scripts_root / script_name).resolve()
+    if not script_path.is_relative_to(scripts_root) or not script_path.is_file():
+        return jsonify({"success": False, "error": "Script não encontrado"}), 404
+
+    venv_python = _project_root() / "venv" / "bin" / "python"
+    python_bin = str(venv_python) if venv_python.exists() else sys.executable
+
+    env = os.environ.copy()
+    env.update(_load_env_dict())
+
     try:
-        data = request.json or {}
-        script_name = data.get("script_name", "")
-        args = data.get("args", [])
-        if not script_name:
-            return jsonify({"success": False, "error": "script_name obrigatório"}), 400
-
-        script_path = _scripts_dir() / script_name
-        if not script_path.exists():
-            return jsonify({"success": False, "error": f"Script não encontrado: {script_name}"}), 404
-
-        venv_python = _project_root() / "venv" / "bin" / "python"
-        python_bin = str(venv_python) if venv_python.exists() else sys.executable
-
-        env = os.environ.copy()
-        env.update(_load_env_dict())
-
+        # No argv from the request: the script runs with its own defaults.
         result = subprocess.run(
-            [python_bin, str(script_path)] + args,
+            [python_bin, str(script_path)],
             env=env,
             capture_output=True,
             text=True,
             timeout=300,
+            cwd=str(scripts_root.parent),
         )
-        return jsonify({
-            "success": result.returncode == 0,
-            "output": (result.stdout or "") + "\n" + (result.stderr or ""),
-        })
     except subprocess.TimeoutExpired:
         return jsonify({"success": False, "output": "Timeout: script demorou mais de 5 minutos"}), 504
     except Exception as e:
         return jsonify({"success": False, "output": str(e)}), 500
+
+    return jsonify({
+        "success": result.returncode == 0,
+        "output": (result.stdout or "") + ("\n" + result.stderr if result.stderr else ""),
+    })
+
+
+@settings_bp.route("/run_script/allowed", methods=["GET"])
+@login_required
+def api_run_script_allowed():
+    """List the scripts the runner is permitted to execute."""
+    return jsonify({
+        "success": True,
+        "allowed": [{"name": n, "description": d} for n, d in sorted(ALLOWED_SCRIPTS.items())],
+    })

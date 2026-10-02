@@ -15,10 +15,12 @@ _failures = defaultdict(deque)  # ip -> deque of failure timestamps
 
 
 def client_ip(request) -> str:
-    """Best-effort client IP (honours X-Forwarded-For from the proxy)."""
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """Resolve the client IP for throttling.
+
+    Relies on ``request.remote_addr``, which ProxyFix (one trusted hop) has
+    already rebuilt from X-Forwarded-For. Reading the raw header here would let
+    an attacker mint a fresh identity per request and brute-force forever.
+    """
     return request.remote_addr or "unknown"
 
 

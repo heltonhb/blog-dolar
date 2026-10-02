@@ -2,9 +2,28 @@
 """Application factory for Flask."""
 import os
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+# The dashboard templates still carry inline <script>/style and load Font Awesome
+# from cdnjs, so script/style keep 'unsafe-inline'. Everything else is locked:
+# no plugins, no framing, no base-tag hijack, and images are restricted to the
+# hosts actually used (own static files, Pinterest CDN, Pollinations).
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+    "font-src 'self' https://cdnjs.cloudflare.com; "
+    "img-src 'self' data: https://s.pinimg.com https://image.pollinations.ai; "
+    "connect-src 'self'; "
+    "form-action 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'; "
+    "frame-ancestors 'none'"
+)
 
 
 def create_app():
@@ -14,6 +33,24 @@ def create_app():
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
     app = Flask(__name__)
+
+    # Behind a reverse proxy (Render/nginx), WSGI sees the proxy's socket
+    # address, not the client's. Without this, remote_addr == proxy IP (the
+    # per-IP rate limit degenerates into a global one) and request.host_url
+    # rebuilds http:// URLs, breaking the bridge page canonical/OG tags.
+    # x_for=1 => trust exactly one hop (our own proxy); never 0 (client-spoofable).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Session cookie hardening. Secure is enabled whenever the app is served
+    # over https so the login cookie never travels in cleartext.
+    https_only = os.environ.get("FORCE_HTTPS", "1").strip() not in ("0", "false", "no")
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=https_only,
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+        MAX_CONTENT_LENGTH=2 * 1024 * 1024,  # no dashboard upload needs more
+    )
 
     # Configuration — never a deterministic fallback (session forgery risk).
     # Project root must be importable even when this file is run directly
@@ -26,6 +63,20 @@ def create_app():
 
     app.secret_key = get_secret_key()
     install_csrf(app)
+
+    # Security headers. HSTS only on https, otherwise a local http dev session
+    # would get pinned to https and break.
+    @app.after_request
+    def _security_headers(resp):
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "DENY")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault("Content-Security-Policy", _CSP)
+        if https_only:
+            resp.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+        return resp
 
     # Ensure scripts/ and dashboard/ are in sys.path for legacy imports
     dashboard_dir = str(Path(__file__).resolve().parent)

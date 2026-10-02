@@ -34,7 +34,7 @@ def _solve_challenge(html: str, site_url: str = ""):
         import subprocess as _sp
         import tempfile as _tmp
 
-        aes_resp = _httpx.get(f"{site_url.rstrip('/')}/aes.js", timeout=10, verify=False)
+        aes_resp = _httpx.get(f"{site_url.rstrip('/')}/aes.js", timeout=10)
         aes_js = aes_resp.text
         if "slowAES" in aes_js:  # /aes.js may itself be swapped by the challenge page
             node_code = (
@@ -98,7 +98,7 @@ def _antibot_session(site_url: str = ""):
     domain = urlparse(site_url).hostname or ""
 
     def _client_with(cookie_val: str = ""):
-        c = _httpx.Client(timeout=30, verify=False, follow_redirects=True)
+        c = _httpx.Client(timeout=30, follow_redirects=True)
         if cookie_val:
             c.cookies.set("__test", cookie_val, domain=domain)
         return c
