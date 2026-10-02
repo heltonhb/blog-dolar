@@ -6,7 +6,6 @@ from pathlib import Path
 def test_json_formatter():
     """Test JSON log formatter."""
     import sys
-    from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent / "dashboard"))
     
     from services.logging import JSONFormatter

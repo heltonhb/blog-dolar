@@ -43,6 +43,11 @@ services:
         sync: false
       - key: FLASK_SECRET_KEY
         generateValue: true
+      # Cron jobs run on exactly ONE instance (advisory lock in Postgres), so
+      # enabling it does not duplicate pipeline runs across Render's dynos.
+      # Leave off unless you actually want scheduled publishing.
+      - key: ENABLE_SCHEDULER
+        sync: false
     disk:
       name: dashboard-data
       mountPath: /opt/render/project/src/dashboard/data

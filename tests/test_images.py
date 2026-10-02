@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Tests for Images API."""
-from pathlib import Path
 from unittest.mock import patch
 
 from dashboard.services.helpers import _images_dir

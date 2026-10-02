@@ -3,13 +3,11 @@
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 import httpx
 from flask import Blueprint, jsonify, request
 
 from dashboard.services.helpers import (
-    _dashboard_dir,
     _env,
     _load_env_dict,
     _project_root,

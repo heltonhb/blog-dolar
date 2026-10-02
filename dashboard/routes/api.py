@@ -4,7 +4,6 @@ import socket
 
 from flask import Blueprint, jsonify
 
-from dashboard.services.helpers import login_required
 
 api_bp = Blueprint("api", __name__)
 

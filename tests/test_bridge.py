@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 """Tests for Pinterest Safe Bridge Page functionality."""
-from unittest.mock import MagicMock, patch
 
 from dashboard.services.bridge import (
     extract_slug_from_url_or_slug,
-    get_bridge_base_url,
     get_bridge_url,
-    is_bridge_enabled,
-    resolve_article_for_bridge,
 )
 
 

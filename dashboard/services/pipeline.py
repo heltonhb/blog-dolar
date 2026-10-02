@@ -24,7 +24,6 @@ from db import (
     clear_checkpoints as db_clear_checkpoints,
     get_checkpoint as db_get_checkpoint,
     get_config,
-    get_pipeline_history,
     save_checkpoint as db_save_checkpoint,
     save_config,
     save_pipeline_history,

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for Articles API and article services."""
 import json
-from pathlib import Path
 from unittest.mock import patch
 
 from dashboard.services.articles import _extract_article_info

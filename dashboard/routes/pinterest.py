@@ -2,7 +2,6 @@
 """Pinterest API routes."""
 import urllib.parse
 from datetime import datetime
-from pathlib import Path
 
 import httpx
 from flask import Blueprint, jsonify, request

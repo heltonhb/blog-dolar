@@ -11,5 +11,9 @@ requests==2.34.2
 gunicorn==23.0.0
 cryptography>=41.0.0
 psycopg2-binary>=2.9.0
-flask-limiter==3.8.0
-pytest==8.3.2
+
+# Development / CI only (see .github/workflows/ci.yml).
+# Not needed to run the dashboard in production.
+ruff==0.14.5
+# 1.8.x crashes on Python 3.14 ("'Constant' object has no attribute 's'").
+bandit==1.9.4

@@ -12,4 +12,6 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # nosec B104 - 0.0.0.0 is required to bind from outside a container;
+    # production traffic is served by gunicorn via wsgi.py, never this dev server.
+    app.run(host="0.0.0.0", port=port, debug=True)  # nosec B104

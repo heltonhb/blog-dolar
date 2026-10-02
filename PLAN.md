@@ -92,11 +92,35 @@ com teste de regressão em `tests/test_hardening.py` (17 testes).
   Efeito colateral: **225s → 63s** (3,5× mais rápido) e nenhum teste escreve
   mais no repositório ou no banco.
 
-### Fase 4 — Automação
+### Fase 4 — Operação (CONCLUÍDA em 02/10)
+- [x] T19: agendador com **instância única**. `services/scheduler.py` iniciava
+  um `BackgroundScheduler` no import do módulo — sob gunicorn, cada worker
+  registrava os mesmos jobs e disparava o pipeline N vezes (custo de API, posts
+  duplicados). Agora o scheduler só sobe se `ENABLE_SCHEDULER=1` (opt-in) **e**
+  o processo ganhou `pg_try_advisory_lock` no Postgres; quem perde fica ocioso
+  (se o dono morrer, o Postgres libera o lock e outro assume). `max_instances=1`
+  + `coalesce=True` impedem execuções sobrepostas. `remove` limpa o JSON mesmo
+  fora da instância dona, senão o job voltaria no restart. 7 testes em
+  `tests/test_scheduler.py`.
+- [x] T20: CI (`.github/workflows/ci.yml`) no push/PR para `main`: `pytest`,
+  `ruff check .` e `bandit -r dashboard wsgi.py tests -ll`. Configuração em
+  `pyproject.toml` (regras de bug, não de estilo; `E402` desligado de propósito
+  porque o projeto importa após estender `sys.path`).
+- Achados corrigidos no caminho:
+  - `_cleanup_ftp()` removido de `services/wordpress.py`: código morto, sem
+    caller, que logava no host por FTP puro (FTP_USER/FTP_PASS em claro).
+  - `scripts/upload_ftp.py` usava escape dentro de f-string — sintaxe de 3.12+
+    num projeto cujo Dockerfile fixa 3.11. Reescrito com `chr()` (sem escape),
+    validado byte-a-byte contra a saída original.
+  - 22 imports mortos e um `raise ... from e` faltando, via `ruff --fix`.
+  - bandit fixado em 1.9.4: 1.8.x quebra em Python 3.14
+    (`'Constant' object has no attribute 's'`).
+
+### Fase 5 — Automação de conteúdo
 - [ ] T9: Adicionar `PINTEREST_REFRESH_TOKEN` e endpoint `/api/pinterest/refresh`
 - [ ] T10: Atualizar `scripts/pinterest_publish.py` para usar refresh automático em 401/403
 
-### Fase 5 — Testes e Documentação
+### Fase 6 — Testes e Documentação
 - [~] T11: `tests/test_security.py` (CSRF, throttle, secret key) e
   `tests/test_image_cache.py` (cache TTL, ordenação de provider, endpoints) —
   falta `tests/test_wp_client.py` (depende de T2)

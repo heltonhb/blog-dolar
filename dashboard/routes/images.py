@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Images API routes."""
 from datetime import datetime
-from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 

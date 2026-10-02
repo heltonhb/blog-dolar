@@ -3,11 +3,10 @@
 import math
 import re
 import urllib.parse
-from pathlib import Path
 from flask import has_request_context, request
 
 from dashboard.services.articles import _extract_article_info
-from dashboard.services.helpers import _articles_dir, _dashboard_dir, _env, _images_dir
+from dashboard.services.helpers import _articles_dir, _env, _images_dir
 from db import get_config
 
 

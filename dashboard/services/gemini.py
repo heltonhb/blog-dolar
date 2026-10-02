@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Gemini AI integration."""
-import os
 
 from .helpers import _env
 

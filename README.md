@@ -162,8 +162,21 @@ Acesse `http://localhost:5001` após iniciar com `python -m dashboard`.
 **Checkpoints por slug**: se o pipeline falhar após gerar o artigo, na próxima execução ele retoma do passo que parou — sem re-gastar tokens de API.
 
 ### Agendador (`/scheduler`)
+- **Instância única garantida**: o agendador só roda no processo que ganhou o
+  `pg_try_advisory_lock` no Postgres. Sob gunicorn com vários workers, cada
+  worker importava o módulo e iniciava o próprio `BackgroundScheduler` — o mesmo
+  job disparava N vezes (custo de API, posts duplicados). Se o processo dono
+  morre, o Postgres libera o lock e outro worker assume.
+- **Opt-in**: só roda com `ENABLE_SCHEDULER=1` no ambiente (padrão: desligado).
+  Um dyno web não deve disparar cron por padrão, já que o Render pode subir
+  várias instâncias. Sem a flag, `/api/scheduler/add` responde 503 com a
+  instrução de como habilitar.
+- `max_instances=1` e `coalesce=True`: execuções longas do pipeline não se
+  acumulam.
 - Jobs de pipeline em horários fixos sem cron externo
 - Persistência em JSON — restaurados automaticamente ao reiniciar
+- Remover um job limpa o JSON mesmo quando o processo atual não é o dono do
+  agendador (senão o job voltaria no próximo restart)
 - Botão "Executar agora" para teste
 
 ### Geração de Ideias (`/ideas`)

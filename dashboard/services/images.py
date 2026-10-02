@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Image prompt engineering and generation services."""
 import re
-from pathlib import Path
 
 from dashboard.services.helpers import _env
 from image_generator import generate_smart_prompt

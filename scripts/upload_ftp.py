@@ -53,10 +53,10 @@ if (file_exists($wp_load)) {{
 
 // Dados do artigo
 $post_data = array(
-    'post_title' => '{title}',
-    'post_content' => '{post_content.replace("'", "\\'")}',
-    'post_name' => '{slug}',
-    'post_excerpt' => '{excerpt.replace("'", "\\'")}',
+    'post_title' => "{title}",
+    'post_content' => "{post_content.replace(chr(39), chr(92)+chr(92)+chr(39))}",
+    'post_name' => "{slug}",
+    'post_excerpt' => "{excerpt.replace(chr(39), chr(92)+chr(92)+chr(39))}",
     'post_status' => 'draft',
     'post_author' => 1
 );

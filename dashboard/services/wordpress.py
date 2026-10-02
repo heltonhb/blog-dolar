@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """WordPress REST API and anti-bot challenge solver."""
-import ftplib
 import os
 import re
-from pathlib import Path
 
 from .helpers import _env, _load_env_dict
 
@@ -63,9 +61,12 @@ def _solve_challenge(html: str, site_url: str = ""):
         pass  # Node missing/failed → fall through to pure-Python solver
 
     # --- Attempt 2: pure-Python AES-CBC (pycryptodome) ---
-    try:
-        from Crypto.Cipher import AES
+    # nosec B413 - pycryptodome's AES is the only option here: the challenge
+    # uses the host's own slowAES, which nothing in `cryptography` can run. It
+    # decrypts a public challenge page and never handles a secret.
+    from Crypto.Cipher import AES  # nosec B413
 
+    try:
         cipher = AES.new(bytes.fromhex(a), AES.MODE_CBC, bytes.fromhex(b))
         decrypted = cipher.decrypt(bytes.fromhex(c))
         pad_len = decrypted[-1]
@@ -124,7 +125,7 @@ def _antibot_session(site_url: str = ""):
         try:
             resp = client.get(f"{base}/", timeout=20)
         except Exception as e:
-            raise RuntimeError(f"Falha ao conectar com {domain}: {e}")
+            raise RuntimeError(f"Falha ao conectar com {domain}: {e}") from e
         html = resp.text
         if "toNumbers" not in html or "slowAES" not in html:
             return client  # no challenge present
@@ -244,21 +245,6 @@ def _wp_upload_media(image_bytes: bytes, filename: str, alt_text: str = "") -> d
         return {"success": False, "error": str(e)}
 
 
-# ---------------------------------------------------------------------------
-#  FTP cleanup (legacy)
-# ---------------------------------------------------------------------------
-
-def _cleanup_ftp(host, user, password):
-    """Remove temporary auto-publish script files via FTP."""
-    try:
-        ftp = ftplib.FTP(host, timeout=15)
-        ftp.login(user, password)
-        ftp.cwd("htdocs")
-        for f in ("auto-publish.php", "article_body.html"):
-            try:
-                ftp.delete(f)
-            except Exception:
-                pass
-        ftp.quit()
-    except Exception:
-        pass
+# REMOVED: _cleanup_ftp() — dead code with no caller that logged in to the host
+# over plain FTP, sending FTP_USER/FTP_PASS in cleartext. Everything now goes
+# through the WordPress REST API, which runs over verified TLS.

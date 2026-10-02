@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Miscellaneous routes: WordPress posts listing and sitemap.xml."""
 import re
-from pathlib import Path
 
 from flask import Blueprint, Response, jsonify
 

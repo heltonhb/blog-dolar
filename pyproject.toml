@@ -1,0 +1,39 @@
+# Tooling configuration for linting and tests.
+#
+# Scope: the code that actually runs (dashboard/, wsgi.py, tests/). scripts/
+# holds one-off migration helpers and is exempted from linting — not from review.
+[tool.ruff]
+# 3.11 is the floor: that is what the Dockerfile pins. Linting at a higher
+# target would silently accept syntax the container cannot parse.
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+# Bug-finding rules only, not formatting preferences:
+#   E9/F63/F7/F82  syntax errors and undefined names that crash at runtime
+#   F401/F811      dead or shadowed imports
+#   F841           assigned-but-unused variables (often a broken refactor)
+#   B              flake8-bugbear: mutable defaults, shadowed builtins...
+#
+# E402 is deliberately off: this project imports after extending sys.path on
+# purpose (see dashboard/__init__.py), and the leading `_` on helpers is a
+# long-standing house convention, not a defect.
+select = ["E9", "F63", "F7", "F82", "F401", "F811", "F841", "B"]
+ignore = [
+    # B007: legacy helpers use loop variables that shadow builtins.
+    "B007",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use magic values and import fixtures freely.
+"tests/*" = ["B011", "F841"]
+# conftest must set env vars before importing the app under test.
+"tests/conftest.py" = ["E402"]
+# Migration helpers are intentionally loose one-offs.
+"scripts/*" = ["B", "F401", "F841", "F811"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# No `-q` here on purpose: it would override the verbosity chosen on the command
+# line and hide the "N passed" summary in CI logs.
+
