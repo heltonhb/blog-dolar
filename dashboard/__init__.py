@@ -103,24 +103,21 @@ def create_app():
     from dashboard.routes import register_blueprints
     register_blueprints(app)
 
-    # Initialize database
-    try:
-        from db import init_db
-        init_db()
-    except Exception as e:
-        print(f"  ⚠️ DB init: {e}")
+    # Initialize database. SKIP_DB_INIT keeps the suite (and any offline run)
+    # from opening a connection to the production Neon instance at import time.
+    if not os.environ.get("SKIP_DB_INIT"):
+        try:
+            from db import init_db
+            init_db()
+        except Exception as e:
+            print(f"  ⚠️ DB init: {e}")
 
     # Restore scheduled pipeline jobs
-    try:
-        from dashboard.services.scheduler import _restore_scheduler_jobs
-        _restore_scheduler_jobs()
-    except Exception as e:
-        print(f"  ⚠️ Scheduler restore: {e}")
+    if not os.environ.get("SKIP_SCHEDULER"):
+        try:
+            from dashboard.services.scheduler import _restore_scheduler_jobs
+            _restore_scheduler_jobs()
+        except Exception as e:
+            print(f"  ⚠️ Scheduler restore: {e}")
 
     return app
-
-
-if __name__ == "__main__":
-    app = create_app()
-    port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=True)

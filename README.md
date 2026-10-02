@@ -20,9 +20,14 @@ nano .env
 pip install -r requirements.txt
 
 # 4. Iniciar o dashboard
-python dashboard/app.py
+python -m dashboard
 # Acesse: http://localhost:5001
 ```
+
+> **Produção:** `wsgi.py` expõe `app` (usado pelo gunicorn/Render). O antigo
+> monólito `dashboard/app.py` foi **removido** — todas as rotas vivem nos
+> blueprints em `dashboard/routes/` e o app é construído por
+> `dashboard.create_app()`. Não execute `dashboard/app.py`; ele não existe mais.
 
 ---
 
@@ -31,10 +36,14 @@ python dashboard/app.py
 ```
 blog-dolar/
 ├── dashboard/
-│   ├── app.py              # Flask dashboard (11 páginas + APIs)
-│   ├── data/               # JSONs de estado (ideias, histórico, adcash)
-│   ├── static/images/      # Imagens geradas para pins
-│   └── templates/          # HTML (login, scheduler, pipeline, verify...)
+│   ├── __init__.py          # create_app() — application factory
+│   ├── __main__.py          # entrypoint de dev: python -m dashboard
+│   ├── db.py                # acesso ao Postgres (Neon)
+│   ├── routes/              # blueprints (auth, main, ideas, images, ...)
+│   ├── services/            # helpers, security, pipeline, wordpress, cache
+│   ├── data/                # JSONs de estado (ideias, histórico, adcash)
+│   ├── static/images/       # Imagens geradas para pins
+│   └── templates/           # HTML (login, scheduler, pipeline, verify...)
 ├── scripts/
 │   ├── gerar_artigos.py    # BlogGenerator — geração de artigos via Gemini
 │   ├── publicar_wp.py      # WordPressPublisher — REST API
@@ -78,7 +87,7 @@ nano config/config.yaml
 
 ## Dashboard
 
-Acesse `http://localhost:5001` após iniciar o `app.py`.
+Acesse `http://localhost:5001` após iniciar com `python -m dashboard`.
 
 ### Páginas disponíveis
 

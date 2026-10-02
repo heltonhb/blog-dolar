@@ -29,6 +29,9 @@ instance/
 # Generated image cache (regenerável)
 cache/
 
+# Disposable tree used by the test suite (tests/conftest.py)
+.pytest_sandbox/
+
 # Dashboard data (keep structure, ignore content)
 dashboard/data/*.json
 dashboard/static/images/*.png

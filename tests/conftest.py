@@ -1,13 +1,66 @@
 # -*- coding: utf-8 -*-
 """Pytest fixtures for the dashboard tests."""
 import os
+import shutil
 import sys
 from pathlib import Path
 
 import pytest
 
 # Ensure project root is in path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+REPO_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+# Run the whole suite against a throwaway tree. Previously the suite shared the
+# real repository: /api/settings wrote into the production .env (a test key was
+# persisted there), and create_app() opened a connection to the production Neon
+# database on every fixture — which is why the run took ~4 minutes.
+SANDBOX = REPO_ROOT / ".pytest_sandbox"
+
+os.environ["SKIP_DB_INIT"] = "1"
+os.environ["SKIP_SCHEDULER"] = "1"
+
+
+def _build_sandbox() -> None:
+    """Copy the fixtures the suite reads into a disposable tree."""
+    if SANDBOX.exists():
+        shutil.rmtree(SANDBOX)
+    (SANDBOX / "dashboard" / "data").mkdir(parents=True)
+    (SANDBOX / "dashboard" / "static" / "images").mkdir(parents=True)
+
+    real_env = REPO_ROOT / ".env"
+    if real_env.exists():
+        shutil.copy(real_env, SANDBOX / ".env")
+
+    # Some tests assert against real content (a bridge page resolves a specific
+    # published slug). Copy read-only fixtures; nothing writes back to the repo.
+    articles = REPO_ROOT / "articles"
+    (SANDBOX / "articles").mkdir(parents=True, exist_ok=True)
+    if articles.exists():
+        for md in articles.glob("*.md"):
+            shutil.copy(md, SANDBOX / "articles" / md.name)
+
+    for png in (REPO_ROOT / "dashboard" / "static" / "images").glob("*.png"):
+        shutil.copy(png, SANDBOX / "dashboard" / "static" / "images" / png.name)
+
+    # The runner resolves its allow-listed scripts under <root>/scripts, and the
+    # AdSense status check reads the mu-plugin source from there.
+    (SANDBOX / "scripts").mkdir(parents=True, exist_ok=True)
+    for item in (REPO_ROOT / "scripts").iterdir():
+        if item.is_file():
+            shutil.copy(item, SANDBOX / "scripts" / item.name)
+
+
+_build_sandbox()
+os.environ["BLOG_DOLAR_ROOT"] = str(SANDBOX)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _cleanup_sandbox():
+    yield
+    shutil.rmtree(SANDBOX, ignore_errors=True)
+    os.environ.pop("BLOG_DOLAR_ROOT", None)
+
 
 TEST_CSRF_TOKEN = "test-csrf-token"
 

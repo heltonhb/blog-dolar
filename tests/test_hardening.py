@@ -219,3 +219,43 @@ def test_forwarded_for_does_not_change_throttle_identity():
         headers = {"X-Forwarded-For": "198.51.100.1"}
 
     assert client_ip(_Req()) == "203.0.113.7"
+
+
+# ---------------------------------------------------------------------------
+#  5. No legacy monolith (Phase B)
+# ---------------------------------------------------------------------------
+
+def test_legacy_monolith_is_not_shipped():
+    """dashboard/app.py duplicated every blueprint route as dead code.
+
+    Two implementations of the same endpoints drifted apart and only one was
+    deployed, which is how bugs got fixed in the copy nobody ran. Keep it gone.
+    """
+    assert not (PROJECT_ROOT / "dashboard" / "app.py").exists()
+
+
+def test_nothing_imports_the_monolith():
+    """No module may reference the removed app.py entrypoint."""
+    needle_a = "from " + "app import"
+    needle_b = "from dashboard" + ".app import"
+    offenders = []
+    for path in PROJECT_ROOT.rglob("*.py"):
+        parts = path.parts
+        if any(p in (".venv", "venv", "__pycache__", ".git") for p in parts):
+            continue
+        # Skip tests/: this scanner necessarily mentions the pattern it hunts.
+        if "tests" in parts:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if needle_a in text or needle_b in text:
+            offenders.append(str(path.relative_to(PROJECT_ROOT)))
+    assert offenders == [], f"still importing the monolith: {offenders}"
+
+
+def test_app_is_built_by_the_factory(app):
+    """The factory is the single entrypoint (wsgi.py, __main__.py, tests)."""
+    from flask import Flask
+    assert isinstance(app, Flask)
+    rules = {str(r) for r in app.url_map.iter_rules()}
+    assert "/login" in rules
+    assert "/api/pipeline" in rules

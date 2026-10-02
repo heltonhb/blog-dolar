@@ -10,4 +10,4 @@ echo "📊 Acesse: http://localhost:5001"
 echo "🛑 Para parar: Ctrl+C"
 echo ""
 
-python3 dashboard/__init__.py
+python3 -m dashboard

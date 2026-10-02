@@ -14,8 +14,9 @@ from image_generator import generate_pin_title, build_pin_description
 
 def get_wp_posts():
     """Busca artigos publicados no WordPress."""
-    sys.path.insert(0, str(Path(__file__).parent.parent / "dashboard"))
-    from app import _byethost_session, _load_env_dict
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from dashboard.services.helpers import _load_env_dict
+    from dashboard.services.wordpress import _antibot_session as _byethost_session
 
     env = _load_env_dict()
     for k, v in env.items():

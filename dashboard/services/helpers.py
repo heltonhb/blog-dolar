@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Shared helper utilities extracted from app.py."""
+"""Shared helper utilities extracted from the legacy dashboard/app.py monolith."""
 import json
 import os
 import re
@@ -16,7 +16,14 @@ from flask import current_app, jsonify, redirect, request, session, url_for
 # ---------------------------------------------------------------------------
 
 def _project_root() -> Path:
-    """Return the project root directory (parent of dashboard/)."""
+    """Return the project root directory (parent of dashboard/).
+
+    ``BLOG_DOLAR_ROOT`` overrides it so the test suite can run against a
+    throwaway tree instead of writing into the real repository (.env, data/).
+    """
+    override = os.environ.get("BLOG_DOLAR_ROOT", "").strip()
+    if override:
+        return Path(override).resolve()
     return Path(__file__).resolve().parent.parent.parent
 
 

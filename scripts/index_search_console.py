@@ -37,7 +37,8 @@ def get_published_urls():
 
     load_dotenv(Path(__file__).parent.parent / ".env")
 
-    from app import _byethost_session, _load_env_dict
+    from dashboard.services.helpers import _load_env_dict
+    from dashboard.services.wordpress import _antibot_session as _byethost_session
 
     for k, v in _load_env_dict().items():
         os.environ.setdefault(k, v)

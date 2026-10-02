@@ -72,6 +72,26 @@ com teste de regressão em `tests/test_hardening.py` (17 testes).
   trocar de identidade a cada tentativa e burlar o limite de login.
   Login passou a comparar a senha com `hmac.compare_digest`.
 
+### Fase 3.2 — Eliminar a duplicação (CONCLUÍDA em 02/10)
+- [x] T17: `dashboard/app.py` (2.608 linhas) **removido**. Ele duplicava todas
+  as rotas dos blueprints como código morto — duas implementações do mesmo
+  sistema divergiam, e correções acabavam indo para a cópia que ninguém
+  executava (foi assim que bugs "sumiram" e reapareceram). Antes de remover, os
+  4 importadores foram repontados para `dashboard.services.*`:
+  `scripts/index_search_console.py`, `scripts/pinterest_publish.py`,
+  `test_upload.py` e `tests/smoke_bing_dashboard.py` (esse último passou a usar
+  `create_app()`). Entrypoints atualizados: `start-dashboard.sh` e o novo
+  `dashboard/__main__.py` (`python -m dashboard`; `python -m pkg` executa
+  `__main__.py`, não `__init__.py`). `README.md` e `MIGRATION_STATUS.md`
+  atualizados. 3 testes de guarda impedem o retorno do monólito.
+- [x] T18: suíte isolada da produção. `create_app()` abria conexão com o Neon de
+  produção em cada fixture e `POST /api/settings` escrevia no `.env` real (uma
+  chave de teste ficou persistida lá). Agora `tests/conftest.py` monta uma
+  árvore descartável (`.pytest_sandbox/`, ignorada no git) e define
+  `BLOG_DOLAR_ROOT`; `create_app()` respeita `SKIP_DB_INIT`/`SKIP_SCHEDULER`.
+  Efeito colateral: **225s → 63s** (3,5× mais rápido) e nenhum teste escreve
+  mais no repositório ou no banco.
+
 ### Fase 4 — Automação
 - [ ] T9: Adicionar `PINTEREST_REFRESH_TOKEN` e endpoint `/api/pinterest/refresh`
 - [ ] T10: Atualizar `scripts/pinterest_publish.py` para usar refresh automático em 401/403

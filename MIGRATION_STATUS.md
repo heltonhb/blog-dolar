@@ -2,7 +2,13 @@
 
 ## ✅ Migração Concluída com Sucesso! (100%)
 
-Todos os 5 batches de modularização foram implementados, testados e validados. O monólito `dashboard/app.py` foi decomposto em uma arquitetura limpa de **Application Factory**, **Blueprints** e **Services**, mantendo total retrocompatibilidade e 41 testes automatizados cobrindo todo o sistema.
+Todos os 5 batches de modularização foram implementados, testados e validados. O monólito `dashboard/app.py` foi decomposto em uma arquitetura limpa de **Application Factory**, **Blueprints** e **Services**.
+
+> **Atualizado (Fase B):** o monólito `dashboard/app.py` foi **removido** em
+> definitivo. Ele duplicava todas as rotas dos blueprints como código morto —
+> duas implementações do mesmo sistema divergiam, e correções acabavam sendo
+> feitas na cópia que ninguém executava. O entrypoint de desenvolvimento agora é
+> `dashboard/__main__.py` (`python -m dashboard`); produção usa `wsgi.py`.
 
 ---
 
@@ -13,7 +19,7 @@ blog-dolar/
 ├── wsgi.py                     ← Ponto de entrada de produção (Gunicorn / Render)
 ├── dashboard/
 │   ├── __init__.py             ← Application Factory (create_app)
-│   ├── app.py                  ← Monólito original (mantido íntegro para compatibilidade)
+│   ├── __main__.py             ← Entry point de dev (python -m dashboard)
 │   ├── db.py                   ← Camada PostgreSQL (Neon) com helpers de exclusão e checkpoints
 │   ├── routes/
 │   │   ├── __init__.py         ← Registro centralizado de todos os 15 Blueprints

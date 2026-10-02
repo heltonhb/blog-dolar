@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Security helpers: Flask secret key + CSRF protection.
 
-Used by both entrypoints (``dashboard/__init__.py`` factory and the legacy
-``dashboard/app.py``) so the two stay behaviourally aligned.
+Single source for both entrypoints (``dashboard/__init__.py`` and the
+``dashboard/__main__.py`` dev entrypoint) so they behave identically.
 """
 import hmac
 import os
