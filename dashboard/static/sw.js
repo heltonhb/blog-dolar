@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blog-dolar-v2';
+const CACHE_NAME = 'blog-dolar-stitch-v1';
 const urlsToCache = [
     '/',
     '/ideas',
