@@ -20,26 +20,30 @@
     <i class="fa-solid fa-spinner fa-spin"></i> <span id="loading-ideas-msg">Gerando ideias... aguarde.</span>
 </div>
 
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Título</th>
-            <th>Keyword</th>
-            <th>CPM</th>
-            <th>Fonte</th>
-            <th>Status</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody id="ideas-tbody">
-        <tr><td colspan="6" style="text-align: center; padding: 20px;">Carregando...</td></tr>
-    </tbody>
-</table>
+<div class="data-table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Keyword</th>
+                <th>CPM</th>
+                <th>Fonte</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="ideas-tbody">
+            <tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-secondary);">Carregando ideias...</td></tr>
+        </tbody>
+    </table>
+</div>
 
 <!-- Add Idea Form -->
-<div class="add-idea-form" style="margin-top: 30px;">
-    <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-green);"><i class="fa-solid fa-circle-plus"></i> Adicionar Ideia Manual</h2>
-    <div class="ideas-form-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+<div class="add-idea-form">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: var(--accent-green); display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-circle-plus"></i> Adicionar Ideia Manual
+    </h2>
+    <div class="ideas-form-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px;">
         <div class="form-group">
             <label>Título do Artigo</label>
             <input type="text" id="new-title" class="form-control" placeholder="Ex: Best Mechanical Keyboards 2026">
@@ -53,8 +57,8 @@
             <input type="text" id="new-cpm" class="form-control" placeholder="Ex: $10-20" value="$10-15">
         </div>
     </div>
-    <button class="btn btn-green" onclick="addIdea()" style="margin-top: 5px;">
-        <i class="fa-solid fa-plus"></i> Adicionar
+    <button class="btn btn-green" onclick="addIdea()" style="margin-top: 6px; padding: 10px 22px;">
+        <i class="fa-solid fa-plus"></i> Adicionar Ideia
     </button>
 </div>
 
@@ -67,29 +71,32 @@ function loadIdeas() {
             document.getElementById('ideas-count').textContent = ideas.length + ' ideias (' + ideas.filter(i => i.status === 'pending').length + ' pendentes)';
 
             if (ideas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Nenhuma ideia gerada ainda. Clique "Gerar Ideias IA" para começar.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-secondary);">Nenhuma ideia gerada ainda. Clique em "Gerar com IA" para começar.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = ideas.map(i => `
+            tbody.innerHTML = ideas.map(i => {
+                const isPending = i.status === 'pending';
+                const statusBadgeClass = isPending ? 'badge' : (i.status === 'published' ? 'badge badge-green' : 'badge badge-blue');
+                return `
                 <tr>
-                    <td>${escHtml(i.title)}</td>
-                    <td style="color: var(--text-secondary);">${escHtml(i.keyword)}</td>
-                    <td><span class="badge">${escHtml(i.cpm_estimate || '-')}</span></td>
-                    <td style="color: var(--text-secondary);">${escHtml(i.source || 'manual')}</td>
-                    <td><span class="badge">${escHtml(i.status)}</span></td>
+                    <td style="font-weight: 600; color: var(--text-primary);">${escHtml(i.title)}</td>
+                    <td style="color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">${escHtml(i.keyword)}</td>
+                    <td><span class="badge" style="border-color: rgba(255,255,255,0.15); color: #cbd5e1; background: rgba(255,255,255,0.05);">${escHtml(i.cpm_estimate || '-')}</span></td>
+                    <td style="color: var(--text-secondary); font-size: 0.85rem;">${escHtml(i.source || 'manual')}</td>
+                    <td><span class="${statusBadgeClass}">${escHtml(i.status)}</span></td>
                     <td>
                         <div class="actions">
-                            <button class="btn btn-green" onclick="generateFromIdea('${escAttr(i.keyword)}')" title="Gerar artigo">
+                            <button class="btn btn-green" onclick="generateFromIdea('${escAttr(i.keyword)}')" title="Gerar artigo com IA">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar
                             </button>
-                            <button class="btn btn-red" onclick="deleteIdea(${i.idea_id})" title="Excluir">
+                            <button class="btn-icon-danger" onclick="deleteIdea(${i.idea_id})" title="Excluir ideia">
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
                         </div>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
         })
         .catch(err => console.error(err));
 }

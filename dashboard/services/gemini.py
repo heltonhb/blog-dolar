@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Gemini AI integration."""
+import logging
 
 from .helpers import _env
+
+log = logging.getLogger("dashboard.gemini")
 
 
 def _gemini_call(prompt: str, api_key: str = "", model: str = "",
@@ -39,5 +42,5 @@ def _gemini_call(prompt: str, api_key: str = "", model: str = "",
             except Exception as e:
                 last_err = str(e)
                 _time.sleep(3 * (attempt + 1))
-        print(f"  ⚠️ Modelo {m} falhou, tentando próximo...")
+        log.warning("Modelo %s falhou (%s), tentando o próximo", m, last_err)
     raise RuntimeError(f"Falha Gemini: todos os modelos indisponíveis. Erro: {last_err}")

@@ -1,34 +1,46 @@
 # -*- coding: utf-8 -*-
 """Logging configuration with JSON output."""
-import logging
 import json
-from datetime import datetime
-from flask import request
+import logging
+from datetime import datetime, timezone
+
+from flask import has_request_context, request
+
+
+def _utc_now() -> datetime:
+    """Timezone-aware UTC now.
+
+    ``datetime.utcnow()`` is deprecated since 3.12 and returns a naive datetime,
+    which silently mixes with aware values elsewhere. Everything here is UTC.
+    """
+    return datetime.now(timezone.utc)
 
 
 class JSONFormatter(logging.Formatter):
     """Format logs as JSON with request context."""
+
     def format(self, record):
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": _utc_now().isoformat().replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
         }
-        
-        # Add request context if available
-        if request:
+
+        # Request context only exists inside a request; outside it (startup,
+        # scheduler threads) `request` raises rather than being falsy.
+        if has_request_context():
             log_entry.update({
                 "method": request.method,
                 "path": request.path,
                 "remote_addr": request.remote_addr,
                 "user_agent": request.user_agent.string[:100] if request.user_agent else None,
             })
-        
+
         # Add extra fields
         if hasattr(record, 'extra'):
             log_entry.update(record.extra)
-        
+
         return json.dumps(log_entry)
 
 
@@ -57,7 +69,7 @@ def log_request(app):
     
     @app.before_request
     def before():
-        request.start_time = datetime.utcnow()
+        request.start_time = _utc_now()
         app.logger.debug("Incoming request", extra={
             "extra": {
                 "method": request.method,
@@ -65,11 +77,11 @@ def log_request(app):
                 "headers": dict(request.headers.items(max_value=5)),
             }
         })
-    
+
     @app.after_request
     def after(response):
         if hasattr(request, 'start_time'):
-            duration = (datetime.utcnow() - request.start_time).total_seconds()
+            duration = (_utc_now() - request.start_time).total_seconds()
             app.logger.info(
                 f"{request.method} {request.path} {response.status_code}",
                 extra={"extra": {"duration_seconds": duration}}

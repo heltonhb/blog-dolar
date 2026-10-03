@@ -2,6 +2,7 @@
 """Módulo de armazenamento PostgreSQL para o dashboard.
 Usa Neon (serverless PostgreSQL) para persistir dados entre deploys."""
 import json
+import logging
 import os
 import psycopg2
 import psycopg2.extras
@@ -260,8 +261,11 @@ def clear_checkpoints(slug):
 try:
     if DATABASE_URL:
         init_db()
-except Exception as e:
-    print(f"⚠️ Erro ao inicializar banco: {e}")
+except Exception:
+    # Import must not explode: routes surface the real error per request.
+    logging.getLogger("dashboard.db").exception(
+        "Falha ao inicializar o banco no import; rotas que usam Postgres vão errar"
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -269,7 +273,11 @@ except Exception as e:
 # ═══════════════════════════════════════════════════════════════════
 
 def migrate_from_json(data_dir):
-    """Migrate data from JSON files to PostgreSQL (one-time use)."""
+    """Migrate data from JSON files to PostgreSQL (one-time use).
+
+    Output goes to stdout (not the logger) because this is an operator-facing
+    migration run from the CLI, where progress should be shown directly.
+    """
     data_dir = Path(data_dir)
     
     ideas_file = data_dir / 'ideas.json'

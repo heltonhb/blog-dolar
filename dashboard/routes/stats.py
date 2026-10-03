@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Stats API route."""
-from flask import Blueprint, jsonify
+from flask import Blueprint, current_app, jsonify
 
 from dashboard.services.helpers import _articles_dir, _env, login_required
 from dashboard.services.scheduler import get_scheduler_status
@@ -19,6 +19,7 @@ def api_stats():
     pending_ideas = sum(1 for i in ideas if i.get("status") == "pending")
 
     published_count = 0
+    published_error = None
     try:
         import pymysql
         conn = pymysql.connect(
@@ -33,8 +34,11 @@ def api_stats():
             cur.execute("SELECT COUNT(*) FROM wpq9_posts WHERE post_status='publish' AND post_type='post'")
             published_count = cur.fetchone()[0]
         conn.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        # Returning a bare 0 would read as "nothing published" when the truth is
+        # "could not reach WordPress". Surface it instead of showing a fake zero.
+        published_error = str(exc)
+        current_app.logger.warning("stats: contagem de posts indisponível: %s", published_error)
 
     adcash = get_config("adcash_stats", {})
     revenue = adcash.get("total_revenue", 0.0) if isinstance(adcash, dict) else 0.0
@@ -44,6 +48,9 @@ def api_stats():
     return jsonify({
         "article_count": article_count,
         "published_count": published_count,
+        # Null (not 0) when the count could not be fetched, so the UI can tell
+        # "unavailable" apart from "nothing published".
+        "published_error": published_error,
         "pending_ideas": pending_ideas,
         "revenue": revenue,
         "scheduler": scheduler_info,

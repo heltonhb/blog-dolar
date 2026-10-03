@@ -1,17 +1,54 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GOOGLE STITCH DESIGN SYSTEM — BLOG EM DÓLAR / AI BLOG CMS
+   AI-Native Cyber/Slate Glass Design System
+   ═══════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 :root {
-    --bg-color: #0b0f19;
-    --sidebar-bg: #111827;
-    --card-bg: #1f2937;
-    --bg-secondary: #1f2937;
-    --bg-tertiary: #374151;
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --accent-green: #10b981;
-    --accent-green-glow: rgba(16, 185, 129, 0.2);
-    --border-color: #374151;
-    --danger: #ef4444;
+    /* Stitch Core Palette */
+    --bg-color: #0b111a;
+    --sidebar-bg: #0d1421;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+
+    --card-bg: #121b29;
+    --card-bg-elevated: #162235;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-border-hover: rgba(0, 240, 144, 0.35);
+
+    --bg-secondary: #131c2c;
+    --bg-tertiary: #1e2a3d;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Google Stitch Neon Green */
+    --accent-green: #00f090;
+    --accent-green-hover: #00d680;
+    --accent-green-glow: rgba(0, 240, 144, 0.15);
+    --accent-green-border: rgba(0, 240, 144, 0.45);
+
+    /* Secondary Accents */
     --warning: #f59e0b;
+    --warning-glow: rgba(245, 158, 11, 0.15);
+    --warning-border: rgba(245, 158, 11, 0.45);
+
     --info: #3b82f6;
+    --info-glow: rgba(59, 130, 246, 0.15);
+    --info-border: rgba(59, 130, 246, 0.45);
+
+    --danger: #ef4444;
+    --danger-glow: rgba(239, 68, 68, 0.15);
+    --danger-border: rgba(239, 68, 68, 0.45);
+
+    --border-color: rgba(255, 255, 255, 0.08);
+
+    /* Shadows & Elevation */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(0, 240, 144, 0.2);
+
     --bottom-nav-height: 0px;
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -23,19 +60,25 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
+    background-image: 
+        radial-gradient(circle at 12% 10%, rgba(0, 240, 144, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 88% 85%, rgba(59, 130, 246, 0.03) 0%, transparent 45%);
+    background-attachment: fixed;
     color: var(--text-primary);
     display: flex;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Sidebar ─────────────────────────────────────────────────────── */
+/* ─── Sidebar (Google Stitch Style) ───────────────────────────────── */
 .sidebar {
     width: 250px;
     background-color: var(--sidebar-bg);
-    border-right: 1px solid var(--border-color);
-    padding: 20px 0;
+    border-right: 1px solid var(--sidebar-border);
+    padding: 24px 0 20px 0;
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -43,71 +86,111 @@ body {
     left: 0;
     height: 100vh;
     z-index: 1000;
-    transition: transform 0.3s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sidebar .brand {
-    font-size: 1.2rem;
-    font-weight: bold;
-    padding: 0 20px 20px 20px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    padding: 0 24px 20px 24px;
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    color: var(--text-primary);
+}
+
+.sidebar .brand i {
+    font-size: 1.3rem;
+    filter: drop-shadow(0 0 10px rgba(0, 240, 144, 0.6));
+    animation: pulseIcon 3s infinite ease-in-out;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .nav-item {
-    padding: 12px 20px;
+    padding: 10px 16px;
     color: var(--text-secondary);
     text-decoration: none;
     display: flex;
     align-items: center;
     gap: 12px;
-    transition: all 0.2s;
-    border-left: 3px solid transparent;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 3px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 1rem;
+    transition: transform 0.2s;
 }
 
 .nav-item:hover {
     color: var(--text-primary);
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.04);
+    transform: translateX(2px);
 }
 
+.nav-item:hover i {
+    transform: scale(1.1);
+}
+
+/* Stitch Glowing Active Pill */
 .nav-item.active {
     color: var(--accent-green);
     background-color: var(--accent-green-glow);
-    border-left-color: var(--accent-green);
-    border-radius: 0 8px 8px 0;
-    margin-right: 15px;
+    border: 1px solid var(--accent-green-border);
+    box-shadow: 0 0 16px rgba(0, 240, 144, 0.18), inset 0 0 8px rgba(0, 240, 144, 0.05);
+    font-weight: 600;
 }
 
-/* ─── Hamburger Button ────────────────────────────────────────────── */
+.nav-item.active i {
+    filter: drop-shadow(0 0 8px var(--accent-green));
+}
+
+/* ─── Hamburger Button (Mobile) ───────────────────────────────────── */
 .hamburger {
     display: none;
     position: fixed;
-    top: 12px;
-    left: 12px;
+    top: 14px;
+    left: 14px;
     z-index: 1100;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    background: rgba(18, 27, 41, 0.85);
+    border: 1px solid var(--card-border);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 8px 14px;
     cursor: pointer;
     color: var(--text-primary);
-    font-size: 1.2rem;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    font-size: 1.1rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
 .sidebar-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(5, 8, 14, 0.75);
     z-index: 999;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 /* ─── Main Content ────────────────────────────────────────────────── */
@@ -116,240 +199,551 @@ body {
     padding: 40px;
     margin-left: 250px;
     overflow-y: auto;
+    min-height: 100vh;
 }
 
 .header {
-    margin-bottom: 30px;
+    margin-bottom: 32px;
 }
 
 .header h1 {
-    font-size: 2rem;
-    margin-bottom: 8px;
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .header p {
     color: var(--text-secondary);
+    font-size: 0.95rem;
 }
 
-/* ─── Dashboard Cards ─────────────────────────────────────────────── */
+/* ─── Dashboard Stats Cards (Stitch Grid) ─────────────────────────── */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 32px;
 }
 
 .stat-card {
-    background-color: var(--card-bg);
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
+    background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%);
+    padding: 22px;
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+}
+
+.stat-card:hover {
+    border-color: var(--card-border-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md), 0 0 20px rgba(0, 240, 144, 0.12);
 }
 
 .stat-card-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     color: var(--text-secondary);
-    margin-bottom: 15px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.stat-icon-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(0, 240, 144, 0.08);
+    border: 1px solid rgba(0, 240, 144, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-green);
+    font-size: 0.95rem;
+    box-shadow: 0 0 10px rgba(0, 240, 144, 0.15);
 }
 
 .stat-card h2 {
-    font-size: 2.5rem;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     color: var(--accent-green);
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    text-shadow: 0 0 20px rgba(0, 240, 144, 0.25);
 }
 
 .stat-card p {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
 }
 
-/* ─── Workflow Steps ──────────────────────────────────────────────── */
+/* ─── Workflow Steps (Stitch Pipeline) ────────────────────────────── */
 .workflow-container {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 30px;
+    gap: 14px;
+    margin-bottom: 32px;
 }
 
 .workflow-step {
-    background-color: var(--card-bg);
+    background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%);
     padding: 20px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    border-bottom: 3px solid var(--accent-green);
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
     flex: 1;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
 }
 
-.workflow-arrow {
+.workflow-step:hover {
+    border-color: var(--accent-green-border);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md), 0 0 18px rgba(0, 240, 144, 0.15);
+}
+
+.workflow-step .step-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(0, 240, 144, 0.08);
+    border: 1px solid rgba(0, 240, 144, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--accent-green);
-    font-weight: bold;
+    margin-bottom: 12px;
+    font-size: 1rem;
 }
 
 .workflow-step h3 {
-    margin: 10px 0 5px 0;
-    font-size: 1.1rem;
+    margin: 0 0 4px 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
 .workflow-step p {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.82rem;
+    margin-bottom: 14px;
 }
 
-/* ─── Terminal ────────────────────────────────────────────────────── */
+.step-indicator-bar {
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--accent-green), #3b82f6);
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(0, 240, 144, 0.4);
+}
+
+.workflow-arrow {
+    color: var(--accent-green);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    text-shadow: 0 0 8px rgba(0, 240, 144, 0.5);
+}
+
+/* ─── Terminal (Stitch Desktop Console) ───────────────────────────── */
 .terminal {
-    background-color: #000;
-    border: 1px solid var(--accent-green);
-    border-radius: 8px;
+    background-color: #06090e;
+    border: 1px solid var(--accent-green-border);
+    border-radius: 14px;
     overflow: hidden;
+    box-shadow: 0 0 25px rgba(0, 240, 144, 0.12), var(--shadow-md);
+    margin-top: 24px;
 }
 
 .terminal-header {
-    background-color: var(--card-bg);
-    padding: 10px 15px;
-    color: var(--accent-green);
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--accent-green);
-}
-
-.terminal-body {
-    padding: 15px;
-    color: var(--text-secondary);
-    font-family: monospace;
-    line-height: 1.5;
-    height: 200px;
-    overflow-y: auto;
-}
-
-/* ─── Tables / Lists ──────────────────────────────────────────────── */
-.list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.list-item {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px 20px;
+    background: linear-gradient(180deg, #131b28 0%, #0d131f 100%);
+    padding: 12px 18px;
+    color: var(--text-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid rgba(0, 240, 144, 0.25);
 }
 
-.list-item-title {
-    color: #eab308;
-    font-weight: 500;
-    margin-bottom: 5px;
-}
-
-.list-item-meta {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-}
-
-.actions {
+.terminal-title {
     display: flex;
+    align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent-green);
 }
 
-.btn {
-    padding: 8px 14px;
+.terminal-badge-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent-green);
+    box-shadow: 0 0 10px var(--accent-green);
+    animation: blink 2s infinite ease-in-out;
+}
+
+.terminal-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.terminal-controls .control-btn {
+    width: 22px;
+    height: 22px;
     border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: default;
+    user-select: none;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.terminal-controls .control-btn.close {
+    color: #ef4444;
+}
+
+.terminal-body {
+    padding: 18px 20px;
+    color: #c9d1d9;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    height: 220px;
+    overflow-y: auto;
+    background-color: #06090e;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 240, 144, 0.3) transparent;
+}
+
+/* ─── Buttons (Google Stitch Cyber Buttons) ───────────────────────── */
+.btn {
+    padding: 8px 16px;
+    border-radius: 8px;
     border: 1px solid transparent;
     cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.86rem;
+    font-weight: 600;
     background: transparent;
-    color: white;
+    color: var(--text-primary);
     white-space: nowrap;
-    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     -webkit-tap-highlight-color: transparent;
 }
 
 .btn:active {
-    transform: scale(0.96);
-    opacity: 0.85;
+    transform: scale(0.97);
 }
 
-.btn-green { border-color: var(--accent-green); color: var(--accent-green); }
-.btn-green:hover { background: var(--accent-green-glow); }
+.btn-green {
+    background: rgba(0, 240, 144, 0.1);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    box-shadow: 0 0 12px rgba(0, 240, 144, 0.15);
+}
 
-.btn-orange { border-color: var(--warning); color: var(--warning); }
-.btn-blue { border-color: var(--info); color: var(--info); }
-.btn-red { border-color: var(--danger); color: var(--danger); }
+.btn-green:hover {
+    background: var(--accent-green);
+    color: #060a10;
+    box-shadow: 0 0 20px rgba(0, 240, 144, 0.4);
+}
 
-/* ─── Data Table ──────────────────────────────────────────────────── */
+.btn-blue {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--info);
+    color: #60a5fa;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+}
+
+.btn-blue:hover {
+    background: var(--info);
+    color: #ffffff;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-orange {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+    color: #fbbf24;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+}
+
+.btn-orange:hover {
+    background: var(--warning);
+    color: #060a10;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-red {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--danger);
+    color: #f87171;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+
+.btn-red:hover {
+    background: var(--danger);
+    color: #ffffff;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+.btn-icon-danger {
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-danger:hover {
+    background: var(--danger);
+    color: #ffffff;
+    border-color: var(--danger);
+}
+
+/* ─── List Items (Stitch Articles Card) ───────────────────────────── */
+.list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.list-item {
+    background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.list-item:hover {
+    border-color: var(--accent-green-border);
+    box-shadow: var(--shadow-md), 0 0 15px rgba(0, 240, 144, 0.1);
+    transform: translateY(-2px);
+}
+
+.list-item-title {
+    color: var(--accent-green);
+    font-weight: 600;
+    font-size: 0.98rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.list-item-meta {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ─── Tables (Stitch High-Fidelity Data Table) ─────────────────────── */
+.data-table-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-md);
+}
+
 .data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     background-color: var(--card-bg);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.data-table th, .data-table td {
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
 }
 
 .data-table th {
+    background-color: #0f1724;
     color: var(--text-secondary);
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.badge {
-    padding: 4px 8px;
-    border-radius: 12px;
+    font-weight: 700;
     font-size: 0.8rem;
-    border: 1px solid var(--warning);
-    color: var(--warning);
-    background: rgba(245, 158, 11, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--card-border);
 }
 
-/* ─── Forms ───────────────────────────────────────────────────────── */
-.add-idea-form {
+.data-table td {
+    padding: 16px 20px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+}
+
+.data-table tbody tr:hover td {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ─── Badges (Stitch Pill Style) ─────────────────────────────────── */
+.badge {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--warning-border);
+    color: #fbbf24;
+    background: var(--warning-glow);
+}
+
+.badge-green {
+    border-color: var(--accent-green-border);
+    color: var(--accent-green);
+    background: var(--accent-green-glow);
+    box-shadow: 0 0 10px rgba(0, 240, 144, 0.15);
+}
+
+.badge-blue {
+    border-color: var(--info-border);
+    color: #60a5fa;
+    background: var(--info-glow);
+}
+
+.badge-red {
+    border-color: var(--danger-border);
+    color: #f87171;
+    background: var(--danger-glow);
+}
+
+/* ─── Forms & Inputs (Stitch Cyber Form) ──────────────────────────── */
+.add-idea-form,
+.form-card {
+    background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
     margin-top: 30px;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    color: var(--text-primary);
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 600;
 }
 
 .form-control {
     width: 100%;
-    padding: 10px 15px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
+    padding: 12px 16px;
+    background-color: #0b111a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
-    border-radius: 6px;
-    font-size: 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .form-control:focus {
     outline: none;
     border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(0, 240, 144, 0.2);
+    background-color: #0d1522;
 }
 
-/* ─── Bottom Navigation (Mobile) ──────────────────────────────────── */
+.form-control::placeholder {
+    color: #475569;
+}
+
+/* ─── Pin Cards & Grid ────────────────────────────────────────────── */
+.pin-card {
+    background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.25s;
+}
+
+.pin-card:hover {
+    border-color: var(--card-border-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.pin-card .pin-img {
+    width: 100%;
+    height: 240px;
+    object-fit: cover;
+    display: block;
+}
+
+.pin-card .pin-actions {
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+/* ─── Bottom Navigation (Mobile Only) ─────────────────────────────── */
 .bottom-nav {
     display: none;
-}
-
-/* ─── Toast improvements ──────────────────────────────────────────── */
-#toast-msg {
-    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -381,11 +775,10 @@ body {
         --bottom-nav-height: 64px;
     }
 
-    /* Sidebar becomes off-canvas */
     .sidebar {
         transform: translateX(-100%);
         width: 280px;
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.7);
     }
 
     .sidebar.open {
@@ -399,97 +792,60 @@ body {
     .hamburger {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
     }
 
-    /* Main content takes full width */
     .main-content {
         margin-left: 0;
-        padding: 64px 16px calc(24px + var(--bottom-nav-height) + var(--safe-area-bottom)) 16px;
+        padding: 68px 16px calc(24px + var(--bottom-nav-height) + var(--safe-area-bottom)) 16px;
         width: 100%;
         overflow-x: hidden;
     }
 
     .header {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
 
     .header h1 {
-        font-size: 1.35rem;
-        line-height: 1.3;
+        font-size: 1.45rem;
     }
 
-    .header p {
-        font-size: 0.85rem;
-    }
-
-    /* Stats grid → 2 columns */
     .stats-grid {
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px;
+        gap: 12px;
     }
 
     .stat-card {
-        padding: 14px;
-        border-radius: 10px;
+        padding: 16px;
     }
 
     .stat-card h2 {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
     }
 
-    .stat-card p {
-        font-size: 0.8rem;
-    }
-
-    .stat-card-header {
-        margin-bottom: 10px;
-        font-size: 0.8rem;
-    }
-
-    /* Workflow → horizontal scrollable on mobile */
     .workflow-container {
         flex-direction: row;
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        gap: 10px;
+        gap: 12px;
         padding-bottom: 8px;
         scroll-snap-type: x mandatory;
     }
 
     .workflow-step {
-        min-width: 140px;
-        max-width: 160px;
+        min-width: 150px;
+        max-width: 180px;
         flex-shrink: 0;
         padding: 14px;
         scroll-snap-align: start;
-        width: auto;
     }
 
-    .workflow-step h3 {
-        font-size: 0.95rem;
-    }
-
-    .workflow-step p {
-        font-size: 0.8rem;
-    }
-
-    /* List items → stack on mobile */
     .list-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
-        padding: 14px;
-    }
-
-    .list-item-title {
-        font-size: 0.9rem;
-        word-break: break-word;
-    }
-
-    .list-item-meta {
-        font-size: 0.78rem;
+        gap: 14px;
+        padding: 16px;
     }
 
     .actions {
@@ -505,51 +861,6 @@ body {
         font-size: 0.8rem;
     }
 
-    /* Table → card layout on mobile */
-    .data-table-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .data-table {
-        font-size: 0.85rem;
-    }
-
-    .data-table th, .data-table td {
-        padding: 10px 8px;
-    }
-
-    /* Buttons → full width on mobile */
-    .btn-block-mobile {
-        width: 100%;
-        text-align: center;
-    }
-
-    /* Reduce terminal height */
-    .terminal-body {
-        height: 150px;
-        font-size: 0.8rem;
-        padding: 12px;
-    }
-
-    .terminal-header {
-        padding: 8px 12px;
-        font-size: 0.85rem;
-    }
-
-    /* Form controls bigger touch targets */
-    .form-control {
-        padding: 12px 15px;
-        font-size: 16px; /* prevent iOS zoom */
-        border-radius: 8px;
-    }
-
-    /* Mobile form grids → stack */
-    .mobile-stack {
-        grid-template-columns: 1fr !important;
-    }
-
-    /* Bottom navigation bar */
     .bottom-nav {
         display: flex;
         position: fixed;
@@ -557,15 +868,15 @@ body {
         left: 0;
         right: 0;
         height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
-        background: var(--sidebar-bg);
+        background: rgba(13, 20, 33, 0.95);
         border-top: 1px solid var(--border-color);
         z-index: 1000;
         padding-bottom: var(--safe-area-bottom);
         justify-content: space-around;
         align-items: center;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
     }
 
     .bottom-nav a {
@@ -573,22 +884,20 @@ body {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
+        gap: 4px;
         color: var(--text-secondary);
         text-decoration: none;
-        font-size: 0.65rem;
-        font-weight: 500;
+        font-size: 0.68rem;
+        font-weight: 600;
         padding: 6px 8px;
         border-radius: 8px;
         transition: all 0.2s;
-        -webkit-tap-highlight-color: transparent;
         flex: 1;
         max-width: 80px;
     }
 
     .bottom-nav a i {
         font-size: 1.15rem;
-        margin-bottom: 1px;
     }
 
     .bottom-nav a.active {
@@ -596,120 +905,35 @@ body {
     }
 
     .bottom-nav a.active i {
-        text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        filter: drop-shadow(0 0 8px var(--accent-green));
     }
 
-    .bottom-nav a:active {
-        transform: scale(0.9);
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    /* Toast repositioning for bottom nav */
-    #toast-msg,
-    [id="toast-msg"] {
-        bottom: calc(var(--bottom-nav-height) + 16px + var(--safe-area-bottom)) !important;
-        left: 16px !important;
-        right: 16px !important;
-        text-align: center;
-        font-size: 0.85rem;
-    }
-
-    /* Better step cards on mobile */
-    .step-card {
-        padding: 12px;
-        gap: 10px;
-    }
-
-    .step-icon {
-        font-size: 1.2rem;
-        width: 30px;
-    }
-
-    /* Pin card improvements */
-    .pin-card .pin-img {
-        height: 200px;
-    }
-
-    .pin-card .pin-actions {
-        gap: 4px;
-    }
-
-    .pin-card .pin-actions .btn {
-        font-size: 0.72rem;
-        padding: 6px 8px;
-    }
-
-    /* Sidebar nav on mobile - bigger touch targets */
-    .sidebar .nav-item {
-        padding: 14px 20px;
-        font-size: 0.95rem;
-    }
-
-    .sidebar .brand {
-        padding: 15px 20px 15px 20px;
-    }
-
-    /* Pipeline result grid on mobile */
-    .pipeline-result-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    /* Settings cards single column */
-    .settings-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    /* Scheduler form stack */
-    .scheduler-form-grid {
-        grid-template-columns: 1fr 1fr !important;
-    }
-
-    /* Verify buttons stack */
-    .verify-buttons {
-        flex-direction: column;
-    }
-
-    .verify-buttons .btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    /* Page title with buttons - stack on mobile */
     .page-header-flex {
         flex-direction: column;
         align-items: flex-start !important;
-        gap: 12px;
+        gap: 14px;
     }
 
     .page-header-flex .header-actions {
         width: 100%;
         display: flex;
-        gap: 8px;
+        gap: 10px;
     }
 
     .page-header-flex .header-actions .btn {
         flex: 1;
-        text-align: center;
     }
 
-    /* Ideas form grid - stack on mobile */
     .ideas-form-grid {
         grid-template-columns: 1fr !important;
     }
 
-    /* Pipeline form grid */
     .pipeline-form-grid {
         grid-template-columns: 1fr !important;
     }
 
-    /* Image gallery on mobile */
     .images-gallery-grid {
         grid-template-columns: repeat(2, 1fr) !important;
-    }
-
-    /* Pinterest grid */
-    .pinterest-grid {
-        grid-template-columns: 1fr !important;
     }
 }
 
@@ -722,94 +946,46 @@ body {
     }
 
     .stat-card h2 {
-        font-size: 1.3rem;
-    }
-
-    .header h1 {
-        font-size: 1.2rem;
+        font-size: 1.4rem;
     }
 
     .main-content {
-        padding: 58px 10px calc(20px + var(--bottom-nav-height) + var(--safe-area-bottom)) 10px;
+        padding: 64px 12px calc(20px + var(--bottom-nav-height) + var(--safe-area-bottom)) 12px;
     }
 
-    .actions .btn {
-        font-size: 0.75rem;
-        padding: 8px 8px;
-    }
-
-    /* Workflow scrollable - smaller cards */
-    .workflow-step {
-        min-width: 120px;
-        max-width: 140px;
-        padding: 12px;
-    }
-
-    .workflow-step h3 {
-        font-size: 0.85rem;
-    }
-
-    .workflow-step p {
-        font-size: 0.75rem;
-    }
-
-    /* Scheduler form full stack */
-    .scheduler-form-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    /* Image gallery single col on small */
     .images-gallery-grid {
         grid-template-columns: 1fr !important;
     }
-
-    /* Bottom nav labels smaller */
-    .bottom-nav a {
-        font-size: 0.6rem;
-    }
-
-    .bottom-nav a i {
-        font-size: 1.05rem;
-    }
-
-    /* List item title smaller */
-    .list-item-title {
-        font-size: 0.82rem;
-    }
-
-    .list-item-meta {
-        font-size: 0.72rem;
-    }
-
-    /* Pin card on very small */
-    .pin-card .pin-img {
-        height: 160px;
-    }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   SCROLLBAR STYLING
+   CUSTOM SCROLLBAR
    ═══════════════════════════════════════════════════════════════════ */
-.workflow-container::-webkit-scrollbar {
-    height: 4px;
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
 }
 
-.workflow-container::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.workflow-container::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-green-border);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ANIMATIONS
+   KEYFRAME ANIMATIONS
    ═══════════════════════════════════════════════════════════════════ */
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -817,9 +993,27 @@ body {
     }
 }
 
+@keyframes pulseIcon {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
 .stat-card,
 .list-item,
 .workflow-step,
 .pin-card {
-    animation: fadeInUp 0.3s ease;
+    animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Shared helper utilities extracted from the legacy dashboard/app.py monolith."""
 import json
+import logging
 import os
 import re
 import sys
@@ -8,6 +9,8 @@ from functools import wraps
 from pathlib import Path
 
 from flask import current_app, jsonify, redirect, request, session, url_for
+
+logger = logging.getLogger("dashboard.helpers")
 
 
 # ---------------------------------------------------------------------------
@@ -74,13 +77,23 @@ def _images_dir() -> Path:
 # ---------------------------------------------------------------------------
 
 def _load_json(name: str, default=None):
-    """Read and parse JSON file from dashboard/data/."""
+    """Read and parse JSON file from dashboard/data/.
+
+    A parse failure falls back to ``default`` so one bad file cannot take the
+    dashboard down, but it is logged: silently returning an empty dict for a
+    corrupted file looks exactly like "no data yet" and hides real data loss.
+    """
     p = _data_path(name)
     if p.exists():
         try:
             return json.loads(p.read_text(encoding="utf-8"))
         except Exception:
-            pass
+            # current_app only exists inside an app context; these helpers are
+            # also called from scripts and tests.
+            logger.warning(
+                "JSON inválido em %s; usando valor padrão. "
+                "Verifique se o arquivo foi truncado por um restart abrupto.", p
+            )
     return default if default is not None else {}
 
 

@@ -1,12 +1,12 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+<div class="header page-header-flex" style="display: flex; justify-content: space-between; align-items: center;">
     <div>
-        <h1 style="font-size: 1.5rem; margin-bottom: 5px;"><i class="fa-solid fa-layer-group" style="color: var(--accent-green);"></i> Artigos Disponíveis</h1>
-        <p id="articles-count">Carregando...</p>
+        <h1 style="font-size: 1.6rem; margin-bottom: 4px;"><i class="fa-solid fa-layer-group" style="color: var(--accent-green);"></i> Artigos Disponíveis</h1>
+        <p id="articles-count" style="color: var(--text-secondary);">Carregando...</p>
     </div>
-    <button class="btn" onclick="loadArticles()" style="background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary);">
+    <button class="btn btn-green" onclick="loadArticles()">
         <i class="fa-solid fa-rotate-right"></i> Atualizar
     </button>
 </div>
@@ -42,17 +42,18 @@ function loadArticles() {
                 const hasPin = existingPins.has(pinFile);
                 return `
                 <div class="list-item">
-                    <div>
+                    <div style="flex: 1; min-width: 260px;">
                         <div class="list-item-title">${esc(a.filename)}</div>
-                        <div class="list-item-meta">${a.size} KB | ${a.date}${hasPin ? ' | <span style="color: var(--accent-green);"><i class="fa-solid fa-image"></i> Pin gerado</span>' : ''}</div>
+                        <div class="list-item-meta">${a.size} KB | ${a.date}${hasPin ? ' | <span style="color: var(--accent-green);"><i class="fa-solid fa-image"></i> Imagem OK</span>' : ''}</div>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-green" onclick="generatePin('${esc(a.filename)}', this)" title="Gerar imagem de pin">
-                            <i class="fa-regular fa-image"></i> ${hasPin ? 'Regenerar Pin' : 'Gerar Pin'}
+                        <button class="btn btn-green" onclick="generatePin('${esc(a.filename)}', this)" title="Gerar imagem de capa/pin">
+                            <i class="fa-regular fa-image"></i> ${hasPin ? 'Regenerar Imagem' : 'Gerar Imagem'}
                         </button>
                         <a href="/verify" class="btn btn-orange" onclick="setVerifyArticle('${esc(a.filename)}')"><i class="fa-solid fa-check"></i> Verificar</a>
                         <button class="btn btn-blue" onclick="publishArticle('${esc(a.filename)}')"><i class="fa-solid fa-upload"></i> Publicar</button>
-                        <button class="btn btn-red" onclick="deleteArticle('${esc(a.filename)}')" title="Excluir artigo"><i class="fa-solid fa-trash"></i></button>
+                        <a href="/pinterest" class="btn btn-red"><i class="fa-brands fa-pinterest"></i> Pinterest</a>
+                        <button class="btn btn-icon-danger" onclick="deleteArticle('${esc(a.filename)}')" title="Excluir artigo"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>`;
             }).join('');

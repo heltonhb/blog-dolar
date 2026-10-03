@@ -238,6 +238,84 @@ def test_forwarded_for_does_not_change_throttle_identity():
 
 
 # ---------------------------------------------------------------------------
+#  6. Phase D quality (observability, no silent failures)
+# ---------------------------------------------------------------------------
+
+def test_corrupt_json_is_not_silently_ignored(monkeypatch, caplog):
+    """A malformed JSON file must be reported, not read as "no data".
+
+    Returning the default quietly makes corruption indistinguishable from an
+    empty state, which hides real data loss.
+    """
+    import logging
+
+    from dashboard.services import helpers
+
+    monkeypatch.setenv("BLOG_DOLAR_ROOT", str(helpers._project_root()))
+    target = helpers._data_path("corrupt_probe.json")
+    target.write_text("{not valid json", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING, logger="dashboard.helpers"):
+        result = helpers._load_json("corrupt_probe.json", {"fallback": True})
+
+    assert result == {"fallback": True}
+    assert any("JSON inválido" in r.message for r in caplog.records), \
+        "corruption must be logged, not swallowed"
+    target.unlink(missing_ok=True)
+
+
+def test_stats_reports_published_count_failure(client, monkeypatch):
+    """A failed WordPress query must not look like "zero posts published".
+
+    The dashboard showed a bare 0, which reads as a fact rather than a failure.
+    """
+    import pymysql
+
+    def _boom(*a, **kw):
+        raise pymysql.err.OperationalError("connection refused")
+
+    # pymysql is imported inside the route, so patch the module attribute.
+    monkeypatch.setattr(pymysql, "connect", _boom)
+
+    resp = client.get("/api/stats")
+    data = resp.get_json()
+    assert data["published_error"], "failure must be surfaced, not hidden behind 0"
+
+
+def test_logging_uses_timezone_aware_utc():
+    """Timestamps must be aware UTC; utcnow() is deprecated since 3.12."""
+    from dashboard.services.logging import JSONFormatter, _utc_now
+
+    now = _utc_now()
+    assert now.tzinfo is not None, "naive datetimes break comparisons"
+
+    import logging as _logging
+
+    record = _logging.LogRecord("t", _logging.INFO, "f", 1, "msg", None, None)
+    entry = JSONFormatter().format(record)
+    assert entry.startswith('{"timestamp": "') or '"timestamp":' in entry
+    assert "+00:00" not in entry, "offset already normalised to Z"
+
+
+def test_csrf_token_available_in_meta_tag(client):
+    """The token must be in a <meta> tag, not only in a JS global.
+
+    A global assigned from an inline script is invisible to non-JS callers and
+    easier to break silently; the meta tag is the conventional source.
+    """
+    resp = client.get("/")
+    body = resp.get_data(as_text=True)
+    assert 'name="csrf-token"' in body
+    assert "csrfToken" in body
+
+
+def test_api_fetch_helper_exists(client):
+    """New code should have an explicit CSRF-aware fetch helper."""
+    body = client.get("/").get_data(as_text=True)
+    assert "apiFetch" in body
+
+
+# ---------------------------------------------------------------------------
 #  5. No legacy monolith (Phase B)
 # ---------------------------------------------------------------------------
 

@@ -18,7 +18,10 @@ line-length = 110
 # E402 is deliberately off: this project imports after extending sys.path on
 # purpose (see dashboard/__init__.py), and the leading `_` on helpers is a
 # long-standing house convention, not a defect.
-select = ["E9", "F63", "F7", "F82", "F401", "F811", "F841", "B"]
+select = ["E9", "F63", "F7", "F82", "F401", "F811", "F841", "B", "F821"]
+# F821 (undefined name) is the one rule that must never be relaxed: it is what
+# catches a removed import used later in the file, which a bare `except
+# Exception` will otherwise hide as an empty response.
 ignore = [
     # B007: legacy helpers use loop variables that shadow builtins.
     "B007",

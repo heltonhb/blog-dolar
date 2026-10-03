@@ -7,13 +7,17 @@
     
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#10b981">
+    <meta name="theme-color" content="#00f090">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Blog Dolar">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <meta name="google-site-verification" content="N5uiqqaN6K3LCfK63sPxeIRfBapOQOdcOHIHl6sF-0c" />
+    <!-- CSRF token for same-origin mutating requests. Prefer reading it from
+         this meta tag (or window.csrfToken()); the fetch() patch below is only
+         a fallback so existing call sites keep working untouched. -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Blog em Dolar - AI Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <!-- FontAwesome for icons -->
@@ -21,9 +25,19 @@
 </head>
 <body>
 
-    <!-- CSRF: attach the session token to every same-origin mutating fetch() -->
+    <!-- CSRF: explicit helper + fallback patch on fetch() -->
     <script>
+        // Read the token from the meta tag; falls back to the global for
+        // templates that do not render the meta tag.
+        window.csrfToken = function () {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return (meta && meta.content) || window.__CSRF_TOKEN || "";
+        };
         window.__CSRF_TOKEN = "{{ csrf_token }}";
+
+        // Fallback only: attaches the token to same-origin mutating fetch()
+        // calls so the ~25 existing call sites need no change. New code should
+        // pass the header explicitly via apiFetch().
         (function () {
             const nativeFetch = window.fetch.bind(window);
             const MUTATING = ["POST", "PUT", "PATCH", "DELETE"];
@@ -32,18 +46,34 @@
                 const url = typeof input === "string" ? input : (input && input.url) || "";
                 const method = String(init.method || (input && input.method) || "GET").toUpperCase();
                 const sameOrigin = url.charAt(0) === "/" || url.indexOf(window.location.origin) === 0;
-                if (MUTATING.indexOf(method) !== -1 && sameOrigin && window.__CSRF_TOKEN) {
-                    if (init.headers instanceof Headers) {
-                        init.headers.set("X-CSRF-Token", window.__CSRF_TOKEN);
-                    } else if (Array.isArray(init.headers)) {
-                        init.headers.push(["X-CSRF-Token", window.__CSRF_TOKEN]);
-                    } else {
-                        init.headers = Object.assign({}, init.headers || {}, {
-                            "X-CSRF-Token": window.__CSRF_TOKEN
-                        });
+                if (MUTATING.indexOf(method) !== -1 && sameOrigin) {
+                    const token = window.csrfToken();
+                    if (token) {
+                        if (init.headers instanceof Headers) {
+                            init.headers.set("X-CSRF-Token", token);
+                        } else if (Array.isArray(init.headers)) {
+                            init.headers.push(["X-CSRF-Token", token]);
+                        } else {
+                            init.headers = Object.assign({}, init.headers || {}, {
+                                "X-CSRF-Token": token
+                            });
+                        }
                     }
                 }
                 return nativeFetch(input, init);
+            };
+
+            // Preferred entrypoint for new code: always CSRF-aware, never
+            // dependent on the global patch above.
+            window.apiFetch = function (url, options) {
+                options = options || {};
+                const method = String(options.method || "GET").toUpperCase();
+                const headers = Object.assign({}, options.headers || {});
+                if (["POST", "PUT", "PATCH", "DELETE"].indexOf(method) !== -1) {
+                    headers["X-CSRF-Token"] = window.csrfToken();
+                }
+                options.headers = headers;
+                return nativeFetch(url, options);
             };
         })();
     </script>
@@ -97,7 +127,7 @@
             
             <div style="flex-grow: 1;"></div>
             
-            <a href="https://techtips.dpdns.org" target="_blank" class="nav-item" style="background: var(--accent-green-glow); border-left: 3px solid var(--accent-green); border-radius: 0 8px 8px 0; margin-right: 15px; color: var(--accent-green); font-weight: bold;">
+            <a href="https://techtips.dpdns.org" target="_blank" class="nav-item" style="background: rgba(0, 240, 144, 0.08); border: 1px solid var(--accent-green-border); border-radius: 10px; margin: 4px 12px; color: var(--accent-green); font-weight: 600; box-shadow: 0 0 12px rgba(0, 240, 144, 0.1);">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Blog
             </a>
             <a href="/scheduler" class="nav-item {% if request.path == '/scheduler' %}active{% endif %}">

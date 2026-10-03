@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Pipeline automation and checkpoint services."""
 import json
+import logging
 import re
 import urllib.parse
 from datetime import datetime
@@ -36,6 +37,9 @@ from image_generator import (
 )
 
 
+log = logging.getLogger("dashboard.pipeline")
+
+
 # ---------------------------------------------------------------------------
 #  Pipeline Checkpoint Helpers (JSON fallback + DB sync)
 # ---------------------------------------------------------------------------
@@ -69,7 +73,9 @@ def _save_checkpoint(slug: str, step: str, value):
     try:
         db_save_checkpoint(slug, step, value)
     except Exception:
-        pass
+        # The JSON copy is authoritative for resume; a DB sync failure must not
+        # abort the pipeline, but it must be visible when debugging.
+        log.debug("checkpoint não sincronizado com o Postgres (slug=%s step=%s)", slug, step, exc_info=True)
 
 
 def _get_checkpoint(slug: str, step: str):
@@ -79,6 +85,8 @@ def _get_checkpoint(slug: str, step: str):
     try:
         return db_get_checkpoint(slug, step)
     except Exception:
+        # JSON was the miss; falling back to None just means "not done yet".
+        log.debug("checkpoint ausente no Postgres (slug=%s step=%s)", slug, step, exc_info=True)
         return None
 
 
@@ -88,11 +96,11 @@ def _clear_checkpoint(slug: str):
     try:
         _checkpoint_path().write_text(json.dumps(checkpoints, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception:
-        pass
+        log.warning("não foi possível gravar checkpoints limpos em disco", exc_info=True)
     try:
         db_clear_checkpoints(slug)
     except Exception:
-        pass
+        log.debug("checkpoint não removido do Postgres (slug=%s)", slug, exc_info=True)
 
 
 # ---------------------------------------------------------------------------

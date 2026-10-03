@@ -109,15 +109,16 @@ def create_app():
         try:
             from db import init_db
             init_db()
-        except Exception as e:
-            print(f"  ⚠️ DB init: {e}")
+        except Exception:
+            # Startup continues, but the operator must know storage is broken.
+            app.logger.exception("DB init falhou; rotas que dependem do Postgres vão errar")
 
     # Restore scheduled pipeline jobs
     if not os.environ.get("SKIP_SCHEDULER"):
         try:
             from dashboard.services.scheduler import _restore_scheduler_jobs
             _restore_scheduler_jobs()
-        except Exception as e:
-            print(f"  ⚠️ Scheduler restore: {e}")
+        except Exception:
+            app.logger.exception("Falha ao restaurar jobs do agendador")
 
     return app
