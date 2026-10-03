@@ -41,3 +41,21 @@ def test_publish_success_mocked(client):
     finally:
         if test_article.exists():
             test_article.unlink()
+
+
+def test_get_ssl_context_loads_certs():
+    """Verify that SSL context is created and valid."""
+    from dashboard.services.wordpress import _get_ssl_context
+
+    ctx = _get_ssl_context()
+    assert ctx is not False
+
+
+def test_get_ssl_context_disabled_via_env(monkeypatch):
+    """Verify WP_VERIFY_SSL=false disables SSL verification."""
+    from dashboard.services.wordpress import _get_ssl_context
+
+    monkeypatch.setenv("WP_VERIFY_SSL", "false")
+    ctx = _get_ssl_context()
+    assert ctx is False
+

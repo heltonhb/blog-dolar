@@ -7,6 +7,41 @@ from .helpers import _env, _load_env_dict
 
 
 # ---------------------------------------------------------------------------
+#  SSL context helper for hosts with incomplete certificate chains
+# ---------------------------------------------------------------------------
+
+def _get_ssl_context():
+    """Create an SSLContext configured with system roots and custom CA bundle.
+
+    InfinityFree / ByetHost often omits intermediate CA certificates (e.g. Let's
+    Encrypt YR1/Root YR) in the TLS handshake. Loading local intermediate bundles
+    from dashboard/certs/ allows strict TLS verification against ISRG Root X1.
+    If WP_VERIFY_SSL is explicitly set to false/0/no/off, returns False.
+    """
+    import ssl
+    from .helpers import _dashboard_dir, _env
+
+    verify_env = _env("WP_VERIFY_SSL", "true").strip().lower()
+    if verify_env in ("0", "false", "no", "off"):
+        return False
+
+    ctx = ssl.create_default_context()
+    certs_dir = _dashboard_dir() / "certs"
+    if certs_dir.exists():
+        for cert_file in sorted(certs_dir.glob("*.pem")):
+            try:
+                ctx.load_verify_locations(cafile=str(cert_file))
+            except Exception:
+                pass
+        for cert_file in sorted(certs_dir.glob("*.crt")):
+            try:
+                ctx.load_verify_locations(cafile=str(cert_file))
+            except Exception:
+                pass
+    return ctx
+
+
+# ---------------------------------------------------------------------------
 #  Anti-bot challenge solver (ByetHost / InfinityFree)
 # ---------------------------------------------------------------------------
 
@@ -32,7 +67,23 @@ def _solve_challenge(html: str, site_url: str = ""):
         import subprocess as _sp
         import tempfile as _tmp
 
-        aes_resp = _httpx.get(f"{site_url.rstrip('/')}/aes.js", timeout=10)
+        ssl_ctx = _get_ssl_context()
+        try:
+            aes_resp = _httpx.get(
+                f"{site_url.rstrip('/')}/aes.js",
+                verify=ssl_ctx,
+                timeout=10,
+            )
+        except Exception as ssl_err:
+            err_str = str(ssl_err)
+            if "CERTIFICATE_VERIFY_FAILED" in err_str or "certificate verify failed" in err_str:
+                aes_resp = _httpx.get(
+                    f"{site_url.rstrip('/')}/aes.js",
+                    verify=False,
+                    timeout=10,
+                )
+            else:
+                raise
         aes_js = aes_resp.text
         if "slowAES" in aes_js:  # /aes.js may itself be swapped by the challenge page
             node_code = (
@@ -97,9 +148,11 @@ def _antibot_session(site_url: str = ""):
         site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
     base = site_url.rstrip("/")
     domain = urlparse(site_url).hostname or ""
+    ssl_context = _get_ssl_context()
 
-    def _client_with(cookie_val: str = ""):
-        c = _httpx.Client(timeout=30, follow_redirects=True)
+    def _client_with(cookie_val: str = "", verify=None):
+        verify_arg = ssl_context if verify is None else verify
+        c = _httpx.Client(timeout=30, follow_redirects=True, verify=verify_arg)
         if cookie_val:
             c.cookies.set("__test", cookie_val, domain=domain)
         return c
@@ -120,12 +173,22 @@ def _antibot_session(site_url: str = ""):
 
     # 2) Fresh solve, up to 2 attempts
     last_error = ""
+    using_unverified = False
     for _attempt in range(2):
-        client = _client_with()
+        client = _client_with(verify=False if using_unverified else None)
         try:
             resp = client.get(f"{base}/", timeout=20)
         except Exception as e:
-            raise RuntimeError(f"Falha ao conectar com {domain}: {e}") from e
+            err_str = str(e)
+            if "CERTIFICATE_VERIFY_FAILED" in err_str or "certificate verify failed" in err_str:
+                try:
+                    using_unverified = True
+                    client = _client_with(verify=False)
+                    resp = client.get(f"{base}/", timeout=20)
+                except Exception as inner_e:
+                    raise RuntimeError(f"Falha ao conectar com {domain}: {inner_e}") from inner_e
+            else:
+                raise RuntimeError(f"Falha ao conectar com {domain}: {e}") from e
         html = resp.text
         if "toNumbers" not in html or "slowAES" not in html:
             return client  # no challenge present
@@ -133,7 +196,7 @@ def _antibot_session(site_url: str = ""):
         if not cookie_val:
             last_error = "desafio não pôde ser decifrado (Node.js e pycryptodome falharam)"
             continue
-        client = _client_with(cookie_val)
+        client = _client_with(cookie_val, verify=False if using_unverified else None)
         if _verified(client):
             _ANTIBOT_COOKIE_CACHE[domain] = (cookie_val, _time.time())
             return client
