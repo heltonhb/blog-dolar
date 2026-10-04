@@ -23,12 +23,32 @@ services:
         sync: false
       - key: FTP_PASS
         sync: false
-      - key: ADCASH_ZONE_ID
+      # Monetização: Amazon Associates, VPN & Display Ads
+      - key: AMAZON_ASSOCIATE_TAG
         sync: false
-      - key: ADCASH_API_TOKEN
+      - key: NORDVPN_AFFILIATE_URL
         sync: false
-      - key: ADSTERRA_API_TOKEN
+      - key: MONETAG_TAG_ID
         sync: false
+      - key: INFOLINKS_PID
+        sync: false
+      # Pinterest Safe Bridge
+      - key: BRIDGE_ENABLED
+        sync: false
+      - key: BRIDGE_BASE_URL
+        sync: false
+      - key: BRIDGE_REDIRECT_SECONDS
+        sync: false
+      # Google Analytics 4 & Search Console
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: GA4_PROPERTY_ID
+        sync: false
+      # Pinterest API
       - key: PINTEREST_ACCESS_TOKEN
         sync: false
       - key: PINTEREST_BOARD_ID

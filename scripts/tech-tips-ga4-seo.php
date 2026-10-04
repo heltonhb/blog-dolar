@@ -160,3 +160,207 @@ function tech_tips_archive_robots($robots)
     return $robots;
 }
 add_filter("wp_robots", "tech_tips_archive_robots");
+
+/* ---------------------------------------------------------------------------
+ * 5. Affiliate Cards Styling & FTC Disclosure
+ *    Renderiza caixas responsivas de recomendação (Amazon / VPN / Tech)
+ * ------------------------------------------------------------------------- */
+function tech_tips_affiliate_styles()
+{
+    if (is_admin()) {
+        return;
+    }
+    ?>
+    <style id="tech-tips-affiliate-css">
+      .tech-affiliate-disclosure {
+        background: #f8fafc;
+        border-left: 4px solid #10b981;
+        padding: 10px 16px;
+        margin: 15px 0 25px 0;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        color: #475569;
+        line-height: 1.5;
+      }
+      .tech-affiliate-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin: 25px 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .tech-affiliate-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
+      .affiliate-card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 8px 0 !important;
+        flex-wrap: wrap;
+      }
+      .affiliate-badge {
+        display: inline-block;
+        background: #10b981;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 4px 10px;
+        border-radius: 6px;
+        text-transform: uppercase;
+      }
+      .affiliate-badge.vpn-badge {
+        background: #2563eb;
+      }
+      .affiliate-title {
+        display: inline-block;
+        margin: 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+        color: #0f172a !important;
+      }
+      .affiliate-desc {
+        color: #475569 !important;
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+        margin: 8px 0 14px 0 !important;
+      }
+      .affiliate-specs {
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 0 16px 0 !important;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+      .affiliate-specs li {
+        font-size: 0.85rem !important;
+        color: #334155 !important;
+        background: #f1f5f9;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border-left: 3px solid #10b981;
+      }
+      .affiliate-action {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin: 0 !important;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+      }
+      .tech-affiliate-disclosure p {
+        margin: 0 !important;
+      }
+      .affiliate-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        padding: 10px 22px;
+        border-radius: 8px;
+        text-decoration: none !important;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      .amazon-btn {
+        background: #ff9900;
+        background: linear-gradient(180deg, #ff9900 0%, #e68a00 100%);
+        color: #111111 !important;
+        box-shadow: 0 2px 5px rgba(255, 153, 0, 0.3);
+      }
+      .amazon-btn:hover {
+        background: #f08c00;
+        color: #000000 !important;
+        box-shadow: 0 4px 10px rgba(255, 153, 0, 0.4);
+      }
+      .vpn-btn {
+        background: #0052cc;
+        color: #ffffff !important;
+        box-shadow: 0 2px 5px rgba(0, 82, 204, 0.3);
+      }
+      .vpn-btn:hover {
+        background: #003d99;
+        color: #ffffff !important;
+      }
+      .affiliate-subtext {
+        font-size: 0.82rem;
+        color: #64748b;
+      }
+      @media (prefers-color-scheme: dark) {
+        .tech-affiliate-card {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        .affiliate-title {
+          color: #f8fafc !important;
+        }
+        .affiliate-desc {
+          color: #cbd5e1 !important;
+        }
+        .affiliate-specs li {
+          background: #0f172a;
+          color: #e2e8f0 !important;
+        }
+        .tech-affiliate-disclosure {
+          background: #0f172a;
+          color: #94a3b8;
+          border-left-color: #10b981;
+        }
+        .affiliate-action {
+          border-top-color: #334155;
+        }
+      }
+    </style>
+    <?php
+}
+add_action("wp_head", "tech_tips_affiliate_styles", 5);
+
+/* ---------------------------------------------------------------------------
+ * 6. Monetag (Display Ads - Native / Push)
+ *    Ativação condicionada a constante MONETAG_TAG_ID ou opção do banco
+ * ------------------------------------------------------------------------- */
+function tech_tips_monetag_head()
+{
+    if (is_admin()) {
+        return;
+    }
+    $tag_id = defined("MONETAG_TAG_ID") ? MONETAG_TAG_ID : get_option("monetag_tag_id", "");
+    if (!empty($tag_id)) {
+        ?>
+        <!-- Monetag Tag via mu-plugin -->
+        <script src="https://alwingulla.com/88/tag.min.js" data-zone="<?php echo esc_attr($tag_id); ?>" async data-cfasync="false"></script>
+        <?php
+    }
+}
+add_action("wp_head", "tech_tips_monetag_head", 6);
+
+/* ---------------------------------------------------------------------------
+ * 7. Infolinks (InText Contextual Ads)
+ *    Ativação condicionada a constante INFOLINKS_PID ou opção do banco
+ * ------------------------------------------------------------------------- */
+function tech_tips_infolinks_footer()
+{
+    if (is_admin()) {
+        return;
+    }
+    $pid = defined("INFOLINKS_PID") ? INFOLINKS_PID : get_option("infolinks_pid", "");
+    if (!empty($pid)) {
+        ?>
+        <!-- Infolinks via mu-plugin -->
+        <script type="text/javascript">
+          var infolinks_pid = <?php echo json_encode($pid); ?>;
+          var infolinks_wsid = 0;
+        </script>
+        <script type="text/javascript" src="//resources.infolinks.com/js/infolinks_main.js" async></script>
+        <?php
+    }
+}
+add_action("wp_footer", "tech_tips_infolinks_footer", 20);
