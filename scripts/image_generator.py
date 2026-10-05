@@ -422,11 +422,19 @@ def generate_image_pollinations(
     # Enhance prompt for better quality
     enhanced = f"professional, high quality, detailed, sharp focus, 4k, {prompt}"
     encoded_prompt = urllib.parse.quote(enhanced)
-    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
+    url_flux = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
+    url_base = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
 
     with httpx.Client(timeout=120, follow_redirects=True) as client:
-        resp = client.get(url)
-        resp.raise_for_status()
+        try:
+            resp = client.get(url_flux)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (402, 404, 500, 502, 503):
+                resp = client.get(url_base)
+                resp.raise_for_status()
+            else:
+                raise
 
     if len(resp.content) < 5000:
         raise ValueError(f"Pollinations returned too-small image ({len(resp.content)} bytes)")

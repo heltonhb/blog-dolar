@@ -35,6 +35,7 @@ ALLOWED_SCRIPTS: dict[str, str] = {
     "check_sitemap_indexacao.py": "Checa o sitemap no Search Console",
     "relatorio_indexacao.py": "Gera relatório de indexação",
     "fetch_wp_post.py": "Baixa um post do WordPress para inspeção",
+    "sync_affiliates.py": "Sincroniza e audita links de afiliados da Amazon nos posts vivos",
 }
 
 

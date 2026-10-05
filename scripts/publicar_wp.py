@@ -102,10 +102,22 @@ class WordPressPublisher:
                     cat_ids.append(new_id)
         
         # Prepara payload
+        content = article.get('content', '')
+        slug = article.get('slug', '')
+        amazon_tag = os.environ.get("AMAZON_ASSOCIATE_TAG", "").strip()
+        if amazon_tag and slug:
+            try:
+                from affiliate_manager import apply_affiliate_content, get_products_for_slug
+
+                if get_products_for_slug(slug) and "tech-affiliate-card" not in content:
+                    content, _ = apply_affiliate_content(content, slug, amazon_tag)
+            except Exception:
+                pass
+
         payload = {
             "title": article.get('title', 'Untitled'),
-            "content": article.get('content', ''),
-            "slug": article.get('slug', ''),
+            "content": content,
+            "slug": slug,
             "excerpt": article.get('meta_description', ''),
             "status": status,
             "categories": cat_ids,

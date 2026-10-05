@@ -46,6 +46,21 @@ function tech_tips_adsense_head()
 add_action("wp_head", "tech_tips_adsense_head", 4);
 
 /* ---------------------------------------------------------------------------
+ * 2b. Pinterest Domain Verification
+ * ------------------------------------------------------------------------- */
+function tech_tips_pinterest_verification()
+{
+    if (is_admin()) {
+        return;
+    }
+    ?>
+    <!-- Pinterest domain verification -->
+    <meta name="p:domain_verify" content="7c1931644caa7c83f03544d37d48d8f7">
+    <?php
+}
+add_action("wp_head", "tech_tips_pinterest_verification", 0);
+
+/* ---------------------------------------------------------------------------
  * 3. SEO meta description + og tags
  *    Fonte da description: excerpt do post (o pipeline salva o meta_description
  *    lá). Canonical NÃO é emitido aqui — o WP core já emite via rel_canonical.

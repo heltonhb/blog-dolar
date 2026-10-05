@@ -242,8 +242,16 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
     article_content = article.get("content", "")
     if "<head>" in article_content:
         article_content = article_content.replace("<head>", f"<head>\n{hreflang_tag}")
-    elif "<html>" in article_content:
-        article_content = article_content.replace("<html>", f"<html>\n<head>{hreflang_tag}</head>")
+    # Auto-apply affiliate cards and disclosure if mapped and configured
+    amazon_tag = env.get("AMAZON_ASSOCIATE_TAG") or _env("AMAZON_ASSOCIATE_TAG", "")
+    if amazon_tag and slug:
+        try:
+            from affiliate_manager import apply_affiliate_content, get_products_for_slug
+
+            if get_products_for_slug(slug) and "tech-affiliate-card" not in article_content:
+                article_content, _ = apply_affiliate_content(article_content, slug, amazon_tag)
+        except Exception:
+            pass
 
     payload = {
         "title": article.get("title", "Untitled"),

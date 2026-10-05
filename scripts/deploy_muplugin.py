@@ -41,6 +41,7 @@ MARKERS = (
     "adsbygoogle.js?client=ca-pub-6258036451330976",
     'name="google-adsense-account"',
     'id="tech-tips-affiliate-css"',
+    'name="p:domain_verify"',
 )
 
 
@@ -92,7 +93,13 @@ def main() -> int:
             bak.write_bytes(remoto)
             print(f"backup do remoto: {bak.relative_to(ROOT)}")
             ftp.storbinary(f"STOR {REMOTE}", io.BytesIO(local))
-            print("✅ enviado")
+            print("✅ enviado mu-plugin")
+
+        pin_html = ROOT / "pinterest-7c193.html"
+        if pin_html.exists():
+            remote_pin_html = "techtips.dpdns.org/htdocs/pinterest-7c193.html"
+            ftp.storbinary(f"STOR {remote_pin_html}", io.BytesIO(pin_html.read_bytes()))
+            print(f"✅ enviado arquivo de verificação Pinterest: {remote_pin_html}")
 
     faltando = _verificar_html()
     if not faltando:

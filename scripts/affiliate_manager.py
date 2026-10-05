@@ -292,6 +292,40 @@ PRODUCTS: dict[str, list[dict]] = {
             "specs": ["PCIe 4.0 NVMe M.2", "Up to 5,000 MB/s reads", "Micron 3D NAND"],
         },
     ],
+    "ssd-vs-hdd-storage-difference": [
+        {
+            "after_heading": ["The Pros and Cons of SSDs", "When to Choose an NVMe SSD"],
+            "title": "Samsung 990 PRO NVMe SSD",
+            "subtitle": "Blazing fast PCIe 4.0 speeds (up to 7,450 MB/s) — the gold standard for gaming, booting, and heavy workloads.",
+            "search_query": "Samsung 990 PRO NVMe SSD",
+            "badge": "FASTEST PERFORMANCE",
+            "specs": ["PCIe 4.0 NVMe M.2", "Up to 7,450 MB/s reads", "5-year limited warranty"],
+        },
+        {
+            "after_heading": ["Choose an SSD if:", "What is an SSD"],
+            "title": "Crucial P3 Plus NVMe SSD",
+            "subtitle": "Unbeatable value per gigabyte for upgrading laptops or adding fast secondary game storage.",
+            "search_query": "Crucial P3 Plus NVMe SSD",
+            "badge": "BEST VALUE NVMe",
+            "specs": ["PCIe 4.0 NVMe M.2", "Up to 5,000 MB/s reads", "Micron Advanced 3D NAND"],
+        },
+        {
+            "after_heading": ["Choose an HDD if:", "The Pros and Cons of HDDs", "What is an HDD"],
+            "title": "Seagate BarraCuda 4TB Internal Hard Drive",
+            "subtitle": "Cost-effective massive bulk capacity for PC backups, media archives, and secondary storage.",
+            "search_query": "Seagate BarraCuda 4TB Internal HDD",
+            "badge": "BEST BULK STORAGE",
+            "specs": ["3.5-inch SATA 6Gb/s", "5400 RPM / 256MB cache", "Great for media backups"],
+        },
+        {
+            "after_heading": ["The Hybrid Approach", "When to Choose a SATA SSD"],
+            "title": "Samsung 870 EVO SATA 2.5\" SSD",
+            "subtitle": "The easiest and most reliable plug-and-play speed upgrade for older laptops and desktops with 2.5\" drive bays.",
+            "search_query": "Samsung 870 EVO SATA SSD",
+            "badge": "BEST 2.5\" SATA UPGRADE",
+            "specs": ["2.5-inch SATA III", "Up to 560 MB/s reads", "Maxes out SATA interface"],
+        },
+    ],
     # VPN: só entra se NORDVPN_AFFILIATE_URL estiver configurado (link real de afiliado).
     "how-to-protect-your-digital-privacy-online": [
         {
@@ -308,31 +342,60 @@ PRODUCTS: dict[str, list[dict]] = {
     # reescrito com produtos reais antes de receber links de afiliado.
 }
 
+
+def get_products_for_slug(slug: str) -> list[dict]:
+    """Retorna produtos mapeados diretamente pelo slug ou por tópico/palavras-chave."""
+    if slug in PRODUCTS:
+        return PRODUCTS[slug]
+
+    slug_lower = slug.lower()
+    if any(k in slug_lower for k in ("ssd", "hdd", "nvme", "storage", "hard-drive")):
+        return PRODUCTS.get("ssd-vs-hdd-storage-difference") or PRODUCTS.get("nvme-ssd-vs-sata-ssd-vs-hdd", [])
+    if any(k in slug_lower for k in ("laptop", "notebook", "ultrabook", "chromebook")):
+        return PRODUCTS.get("best-budget-laptops-for-students-2026", [])
+    if any(k in slug_lower for k in ("power-bank", "powerbank", "portable-charger", "battery-pack")):
+        return PRODUCTS.get("top-5-best-portable-power-banks-in-2026", [])
+    if any(k in slug_lower for k in ("monitor", "display", "screen", "work-from-home")):
+        return PRODUCTS.get("best-monitors-work-from-home", [])
+    if any(k in slug_lower for k in ("privacy", "vpn", "cybersecurity")):
+        return PRODUCTS.get("how-to-protect-your-digital-privacy-online", [])
+    return []
+
+
 _HEADING_RE = re.compile(r"<h[23][^>]*>", re.IGNORECASE)
 _SECTION_STOP_RE = re.compile(r"<h[23][\s>]|<!-- internal-links -->", re.IGNORECASE)
 
 
-def _insert_after_section(content: str, heading_text: str, block: str) -> tuple[str, bool]:
-    """Insere `block` no fim da seção do heading que contém `heading_text`."""
-    for m in _HEADING_RE.finditer(content):
-        close = content.find("</h", m.end())
-        if close == -1:
-            continue
-        inner = re.sub(r"<[^>]+>", "", content[m.end():close])
-        if heading_text.lower() not in html.unescape(inner).lower():
-            continue
-        head_end = content.find(">", close) + 1
-        stop = _SECTION_STOP_RE.search(content, head_end)
-        pos = stop.start() if stop else len(content.rstrip())
-        # "\n" + bloco + "\n": exatamente o que _CARD_RE remove → strip é o inverso exato.
+def _insert_after_section(content: str, heading_text: str | list[str] | tuple[str, ...], block: str) -> tuple[str, bool]:
+    """Insere `block` no fim da seção do heading que contém `heading_text` (ou lista de candidatos)."""
+    candidates = [heading_text] if isinstance(heading_text, str) else list(heading_text)
+    for cand in candidates:
+        cand_lower = cand.lower()
+        for m in _HEADING_RE.finditer(content):
+            close = content.find("</h", m.end())
+            if close == -1:
+                continue
+            inner = re.sub(r"<[^>]+>", "", content[m.end():close])
+            if cand_lower in html.unescape(inner).lower():
+                head_end = content.find(">", close) + 1
+                stop = _SECTION_STOP_RE.search(content, head_end)
+                pos = stop.start() if stop else len(content.rstrip())
+                return content[:pos] + "\n" + block + "\n" + content[pos:], True
+
+    # Fallback suave: insere antes de links internos ou conclusão se nenhum heading bateu
+    stop = re.search(r"<!-- internal-links -->|<h2[^>]*>.*?(?:conclusion|verdict|final thoughts)", content, re.IGNORECASE)
+    if stop:
+        pos = stop.start()
         return content[:pos] + "\n" + block + "\n" + content[pos:], True
+
     return content, False
 
 
 def build_blocks(slug: str, tag: str) -> tuple[list[tuple[str, str]], list[str]]:
     """[(after_heading, html)] para o slug, + avisos (itens pulados)."""
     blocks, warnings = [], []
-    for product in PRODUCTS.get(slug, []):
+    products = get_products_for_slug(slug)
+    for product in products:
         if product.get("type") == "vpn":
             url = _env("NORDVPN_AFFILIATE_URL")
             if not url:
