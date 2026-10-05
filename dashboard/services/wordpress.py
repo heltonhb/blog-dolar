@@ -77,9 +77,15 @@ def _solve_challenge(html: str, site_url: str = ""):
         except Exception as ssl_err:
             err_str = str(ssl_err)
             if "CERTIFICATE_VERIFY_FAILED" in err_str or "certificate verify failed" in err_str:
+                # Fallback for InfinityFree/ByetHost, whose handshake omits the
+                # intermediate CA. Reached only after the verified attempt above
+                # (which loads the local chain from dashboard/certs/) failed with
+                # exactly this error, and it fetches an unauthenticated public
+                # asset — no credentials ride this request. WP_VERIFY_SSL=false
+                # is the way to disable verification outright.
                 aes_resp = _httpx.get(
                     f"{site_url.rstrip('/')}/aes.js",
-                    verify=False,
+                    verify=False,  # nosec B501 - conditional fallback, see above
                     timeout=10,
                 )
             else:
