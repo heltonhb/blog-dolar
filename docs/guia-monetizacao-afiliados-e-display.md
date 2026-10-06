@@ -96,7 +96,26 @@ python3 scripts/affiliate_manager.py --wp
 
 # 3. Auditar conformidade dos links nos posts vivos
 python3 scripts/affiliate_manager.py --check-wp
+
+# 4. Deploy do mu-plugin (inclui o tracking de cliques `affiliate_click`)
+python3 scripts/deploy_muplugin.py
+python3 scripts/deploy_muplugin.py --check
 ```
+
+### 2.7 Medindo receita: evento `affiliate_click` no GA4
+O bloco 8 do mu-plugin dispara `affiliate_click` em todo clique de saída para
+`amazon.*` ou `nordvpn`, com parâmetros:
+
+| Parâmetro | Conteúdo |
+|---|---|
+| `affiliate_network` | `amazon` ou `nordvpn` |
+| `link_url` | URL clicada |
+| `product_title` | Título do cartão (vazio fora de cartão) |
+| `page_path` | Artigo de origem |
+
+No GA4: Relatórios → Engajamento → Eventos → `affiliate_click`, segmente por
+`page_path` para saber **qual artigo gera receita** e por `product_title` para
+saber **qual produto**. Sem isso, a meta dos 180 dias é uma caixa-preta.
 
 ---
 

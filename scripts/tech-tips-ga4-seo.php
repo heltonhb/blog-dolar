@@ -379,3 +379,48 @@ function tech_tips_infolinks_footer()
     }
 }
 add_action("wp_footer", "tech_tips_infolinks_footer", 20);
+
+/* ---------------------------------------------------------------------------
+ * 8. Affiliate click tracking (GA4 events)
+ *    Fires `affiliate_click` on every outbound click to amazon.com or a
+ *    nordvpn/go link, so GA4 shows which article actually drives revenue.
+ *    Delegated listener: works with cards injected later and with both
+ *    .affiliate-btn buttons and plain in-text links.
+ * ------------------------------------------------------------------------- */
+function tech_tips_affiliate_tracking_footer()
+{
+    if (is_admin()) {
+        return;
+    }
+    ?>
+    <!-- Affiliate click tracking via mu-plugin -->
+    <script>
+      (function () {
+        if (typeof gtag !== "function") {
+          return;
+        }
+        function networkOf(href) {
+          if (href.indexOf("amazon.") !== -1) { return "amazon"; }
+          if (href.indexOf("nordvpn") !== -1 || href.indexOf("go.nordvpn") !== -1) { return "nordvpn"; }
+          return "other";
+        }
+        document.addEventListener("click", function (e) {
+          var el = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+          if (!el) { return; }
+          var href = el.getAttribute("href") || "";
+          var network = networkOf(href);
+          if (network === "other") { return; }
+          var card = el.closest ? el.closest(".tech-affiliate-card") : null;
+          var titleEl = card ? card.querySelector(".affiliate-title") : null;
+          gtag("event", "affiliate_click", {
+            affiliate_network: network,
+            link_url: href,
+            product_title: titleEl ? titleEl.textContent.trim().slice(0, 100) : "",
+            page_path: window.location.pathname
+          });
+        }, { passive: true });
+      })();
+    </script>
+    <?php
+}
+add_action("wp_footer", "tech_tips_affiliate_tracking_footer", 21);

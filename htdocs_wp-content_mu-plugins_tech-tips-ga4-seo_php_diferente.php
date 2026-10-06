@@ -160,3 +160,31 @@ function tech_tips_archive_robots($robots)
     return $robots;
 }
 add_filter("wp_robots", "tech_tips_archive_robots");
+
+/* ---------------------------------------------------------------------------
+ * 4. GA4 affiliate click tracking
+ * ------------------------------------------------------------------------- */
+function tech_tips_ga4_affiliate_tracking()
+{
+    if (is_admin()) {
+        return;
+    }
+    $slug = '';
+    if (is_singular()) {
+        $slug = get_post_field('post_name', get_queried_object_id());
+    }
+    ?>
+    <script>
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a.affiliate-link');
+        if (link) {
+            gtag('event', 'affiliate_click', {
+                'article_slug': '<?php echo esc_js($slug); ?>',
+                'link_url': link.href
+            });
+        }
+    });
+    </script>
+    <?php
+}
+add_action('wp_head', 'tech_tips_ga4_affiliate_tracking', 4);
