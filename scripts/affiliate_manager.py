@@ -582,6 +582,48 @@ PRODUCTS: dict[str, list[dict]] = {
             "specs": ["Covers up to 5,000 sq. ft.", "Tri-band BE10000 mesh", "Four 2.5 Gbps ports per node"],
         },
     ],
+    "top-5-amazon-tech-gadgets-under-30": [
+        {
+            "after_heading": ["Anker Nano 30W", "1. Anker Nano 30W", "Anker Nano"],
+            "title": "Anker Nano 30W USB-C GaN Charger",
+            "subtitle": "Pocket-sized fast wall charger powered by GaN tech that powers phones, tablets, and even MacBook Airs at full speed.",
+            "search_query": "Anker Nano 30W USB-C GaN Charger",
+            "badge": "BEST FAST CHARGER",
+            "specs": ["30W high-speed USB-C output", "GaN III ultra-compact form factor", "Foldable prongs for travel"],
+        },
+        {
+            "after_heading": ["SanDisk 128GB Ultra Dual", "2. SanDisk 128GB Ultra Dual", "SanDisk 128GB"],
+            "title": "SanDisk 128GB Ultra Dual Drive Luxe USB-C Flash Drive",
+            "subtitle": "All-metal 2-in-1 swivel flash drive with USB-C and USB-A plugs for seamless file transfers between phone and PC.",
+            "search_query": "SanDisk 128GB Ultra Dual Drive Luxe USB Type-C",
+            "badge": "BEST DUAL FLASH DRIVE",
+            "specs": ["Dual USB-C and USB-A connectors", "Up to 150MB/s read speeds", "Durable all-metal swivel casing"],
+        },
+        {
+            "after_heading": ["MoKo Foldable Aluminum", "3. MoKo Foldable Aluminum", "MoKo Foldable"],
+            "title": "MoKo Foldable Aluminum Desk Phone & Tablet Stand",
+            "subtitle": "Sturdy, multi-angle adjustable desktop holder with non-slip silicone pads for video calls, recipes, and bedside charging.",
+            "search_query": "MoKo Foldable Aluminum Phone Stand Tablet Desk",
+            "badge": "BEST DESK STAND",
+            "specs": ["Multi-angle dual-hinge rotation", "Sturdy aerospace-grade aluminum", "Protective anti-scratch silicone pads"],
+        },
+        {
+            "after_heading": ["SOULWIT Cable Management", "4. SOULWIT Cable Management", "SOULWIT Cable"],
+            "title": "SOULWIT Cable Management Clips & Cord Organizer Kit",
+            "subtitle": "Complete adhesive wire organizer set with silicone clips and reusable ties to permanently eliminate messy desk cable clutter.",
+            "search_query": "SOULWIT Cable Management Clips Cord Organizer Kit",
+            "badge": "BEST DESK CLEANUP",
+            "specs": ["Strong acrylic adhesive backing", "Multi-slot silicone cable clips", "Reusable hook & loop cable ties"],
+        },
+        {
+            "after_heading": ["TP-Link USB Bluetooth 5.3", "5. TP-Link USB Bluetooth 5.3", "TP-Link Bluetooth"],
+            "title": "TP-Link USB Bluetooth 5.3 Nano Adapter (UB500)",
+            "subtitle": "Miniature plug-and-play USB dongle that brings high-efficiency Bluetooth 5.3 wireless audio and controllers to any desktop PC.",
+            "search_query": "TP-Link USB Bluetooth 5.3 Nano Adapter UB500",
+            "badge": "BEST WIRELESS ADAPTER",
+            "specs": ["Latest Bluetooth 5.3 + EDR standard", "Connects up to 7 wireless devices", "Ultra-small plug-and-forget nano design"],
+        },
+    ],
 }
 
 # Aliases de slugs locais vs slugs do WordPress
@@ -618,6 +660,8 @@ def get_products_for_slug(slug: str) -> list[dict]:
         return PRODUCTS.get("how-to-choose-a-secure-password-manager", [])
     if any(k in slug_lower for k in ("privacy", "vpn", "cybersecurity")):
         return PRODUCTS.get("how-to-protect-your-digital-privacy-online", [])
+    if any(k in slug_lower for k in ("under-30", "gadgets-under", "budget-gadgets", "amazon-tech-gadgets")):
+        return PRODUCTS.get("top-5-amazon-tech-gadgets-under-30", [])
     return []
 
 

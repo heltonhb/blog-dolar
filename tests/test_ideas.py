@@ -45,3 +45,19 @@ def test_generate_ideas_mocked(client):
         assert data["success"] is True
         assert len(data["ideas"]) >= 1
         assert data["ideas"][0]["keyword"] == "quantum computing 2026"
+
+
+def test_generate_buyer_intent_ideas_mocked(client):
+    """Test generating buyer intent ideas for affiliate monetization."""
+    mock_buyer_output = (
+        '[{"title":"Top 5 Amazon Tech Gadgets Under $30 You Actually Need","keyword":"amazon tech gadgets under 30",'
+        '"cpm_estimate":"$30-45","category":"buyer_intent"}]'
+    )
+    with patch("dashboard.routes.ideas._gemini_call", return_value=mock_buyer_output):
+        resp = client.post("/api/ideas/generate", json={"source": "buyer_intent"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert len(data["ideas"]) == 1
+        assert data["ideas"][0]["source"] == "buyer_intent"
+        assert data["ideas"][0]["category"] == "buyer_intent"

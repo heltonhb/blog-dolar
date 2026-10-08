@@ -120,6 +120,32 @@ TOP_TRACTION_PINS = {
             },
         ],
     },
+    "top-5-amazon-tech-gadgets-under-30": {
+        "article_title": "Top 5 Amazon Tech Gadgets Under $30 You Actually Need in 2026",
+        "variations": [
+            {
+                "variation": 1,
+                "headline": "5 AMAZON TECH GADGETS UNDER $30",
+                "prompt": "Clean modern desk setup with compact phone charger, USB drive, and phone stand",
+                "pin_title": "Top 5 Amazon Tech Gadgets Under $30 You Actually Need (2026)",
+                "description": "Looking for smart, high-utility tech that won't break the bank? These 5 Amazon gadgets under $30 solve everyday headaches and last for years. Check out our tested picks! #AmazonFinds #TechGadgets #BudgetTech #EverydayCarry #AmazonDeals",
+            },
+            {
+                "variation": 2,
+                "headline": "UPGRADE YOUR DESK FOR UNDER $30",
+                "prompt": "Minimalist clean computer desk setup with metallic phone stand and warm desk lamp",
+                "pin_title": "Best Budget Desk Setup Upgrades Under $30 on Amazon",
+                "description": "Transform your messy desk into a clean, productive minimalist workstation with these 5 affordable tech accessories under $30 on Amazon. #DeskSetup #WorkspaceInspo #WFHSetup #AmazonTech",
+            },
+            {
+                "variation": 3,
+                "headline": "BEST BUDGET TECH FINDS ON AMAZON",
+                "prompt": "Tech accessories and electronic gadgets organized on modern wooden table",
+                "pin_title": "The Most Useful Everyday Tech Essentials Under $30",
+                "description": "Stop wasting money on cheap plastic accessories. These 5 Amazon tech essentials under $30 deliver immense daily value and durability. Read the full buyer guide! #EDCGear #TechEssentials #AmazonMustHaves #BestUnder30",
+            },
+        ],
+    },
 }
 
 

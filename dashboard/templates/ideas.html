@@ -8,7 +8,10 @@
     </div>
     <div class="header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn btn-green" id="btn-generate-ideas" style="font-weight: bold; padding: 10px 20px;" onclick="generateIdeas('ai')">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Geral IA
+        </button>
+        <button class="btn btn-amber" id="btn-generate-affiliate" style="font-weight: bold; padding: 10px 20px; background: #f59e0b; color: #111;" onclick="generateIdeas('buyer_intent')">
+            <i class="fa-brands fa-amazon"></i> Buyer Intent (Amazon)
         </button>
         <button class="btn btn-blue" id="btn-generate-trends" style="font-weight: bold; padding: 10px 20px;" onclick="generateIdeas('trends')">
             <i class="fa-solid fa-arrow-trend-up"></i> Google Trends
@@ -104,19 +107,24 @@ function loadIdeas() {
 function generateIdeas(source) {
     source = source || 'ai';
     const btnAI = document.getElementById('btn-generate-ideas');
+    const btnAffiliate = document.getElementById('btn-generate-affiliate');
     const btnTrends = document.getElementById('btn-generate-trends');
     const loading = document.getElementById('loading-ideas');
     const msgEl = document.getElementById('loading-ideas-msg');
 
-    btnAI.disabled = true;
-    btnTrends.disabled = true;
+    if (btnAI) btnAI.disabled = true;
+    if (btnAffiliate) btnAffiliate.disabled = true;
+    if (btnTrends) btnTrends.disabled = true;
 
     if (source === 'trends') {
         msgEl.textContent = 'Buscando Google Trends + filtrando com Gemini... aguarde.';
-        btnTrends.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando Trends...';
+        if (btnTrends) btnTrends.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando Trends...';
+    } else if (source === 'buyer_intent') {
+        msgEl.textContent = 'Gerando pautas comerciais de alta conversão (Amazon)... aguarde.';
+        if (btnAffiliate) btnAffiliate.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
     } else {
         msgEl.textContent = 'Gerando ideias com Gemini AI... aguarde.';
-        btnAI.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+        if (btnAI) btnAI.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
     }
     loading.style.display = 'block';
 
@@ -127,13 +135,21 @@ function generateIdeas(source) {
     })
         .then(r => r.json())
         .then(data => {
-            btnAI.disabled = false;
-            btnTrends.disabled = false;
-            btnAI.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA';
-            btnTrends.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Google Trends';
+            if (btnAI) {
+                btnAI.disabled = false;
+                btnAI.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Geral IA';
+            }
+            if (btnAffiliate) {
+                btnAffiliate.disabled = false;
+                btnAffiliate.innerHTML = '<i class="fa-brands fa-amazon"></i> Buyer Intent (Amazon)';
+            }
+            if (btnTrends) {
+                btnTrends.disabled = false;
+                btnTrends.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Google Trends';
+            }
             loading.style.display = 'none';
             if (data.success) {
-                const srcLabel = source === 'trends' ? 'Google Trends' : 'IA';
+                const srcLabel = source === 'trends' ? 'Google Trends' : (source === 'buyer_intent' ? 'Buyer Intent (Amazon)' : 'IA');
                 alert(`${data.count} ideias de ${srcLabel} geradas!`);
                 loadIdeas();
             } else {
@@ -141,8 +157,9 @@ function generateIdeas(source) {
             }
         })
         .catch(err => {
-            btnAI.disabled = false;
-            btnTrends.disabled = false;
+            if (btnAI) btnAI.disabled = false;
+            if (btnAffiliate) btnAffiliate.disabled = false;
+            if (btnTrends) btnTrends.disabled = false;
             btnAI.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar com IA';
             btnTrends.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Google Trends';
             loading.style.display = 'none';

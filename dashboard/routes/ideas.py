@@ -58,16 +58,37 @@ def _generate_ideas_from_trends() -> list:
     return []
 
 
+def _generate_buyer_intent_ideas() -> list:
+    """Generate 10 high-converting commercial buyer-intent tech ideas for Amazon Associates monetization."""
+    data = _gemini_call(
+        "Generate 10 high-converting buyer-intent technology and gadget blog post ideas designed for Amazon affiliate monetization. "
+        "Focus on commercial search intent such as: 'Best [gear] under $[price] in 2026', 'Top 5 Must-Have [accessories]', "
+        "'[Product A] vs [Product B]: Which Should You Buy?', or 'Best Budget [tech category] Upgrades in 2026'. "
+        "Avoid purely theoretical topics like history of computing or abstract programming concepts.\n"
+        "Return ONLY a JSON array:\n"
+        '[{"title":"Article title with buyer intent","keyword":"commercial long-tail keyword","cpm_estimate":"$25-45","category":"buyer_intent"}]\n'
+        "No markdown, pure JSON."
+    )
+    result = _parse_json(data)
+    if isinstance(result, list):
+        for idea in result:
+            idea["source"] = "buyer_intent"
+        return result
+    return []
+
+
 @ideas_bp.route("/generate", methods=["POST"])
 @login_required
 def api_generate_ideas():
-    """Generate new article ideas using Gemini AI or Google Trends RSS."""
+    """Generate new article ideas using Gemini AI, Buyer Intent, or Google Trends RSS."""
     try:
         data = request.json or {}
         source = data.get("source", "ai")
 
         if source == "trends":
             ideas = _generate_ideas_from_trends()
+        elif source in ("buyer_intent", "affiliate", "commercial"):
+            ideas = _generate_buyer_intent_ideas()
         else:
             ideas = _generate_ideas_from_gemini()
 

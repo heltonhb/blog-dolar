@@ -187,6 +187,11 @@ def aplicar(plano: dict[str, list[dict]]) -> None:
             continue
         content = post["content_html"]
 
+        bloco_novo = montar_bloco(relacionados)
+        if bloco_novo in post["content_html"]:
+            print(f"  = {slug} (já atualizado)")
+            continue
+
         # remove bloco antigo, se existir
         content = re.sub(
             r"\s*<!-- internal-links -->.*?<!-- /internal-links -->",
@@ -194,8 +199,10 @@ def aplicar(plano: dict[str, list[dict]]) -> None:
             content,
             flags=re.DOTALL,
         )
-        novo = content.rstrip() + montar_bloco(relacionados)
+        novo = content.rstrip() + bloco_novo
 
+        import time
+        time.sleep(2)
         if _atualizar_post(p["id"], novo):
             atualizados += 1
             print(f"  ✓ {slug} ← {len(relacionados)} links")
