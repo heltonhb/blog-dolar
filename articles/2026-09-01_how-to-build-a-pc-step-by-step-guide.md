@@ -5,6 +5,8 @@ slug: how-to-build-a-pc-step-by-step-guide
 meta_description: Ready to build your own computer? Follow our comprehensive build pc guide for beginners. Step-by-step instructions on parts, assembly, and first boot.
 tags: ["PC Building", "Hardware", "Gaming PC", "DIY Tech", "PC Setup"]
 ---
+
+<div class="tech-affiliate-disclosure"><p><small><em><strong>Affiliate Disclosure:</strong> Tech Tips is reader-supported. When you buy through links on our site, we may earn an affiliate commission at no additional cost to you. As an Amazon Associate, we earn from qualifying purchases.</em></small></p></div>
 <p>There is a unique, deeply satisfying feeling that comes with pressing the power button on a computer you built with your own two hands. For years, the world of custom PCs has seemed intimidating—a maze of incompatible parts, static electricity fears, and confusing cable management. But I’m here to tell you a secret: building a PC is basically just expensive, incredibly fun Lego for adults.</p>
 <p>Whether you want a high-end rig for bleeding-edge 4K gaming, a reliable workstation for video editing, or just a snappy daily driver, diving into this <strong>build pc guide</strong> will give you the confidence you need. Let’s demystify the hardware and get your dream machine up and running.</p>
 
@@ -22,6 +24,8 @@ tags: ["PC Building", "Hardware", "Gaming PC", "DIY Tech", "PC Setup"]
   <li><strong>PC Case:</strong> Your computer's skeleton and armor. Pick one with good airflow and enough room for your GPU.</li>
 </ul>
 
+
+<div class="tech-affiliate-card"><p class="affiliate-card-header"><span class="affiliate-badge">RECOMMENDED STORAGE</span> <strong class="affiliate-title">Crucial P3 Plus 1TB PCIe 4.0 NVMe SSD</strong></p><p class="affiliate-desc">Blazing fast PCIe 4.0 M.2 storage (up to 5000 MB/s) — the ideal boot and game drive for custom PC builds.</p><ul class="affiliate-specs"><li>M.2 2280 NVMe PCIe 4.0</li><li>Up to 5000 MB/s read speed</li><li>5-year limited warranty</li></ul><p class="affiliate-action"><a href="https://www.amazon.com/s?k=Crucial+P3+Plus+1TB+PCIe+4.0+NVMe+SSD&amp;tag=heltonhb-20" target="_blank" rel="nofollow sponsored noopener" class="affiliate-btn amazon-btn">Check Price on Amazon</a> <span class="affiliate-subtext">Prices and availability change often</span></p></div>
 <h3>Air Cooling vs. Liquid Cooling: Which is Right for You?</h3>
 <p>When selecting a CPU cooler, you generally have two choices. Let's break them down to see what fits your needs best.</p>
 
@@ -57,9 +61,13 @@ tags: ["PC Building", "Hardware", "Gaming PC", "DIY Tech", "PC Setup"]
   </tbody>
 </table>
 
+
+<div class="tech-affiliate-card"><p class="affiliate-card-header"><span class="affiliate-badge">ESSENTIAL COMPOUND</span> <strong class="affiliate-title">ARCTIC MX-6 High-Performance Thermal Paste</strong></p><p class="affiliate-desc">Easy-to-apply premium thermal compound providing exceptional heat transfer for CPUs and GPUs.</p><ul class="affiliate-specs"><li>Carbon micro-particle filler</li><li>Non-conductive &amp; non-capacitive</li><li>Long-term durability</li></ul><p class="affiliate-action"><a href="https://www.amazon.com/s?k=ARCTIC+MX-6+Thermal+Paste&amp;tag=heltonhb-20" target="_blank" rel="nofollow sponsored noopener" class="affiliate-btn amazon-btn">Check Price on Amazon</a> <span class="affiliate-subtext">Prices and availability change often</span></p></div>
 <h2>Phase 2: Preparation and Tools</h2>
 <p>Preparation is the secret weapon of any successful <strong>build pc guide</strong> follower. Rushing leads to mistakes, bent pins, and frustration. Clear a large, well-lit table or desk. Hardwood floors or a dining table are ideal; avoid carpet entirely due to static electricity risks.</p>
 
+
+<div class="tech-affiliate-card"><p class="affiliate-card-header"><span class="affiliate-badge">ESSENTIAL TOOLKIT</span> <strong class="affiliate-title">iFixit Pro Tech Toolkit</strong></p><p class="affiliate-desc">The industry standard precision screwdriver kit with all specialized bits needed to assemble PC hardware safely.</p><ul class="affiliate-specs"><li>64 precision screwdriver bits</li><li>Anti-static wrist strap included</li><li>Magnetic bit holder &amp; opening tools</li></ul><p class="affiliate-action"><a href="https://www.amazon.com/s?k=iFixit+Pro+Tech+Toolkit+PC+Building&amp;tag=heltonhb-20" target="_blank" rel="nofollow sponsored noopener" class="affiliate-btn amazon-btn">Check Price on Amazon</a> <span class="affiliate-subtext">Prices and availability change often</span></p></div>
 <h3>What You Need on Hand:</h3>
 <ul>
   <li>A magnetic Phillips-head screwdriver (size PH2 is standard).</li>
@@ -94,6 +102,8 @@ tags: ["PC Building", "Hardware", "Gaming PC", "DIY Tech", "PC Setup"]
 <h3>Step 2: Mount the Power Supply</h3>
 <p>Slide your PSU into the bottom chamber of the case. If your PSU is fully modular, only plug in the cables you know you will need right now (24-pin motherboard power, 8-pin CPU power, and PCIe cables for your GPU). Secure the PSU to the back of the case with four screws.</p>
 
+
+<div class="tech-affiliate-card"><p class="affiliate-card-header"><span class="affiliate-badge">BEST PSU</span> <strong class="affiliate-title">Corsair RM750e Fully Modular Power Supply (80+ Gold)</strong></p><p class="affiliate-desc">Quiet, reliable 750W power delivery with modular cables for a clean, clutter-free build interior.</p><ul class="affiliate-specs"><li>80 PLUS Gold certified</li><li>Fully modular cables</li><li>ATX 3.0 &amp; PCIe 5.0 compliant</li></ul><p class="affiliate-action"><a href="https://www.amazon.com/s?k=Corsair+RM750e+Power+Supply+Fully+Modular+80+Gold&amp;tag=heltonhb-20" target="_blank" rel="nofollow sponsored noopener" class="affiliate-btn amazon-btn">Check Price on Amazon</a> <span class="affiliate-subtext">Prices and availability change often</span></p></div>
 <h3>Step 3: Install the Motherboard</h3>
 <p>Double-check that the I/O shield is snapped into the back of the case (if it isn't already integrated into your motherboard). Carefully lower your motherboard assembly into the case, aligning the ports with the I/O shield and the screw holes with the standoffs. Secure it using the motherboard screws, tightening them diagonally.</p>
 

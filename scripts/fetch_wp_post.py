@@ -44,7 +44,7 @@ def _rest_get(url: str) -> str:
         # já usado em antibot.get().
         context = ssl._create_unverified_context()
         try:
-            return urllib.request.urlopen(req, timeout=30, context=context).read().decode()
+            return urllib.request.urlopen(req, timeout=60, context=context).read().decode()
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"REST respondeu {e.code}") from e
 

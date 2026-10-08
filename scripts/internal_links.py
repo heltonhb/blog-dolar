@@ -151,7 +151,7 @@ def _atualizar_post(post_id: int, novo_content: str) -> bool:
             headers=headers, method="PUT",
         )
         try:
-            with urllib.request.urlopen(req, timeout=30, context=_SSL_NOVERIFY) as r:
+            with urllib.request.urlopen(req, timeout=60, context=_SSL_NOVERIFY) as r:
                 return r.read().decode(errors="replace")
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"HTTP {e.code}: {e.read().decode()[:150]}") from e

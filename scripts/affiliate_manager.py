@@ -337,10 +337,212 @@ PRODUCTS: dict[str, list[dict]] = {
             "specs": ["Audited no-logs policy", "Blocks trackers & malicious ads", "30-day money-back guarantee"],
         }
     ],
-    # best-noise-cancelling-headphones-2026: sem mapeamento de propósito — o artigo
-    # descreve modelos fictícios (Apex Pro, SonicBeam, Zenith) e precisa ser
-    # reescrito com produtos reais antes de receber links de afiliado.
+    "best-noise-cancelling-headphones-2026": [
+        {
+            "after_heading": ["Sony WH-1000XM5", "Gold Standard", "Apex Pro"],
+            "title": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+            "subtitle": "Industry-leading active noise cancellation with 8 microphones, Auto NC Optimizer, and high-res audio.",
+            "search_query": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+            "badge": "BEST OVERALL ANC",
+            "specs": ["Auto NC Optimizer", "Up to 30 hours battery life", "Crystal-clear hands-free calling"],
+        },
+        {
+            "after_heading": ["Bose QuietComfort Ultra", "Comfort Champion", "SonicBeam"],
+            "title": "Bose QuietComfort Ultra Wireless Headphones",
+            "subtitle": "World-class quiet, breakthrough spatialized audio, and plush all-day physical comfort.",
+            "search_query": "Bose QuietComfort Ultra Wireless Headphones",
+            "badge": "MOST COMFORTABLE",
+            "specs": ["CustomTune sound calibration", "Quiet, Aware & Immersion modes", "Luxury foldable design"],
+        },
+        {
+            "after_heading": ["Anker Soundcore Space One", "Budget Monster", "Zenith Wireless"],
+            "title": "Anker Soundcore Space One Noise Cancelling Headphones",
+            "subtitle": "Outstanding 2X voice reduction and 55-hour playtime at an unbeatable budget price.",
+            "search_query": "Anker Soundcore Space One Noise Cancelling Headphones",
+            "badge": "BEST BUDGET VALUE",
+            "specs": ["Adaptive active noise cancellation", "Up to 55 hours playtime", "Hi-Res Wireless Audio with LDAC"],
+        },
+    ],
+    "step-by-step-custom-pc-building-guide": [
+        {
+            "after_heading": ["Installing Storage", "Core Components", "Phase 1: Planning and Compatibility", "Storage"],
+            "title": "Crucial P3 Plus 1TB PCIe 4.0 NVMe SSD",
+            "subtitle": "Blazing fast PCIe 4.0 M.2 storage (up to 5000 MB/s) — the ideal boot and game drive for custom PC builds.",
+            "search_query": "Crucial P3 Plus 1TB PCIe 4.0 NVMe SSD",
+            "badge": "RECOMMENDED STORAGE",
+            "specs": ["M.2 2280 NVMe PCIe 4.0", "Up to 5000 MB/s read speed", "5-year limited warranty"],
+        },
+        {
+            "after_heading": ["The Power Supply and Cable Management", "Power Supply", "PSU"],
+            "title": "Corsair RM750e Fully Modular Power Supply (80+ Gold)",
+            "subtitle": "Quiet, reliable 750W power delivery with modular cables for a clean, clutter-free build interior.",
+            "search_query": "Corsair RM750e Power Supply Fully Modular 80 Gold",
+            "badge": "BEST PSU",
+            "specs": ["80 PLUS Gold certified", "Fully modular cables", "ATX 3.0 & PCIe 5.0 compliant"],
+        },
+        {
+            "after_heading": ["Air Cooling vs. Liquid Cooling", "Air Cooling vs. Liquid Cooling", "Cooling"],
+            "title": "ARCTIC MX-6 High-Performance Thermal Paste",
+            "subtitle": "Easy-to-apply premium thermal compound providing exceptional heat transfer for CPUs and GPUs.",
+            "search_query": "ARCTIC MX-6 Thermal Paste",
+            "badge": "ESSENTIAL COMPOUND",
+            "specs": ["Carbon micro-particle filler", "Non-conductive & non-capacitive", "Long-term durability"],
+        },
+        {
+            "after_heading": ["Preparation and Tools", "Motherboard Prep", "Phase 2: The Assembly Process", "Tools"],
+            "title": "iFixit Pro Tech Toolkit",
+            "subtitle": "The industry standard precision screwdriver kit with all specialized bits needed to assemble PC hardware safely.",
+            "search_query": "iFixit Pro Tech Toolkit PC Building",
+            "badge": "ESSENTIAL TOOLKIT",
+            "specs": ["64 precision screwdriver bits", "Anti-static wrist strap included", "Magnetic bit holder & opening tools"],
+        },
+    ],
+    "how-to-choose-a-secure-password-manager": [
+        {
+            "after_heading": ["3. Extra Security Features", "Zero-Knowledge Architecture", "Key Factors"],
+            "title": "Yubico YubiKey 5 NFC Hardware Security Key",
+            "subtitle": "Eliminate account takeovers with the gold standard physical 2FA and passkey authenticator for USB-A and NFC.",
+            "search_query": "Yubico YubiKey 5 NFC Security Key",
+            "badge": "TOP HARDWARE 2FA",
+            "specs": ["FIDO2 / WebAuthn & U2F compliant", "NFC touch for iPhone & Android", "Crush-resistant & water-resistant"],
+        },
+        {
+            "after_heading": ["Cross-Platform Syncing", "Comparing Popular Security Models"],
+            "title": "Yubico YubiKey 5C NFC Security Key (USB-C)",
+            "subtitle": "Modern USB-C security key for laptops, tablets, and smartphones with lightning-fast tap-to-authenticate.",
+            "search_query": "Yubico YubiKey 5C NFC USB-C Security Key",
+            "badge": "BEST USB-C KEY",
+            "specs": ["USB-C & NFC dual interface", "Multi-protocol authentication", "Hardware phishing defense"],
+        },
+    ],
+    "top-essential-tech-tips-2026": [
+        {
+            "after_heading": ["Two-Factor Authentication", "2. Turn On Two-Factor Authentication Everywhere"],
+            "title": "Yubico YubiKey 5 NFC Hardware Security Key",
+            "subtitle": "The most effective hardware defense against phishing and password theft across all your online accounts.",
+            "search_query": "Yubico YubiKey 5 NFC Security Key",
+            "badge": "BEST 2FA DEFENSE",
+            "specs": ["FIDO2 / WebAuthn standard", "NFC wireless & USB-A", "Works with Google, Apple, Microsoft"],
+        },
+        {
+            "after_heading": ["Automate Your Backups", "3. Automate Your Backups Before You Need Them"],
+            "title": "SanDisk 1TB Extreme Portable SSD",
+            "subtitle": "Rugged, high-speed external USB-C drive for automated offline backups of photos, documents, and system images.",
+            "search_query": "SanDisk 1TB Extreme Portable SSD USB-C",
+            "badge": "BEST BACKUP DRIVE",
+            "specs": ["Up to 1050MB/s read speeds", "IP65 water & dust resistance", "Compact carabiner loop design"],
+        },
+        {
+            "after_heading": ["Secure Your Home Wi-Fi", "8. Secure Your Home Wi-Fi in 10 Minutes"],
+            "title": "TP-Link RE700X Wi-Fi 6 Range Extender (AX3000)",
+            "subtitle": "Boost your home network speed and eliminate dead zones with dual-band Wi-Fi 6 and gigabit Ethernet port.",
+            "search_query": "TP-Link RE700X WiFi 6 Range Extender AX3000",
+            "badge": "BEST WI-FI UPGRADE",
+            "specs": ["AX3000 dual-band Wi-Fi 6", "Built-in Gigabit Ethernet port", "OneMesh smart roaming support"],
+        },
+    ],
+    "how-to-fix-slow-wifi-troubleshooting-guide": [
+        {
+            "after_heading": ["Consider Upgrading Your Hardware", "When to Invest in a Mesh System", "Step 8"],
+            "title": "TP-Link RE700X Wi-Fi 6 Mesh Range Extender",
+            "subtitle": "Eliminate dead spots and expand ultra-fast gigabit wireless throughout your entire home or office.",
+            "search_query": "TP-Link RE700X WiFi 6 Range Extender AX3000",
+            "badge": "BEST WI-FI EXTENDER",
+            "specs": ["Dual band AX3000 speeds", "Gigabit port for wired backhaul", "Universal router compatibility"],
+        },
+        {
+            "after_heading": ["Router Placement", "Analyze Router Placement and Physical Obstacles", "Step 3"],
+            "title": "Cat 8 Braided Gigabit Ethernet Cable (25ft)",
+            "subtitle": "High-speed shielded network cable for low-latency gaming, streaming, and maximum throughput stability.",
+            "search_query": "Cat 8 Braided Gigabit Ethernet Cable",
+            "badge": "BEST WIRED CONNECTION",
+            "specs": ["Up to 40Gbps transmission", "2000MHz bandwidth shielding", "Durable nylon braided exterior"],
+        },
+        {
+            "after_heading": ["Isolate the Problem", "Step 2: Isolate the Problem", "Step 2"],
+            "title": "TP-Link Archer TX20U Plus Wi-Fi 6 USB Adapter",
+            "subtitle": "Instant Wi-Fi 6 upgrade for older laptops and desktops with high-gain dual antennas.",
+            "search_query": "TP-Link Archer TX20U Plus WiFi 6 USB Adapter",
+            "badge": "BEST PC ADAPTER",
+            "specs": ["Dual high-gain antennas", "AX1800 speeds", "USB 3.0 plug and play"],
+        },
+    ],
+    "how-to-speed-up-your-computer": [
+        {
+            "after_heading": ["Upgrade Your RAM", "Add More Memory", "RAM"],
+            "title": "Corsair Vengeance LPX 16GB (2x8GB) DDR4 RAM",
+            "subtitle": "Low-profile, high-performance desktop memory upgrade for responsive multitasking and smoother daily computing.",
+            "search_query": "Corsair Vengeance LPX 16GB DDR4 RAM Desktop",
+            "badge": "BEST RAM UPGRADE",
+            "specs": ["3200MHz DDR4 speed", "Pure aluminum heat spreader", "Compatible with Intel and AMD"],
+        },
+        {
+            "after_heading": ["Upgrade to an SSD", "Hard Drive vs SSD", "Storage"],
+            "title": "Crucial P3 Plus 1TB PCIe 4.0 NVMe SSD",
+            "subtitle": "Transform an agonizingly slow boot process into near-instantaneous load times with top-value PCIe 4.0 storage.",
+            "search_query": "Crucial P3 Plus 1TB PCIe 4.0 NVMe SSD",
+            "badge": "BEST SPEED UPGRADE",
+            "specs": ["Up to 5000 MB/s sequential reads", "Micron Advanced 3D NAND", "5-year limited warranty"],
+        },
+        {
+            "after_heading": ["Clean Out Dust", "Overheating", "Physical Maintenance"],
+            "title": "Electric Compressed Air Duster for PC Cleaning",
+            "subtitle": "Cordless, reusable high-power air blower to safely clear dust buildup from fans, keyboards, and PC cases.",
+            "search_query": "Electric Compressed Air Duster PC Keyboard Cleaning",
+            "badge": "ESSENTIAL CLEANING TOOL",
+            "specs": ["Cordless rechargeable battery", "Up to 100,000 RPM motor", "Multiple precision nozzles included"],
+        },
+    ],
+    "best-way-to-organize-digital-photos-across-devices": [
+        {
+            "after_heading": ["External Hard Drives", "Backup Strategy", "Physical Storage"],
+            "title": "SanDisk 1TB Extreme Portable SSD",
+            "subtitle": "Ultra-fast, rugged external SSD with up to 1050MB/s speeds for quick photo library backups and video editing.",
+            "search_query": "SanDisk 1TB Extreme Portable SSD USB-C",
+            "badge": "TOP BACKUP PICK",
+            "specs": ["Up to 1050MB/s read speeds", "IP65 water & dust resistance", "USB-C and USB-A compatible"],
+        },
+        {
+            "after_heading": ["Transferring Between Devices", "Mobile Backup", "Cloud vs Local"],
+            "title": "SanDisk 128GB Ultra Dual Drive Luxe USB Type-C",
+            "subtitle": "All-metal 2-in-1 flash drive with USB Type-C and Type-A connectors to easily move photos between phones and PCs.",
+            "search_query": "SanDisk Ultra Dual Drive Luxe USB Type-C 128GB",
+            "badge": "BEST PHONE TRANSFER DRIVE",
+            "specs": ["Dual USB-C and USB-A connectors", "Up to 400MB/s transfer speeds", "All-metal swivel housing"],
+        },
+    ],
+    "wifi-7-explained": [
+        {
+            "after_heading": ["Do You Actually Need to Upgrade Right Now?", "Upgrade Right Now"],
+            "title": "TP-Link Archer BE550 Tri-Band Wi-Fi 7 Router",
+            "subtitle": "Blazing-fast tri-band Wi-Fi 7 speeds up to 9214 Mbps with 2.5G ports and MLO technology.",
+            "search_query": "TP-Link Archer BE550 WiFi 7 Router",
+            "badge": "TOP WI-FI 7 ROUTER",
+            "specs": ["Tri-band 9.2 Gbps Wi-Fi 7", "Five 2.5 Gbps ports", "Multi-Link Operation (MLO) support"],
+        },
+        {
+            "after_heading": ["Practical Use Cases for WiFi 7", "Use Cases"],
+            "title": "TP-Link Archer TBE550E Wi-Fi 7 PCIe Adapter",
+            "subtitle": "Upgrade your desktop PC to next-gen Wi-Fi 7 and Bluetooth 5.4 with magnetic multi-directional antennas.",
+            "search_query": "TP-Link Archer TBE550E WiFi 7 PCIe Card",
+            "badge": "BEST PC WI-FI 7 UPGRADE",
+            "specs": ["Tri-band BE9300 wireless", "Bluetooth 5.4 included", "Magnetic antenna base"],
+        },
+        {
+            "after_heading": ["Wrapping Up Your Wireless Upgrade Journey", "Wrapping Up"],
+            "title": "TP-Link Deco BE63 Mesh Wi-Fi 7 System (2-Pack)",
+            "subtitle": "Whole-home Wi-Fi 7 coverage up to 5,000 sq ft eliminating dead zones with multi-gigabit mesh backhaul.",
+            "search_query": "TP-Link Deco BE63 Mesh WiFi 7 System",
+            "badge": "BEST WI-FI 7 MESH",
+            "specs": ["Covers up to 5,000 sq. ft.", "Tri-band BE10000 mesh", "Four 2.5 Gbps ports per node"],
+        },
+    ],
 }
+
+# Aliases de slugs locais vs slugs do WordPress
+PRODUCTS["how-to-build-a-pc-step-by-step-guide"] = PRODUCTS["step-by-step-custom-pc-building-guide"]
+PRODUCTS["how-to-speed-up-windows-11-pc"] = PRODUCTS["how-to-speed-up-your-computer"]
+PRODUCTS["how-to-fix-high-ping-and-packet-loss"] = PRODUCTS["how-to-fix-slow-wifi-troubleshooting-guide"]
 
 
 def get_products_for_slug(slug: str) -> list[dict]:
@@ -349,6 +551,10 @@ def get_products_for_slug(slug: str) -> list[dict]:
         return PRODUCTS[slug]
 
     slug_lower = slug.lower()
+    if any(k in slug_lower for k in ("headphone", "audio", "earbuds", "noise-cancelling")):
+        return PRODUCTS.get("best-noise-cancelling-headphones-2026", [])
+    if any(k in slug_lower for k in ("build-a-pc", "custom-pc", "pc-building")):
+        return PRODUCTS.get("step-by-step-custom-pc-building-guide", [])
     if any(k in slug_lower for k in ("ssd", "hdd", "nvme", "storage", "hard-drive")):
         return PRODUCTS.get("ssd-vs-hdd-storage-difference") or PRODUCTS.get("nvme-ssd-vs-sata-ssd-vs-hdd", [])
     if any(k in slug_lower for k in ("laptop", "notebook", "ultrabook", "chromebook")):
@@ -357,6 +563,14 @@ def get_products_for_slug(slug: str) -> list[dict]:
         return PRODUCTS.get("top-5-best-portable-power-banks-in-2026", [])
     if any(k in slug_lower for k in ("monitor", "display", "screen", "work-from-home")):
         return PRODUCTS.get("best-monitors-work-from-home", [])
+    if any(k in slug_lower for k in ("wifi", "wi-fi", "ping", "packet-loss", "network")):
+        return PRODUCTS.get("how-to-fix-slow-wifi-troubleshooting-guide", [])
+    if any(k in slug_lower for k in ("speed-up", "slow-pc", "slow-computer", "speed-up-windows")):
+        return PRODUCTS.get("how-to-speed-up-your-computer", [])
+    if any(k in slug_lower for k in ("photo", "backup", "photos")):
+        return PRODUCTS.get("best-way-to-organize-digital-photos-across-devices", [])
+    if any(k in slug_lower for k in ("password", "passwords", "security-key")):
+        return PRODUCTS.get("how-to-choose-a-secure-password-manager", [])
     if any(k in slug_lower for k in ("privacy", "vpn", "cybersecurity")):
         return PRODUCTS.get("how-to-protect-your-digital-privacy-online", [])
     return []
@@ -489,21 +703,41 @@ def _wp():
     return SITE, _rest_get, _atualizar_post
 
 
-def _wp_posts(rest_get, site: str) -> list[dict]:
-    raw = rest_get(f"{site}/wp-json/wp/v2/posts?per_page=100&context=edit&_fields=id,slug,link,content")
+def _wp_list_posts(rest_get, site: str) -> list[dict]:
+    """Lista metadados leves de todos os posts (id, slug, link)."""
+    raw = rest_get(f"{site}/wp-json/wp/v2/posts?per_page=100&_fields=id,slug,link")
     return json.loads(raw)
+
+
+def _wp_get_post(rest_get, site: str, post_id: int) -> dict:
+    """Carrega o conteúdo editável de um post específico."""
+    raw = rest_get(f"{site}/wp-json/wp/v2/posts/{post_id}?context=edit&_fields=id,slug,link,content")
+    return json.loads(raw)
+
+
+def _wp_posts(rest_get, site: str) -> list[dict]:
+    """Compatibilidade: carrega todos os posts com conteúdo em lote (apenas metadados + conteúdo por post se necessário)."""
+    metas = _wp_list_posts(rest_get, site)
+    full = []
+    for m in metas:
+        try:
+            full.append(_wp_get_post(rest_get, site, m["id"]))
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar post {m['id']}: {e}")
+    return full
 
 
 def inject_wp(tag: str, only_slug: str | None = None, dry_run: bool = False) -> int:
     site, rest_get, put = _wp()
-    posts = {p["slug"]: p for p in _wp_posts(rest_get, site)}
+    posts_meta = {p["slug"]: p for p in _wp_list_posts(rest_get, site)}
     targets = [only_slug] if only_slug else list(PRODUCTS)
     updated = 0
     for slug in targets:
-        post = posts.get(slug)
-        if not post:
+        meta = posts_meta.get(slug)
+        if not meta:
             print(f"[-] {slug}: não publicado no WordPress — pulando")
             continue
+        post = _wp_get_post(rest_get, site, meta["id"])
         raw = post["content"]["raw"]
         new, warnings = apply_affiliate_content(raw, slug, tag)
         for w in warnings:
@@ -530,7 +764,10 @@ def check_wp(tag: str) -> bool:
     """Audita os posts vivos: tag correta, rel sponsored e disclosure presentes."""
     site, rest_get, _ = _wp()
     ok = True
-    for p in _wp_posts(rest_get, site):
+    posts_meta = _wp_list_posts(rest_get, site)
+    for meta in posts_meta:
+        # Apenas audita posts com produtos mapeados ou posts gerais
+        p = _wp_get_post(rest_get, site, meta["id"])
         c = p["content"]["raw"]
         links = re.findall(r'<a [^>]*href="(https://www\.amazon\.com/[^"]+)"[^>]*>', c)
         if not links:
