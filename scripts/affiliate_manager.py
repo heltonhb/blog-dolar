@@ -146,15 +146,60 @@ def render_vpn_card(product: dict, cta_url: str) -> str:
     )
 
 
+def render_quick_recommendations(slug: str, tag: str, max_items: int = 3) -> str:
+    """Caixa de recomendações rápidas acima da dobra (top escolhas). Linha única (wpautop-safe)."""
+    products = get_products_for_slug(slug)
+    if len(products) < 2:
+        return ""
+    items = products[:max_items]
+    esc = html.escape
+    items_html = []
+    for p in items:
+        if p.get("type") == "vpn":
+            url = _env("NORDVPN_AFFILIATE_URL")
+            if not url:
+                continue
+            btn_txt = f"Get {p.get('provider', 'VPN')}"
+        else:
+            url = generate_amazon_url(p.get("asin") or p["search_query"], tag)
+            btn_txt = "Check Price on Amazon"
+
+        badge = esc(p.get("badge", "TOP PICK"))
+        title = esc(p["title"])
+        subtitle = esc(p["subtitle"])
+        items_html.append(
+            f'<div class="quick-pick-item">'
+            f'<div class="quick-pick-badge">{badge}</div>'
+            f'<strong class="quick-pick-title">{title}</strong>'
+            f'<p class="quick-pick-desc">{subtitle}</p>'
+            f'<a href="{esc(url)}" target="_blank" rel="nofollow sponsored noopener" class="quick-pick-btn amazon-btn">{esc(btn_txt)} &rarr;</a>'
+            f'</div>'
+        )
+    if not items_html:
+        return ""
+    cards_str = "".join(items_html)
+    return (
+        f'<div class="tech-quick-picks" data-affiliate="quick-picks">'
+        f'<div class="quick-picks-header">'
+        f'<span class="quick-picks-tag">⚡ AT A GLANCE</span>'
+        f'<h3 class="quick-picks-title">Our Top Recommendations &amp; Quick Picks</h3>'
+        f'</div>'
+        f'<div class="quick-picks-grid">{cards_str}</div>'
+        f'</div><!-- /tech-quick-picks -->'
+    )
+
+
 # Blocos gerados por este script (formato em linha única, ver render_*).
 _CARD_RE = re.compile(r'\n?<div class="tech-affiliate-card[^"]*">.*?</p></div>\n?', re.DOTALL)
+_QUICK_PICKS_RE = re.compile(r'\n?<div class="tech-quick-picks"[^>]*>.*?</div><!-- /tech-quick-picks -->\n?', re.DOTALL)
 _DISCLOSURE_RE = re.compile(r'\n?<div class="tech-affiliate-disclosure">.*?</p></div>\n?', re.DOTALL)
 # Formato legado (cartões multilinha com comentários) — não sabemos removê-lo com segurança.
 _LEGACY_MARKERS = ("<!-- Affiliate Product Card Start -->", "<!-- Affiliate VPN Card Start -->")
 
 
 def strip_affiliate_blocks(content: str) -> str:
-    """Remove cartões e disclosure gerados anteriormente (reinjeção idempotente)."""
+    """Remove cartões, quick-picks e disclosure gerados anteriormente (reinjeção idempotente)."""
+    content = _QUICK_PICKS_RE.sub("", content)
     content = _CARD_RE.sub("", content)
     return _DISCLOSURE_RE.sub("", content)
 
@@ -621,8 +666,15 @@ def build_blocks(slug: str, tag: str) -> tuple[list[tuple[str, str]], list[str]]
     return blocks, warnings
 
 
-def apply_affiliate_content(content: str, slug: str, tag: str, *, has_frontmatter: bool = False) -> tuple[str, list[str]]:
-    """Remove blocos antigos e injeta cartões + disclosure. Retorna (conteúdo, avisos)."""
+def apply_affiliate_content(
+    content: str,
+    slug: str,
+    tag: str,
+    *,
+    has_frontmatter: bool = False,
+    include_quick_picks: bool = True,
+) -> tuple[str, list[str]]:
+    """Remove blocos antigos e injeta cartões + quick-picks + disclosure. Retorna (conteúdo, avisos)."""
     if any(mk in content for mk in _LEGACY_MARKERS):
         raise ValueError("conteúdo contém cartões no formato legado — restaure o original antes")
 
@@ -638,6 +690,28 @@ def apply_affiliate_content(content: str, slug: str, tag: str, *, has_frontmatte
 
     if "tech-affiliate-card" not in content:
         return strip_affiliate_blocks(content), warnings
+
+    if include_quick_picks:
+        quick_box = render_quick_recommendations(slug, tag)
+        if quick_box:
+            inserted = False
+            m_intro = re.search(r'<h[23][^>]*>.*?(?:intro|introduction).*?</h[23]>', content, re.IGNORECASE)
+            if m_intro:
+                m_next = re.search(r'<h2[\s>]', content[m_intro.end():], re.IGNORECASE)
+                if m_next:
+                    pos = m_intro.end() + m_next.start()
+                    content = content[:pos] + "\n" + quick_box + "\n" + content[pos:]
+                    inserted = True
+            if not inserted:
+                m_first = re.search(r'<h2[\s>]', content, re.IGNORECASE)
+                if m_first:
+                    pos = m_first.start()
+                    content = content[:pos] + "\n" + quick_box + "\n" + content[pos:]
+                    inserted = True
+            if not inserted:
+                stop = re.search(r'<!-- internal-links -->', content, re.IGNORECASE)
+                pos = stop.start() if stop else len(content)
+                content = content[:pos] + "\n" + quick_box + "\n" + content[pos:]
 
     disclosure = render_affiliate_disclosure()
     fm = re.match(r"---\n.*?\n---\n", content, re.DOTALL) if has_frontmatter else None

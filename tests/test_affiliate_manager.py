@@ -88,7 +88,22 @@ def test_inject_is_idempotent_and_strip_restores_original():
 def test_retag_replaces_old_tag():
     old, _ = am.apply_affiliate_content(POST, SLUG, "old-20")
     new, _ = am.apply_affiliate_content(old, SLUG, TAG)
-    assert "tag=old-20" not in new and new.count(f"tag={TAG}") == 4
+    # 4 cartões de seção + 3 quick picks no topo = 7 links de afiliado
+    assert "tag=old-20" not in new and new.count(f"tag={TAG}") == 7
+
+
+def test_quick_recommendations_wpautop_safe():
+    box = am.render_quick_recommendations(SLUG, TAG)
+    assert "\n" not in box  # linha única: wpautop-safe
+    assert 'class="tech-quick-picks"' in box
+    assert box.count('class="quick-pick-item"') == 3
+    assert 'rel="nofollow sponsored noopener"' in box
+    assert f"tag={TAG}" in box
+
+
+def test_quick_recommendations_skipped_for_single_or_empty():
+    assert am.render_quick_recommendations("how-to-protect-your-digital-privacy-online", TAG) == ""
+    assert am.render_quick_recommendations("non-existent-slug", TAG) == ""
 
 
 def test_missing_heading_is_reported_not_appended():

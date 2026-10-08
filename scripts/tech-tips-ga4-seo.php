@@ -309,6 +309,93 @@ function tech_tips_affiliate_styles()
         font-size: 0.82rem;
         color: #64748b;
       }
+      /* Quick Recommendations Box (Above the Fold) */
+      .tech-quick-picks {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px 22px;
+        margin: 25px 0 32px 0;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+      }
+      .quick-picks-header {
+        margin-bottom: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 10px;
+      }
+      .quick-picks-tag {
+        display: inline-block;
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .quick-picks-title {
+        margin: 4px 0 0 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+      }
+      .quick-picks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 16px;
+      }
+      .quick-pick-item {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .quick-pick-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      }
+      .quick-pick-badge {
+        font-size: 0.70rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        color: #059669;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        padding: 3px 8px;
+        border-radius: 4px;
+        align-self: flex-start;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+      .quick-pick-title {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        line-height: 1.3 !important;
+        margin: 0 0 8px 0 !important;
+      }
+      .quick-pick-desc {
+        font-size: 0.88rem !important;
+        color: #475569 !important;
+        line-height: 1.45 !important;
+        margin: 0 0 16px 0 !important;
+        flex-grow: 1;
+      }
+      .quick-pick-btn {
+        display: inline-block;
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.88rem;
+        padding: 10px 14px;
+        border-radius: 6px;
+        text-decoration: none !important;
+      }
       @media (prefers-color-scheme: dark) {
         .tech-affiliate-card {
           background: #1e293b;
@@ -331,6 +418,31 @@ function tech_tips_affiliate_styles()
         }
         .affiliate-action {
           border-top-color: #334155;
+        }
+        .tech-quick-picks {
+          background: #0f172a;
+          border-color: #334155;
+        }
+        .quick-picks-header {
+          border-bottom-color: #334155;
+        }
+        .quick-picks-title {
+          color: #f8fafc !important;
+        }
+        .quick-pick-item {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        .quick-pick-title {
+          color: #f8fafc !important;
+        }
+        .quick-pick-desc {
+          color: #cbd5e1 !important;
+        }
+        .quick-pick-badge {
+          background: #064e3b;
+          color: #6ee7b7;
+          border-color: #047857;
         }
       }
     </style>
@@ -410,8 +522,8 @@ function tech_tips_affiliate_tracking_footer()
           var href = el.getAttribute("href") || "";
           var network = networkOf(href);
           if (network === "other") { return; }
-          var card = el.closest ? el.closest(".tech-affiliate-card") : null;
-          var titleEl = card ? card.querySelector(".affiliate-title") : null;
+          var card = el.closest ? el.closest(".tech-affiliate-card, .quick-pick-item") : null;
+          var titleEl = card ? card.querySelector(".affiliate-title, .quick-pick-title") : null;
           gtag("event", "affiliate_click", {
             affiliate_network: network,
             link_url: href,
