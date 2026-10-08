@@ -92,6 +92,24 @@ O objetivo agora é transformar tarefas manuais de terminal em fluxos integrados
 
 ---
 
+### 📌 Automação 6: Auto-Publicação e Agendamento de Pins no Pinterest
+* **Problema atual:** As imagens dos Pins e textos SEO são gerados localmente (`pin_variations.json`), mas o usuário precisa postar manualmente no Pinterest um por um, ou lidar com tokens expirados da API.
+* **Solução Completa:**
+  1. **Fila de Publicação (Drip-Feed Queue):**
+     - Cada variação de Pin gerada entra na fila com status: `pending`, `scheduled` ou `published`.
+     - Um cron no agendador (`/scheduler`) roda 1 ou 2 vezes ao dia (ex: 11h e 17h — horários de pico nos EUA) pegando o próximo Pin pendente.
+  2. **Hospedagem Automática da Imagem do Pin:**
+     - A API do Pinterest exige uma URL pública da imagem. O app faz upload automático da imagem local (`pin-*.png`) para o WordPress via `_wp_upload_media()`, obtendo a URL pública definitiva em `https://techtips.dpdns.org/wp-content/uploads/...`.
+  3. **Direcionamento para a Safe Bridge em Inglês:**
+     - O link do Pin no Pinterest aponta para a ponte segura traduzida (`https://techtips.dpdns.org/p/{slug}`), protegendo a conta contra bloqueios por link direto de afiliados.
+  4. **Modo Duplo de Postagem (API vs CSV Bulk Scheduler):**
+     - **Canal A (API v5 Automática):** Se `PINTEREST_ACCESS_TOKEN` estiver ativo, o Scheduler faz o POST direto na API com `refresh_access_token()` automático em caso de 401.
+     - **Canal B (Exportador CSV para Pinterest Business):** Botão no painel que gera o CSV oficial do Pinterest com todos os Pins pendentes já preenchidos (Título, Descrição, URL da imagem, Link da Bridge, Data de agendamento e Board). Permite agendar dezenas de Pins de uma só vez na interface web do Pinterest Business sem depender de tokens de desenvolvedor.
+  5. **Espaçamento Anti-Spam:**
+     - O sistema nunca posta todos os Pins no mesmo instante; espalha as 3 variações do mesmo artigo ao longo de dias diferentes (ex: Variação 1 na segunda, Variação 2 na quarta, Variação 3 no sábado).
+
+---
+
 ## 3. Roteiro Prático de Retomada (Passo a Passo)
 
 Quando formos implementar essas automações:
@@ -102,14 +120,22 @@ Quando formos implementar essas automações:
 3. Integrar no `_wp_publish` em [`dashboard/services/wordpress.py`](file:///home/helton/blog-dolar/dashboard/services/wordpress.py) a chamada obrigatória do `apply_affiliate_content`.
 4. Criar testes unitários em `tests/test_affiliate_manager.py` e `tests/test_publish.py`.
 
-### Fase 2: Hooks de Background (Automações 3 e 4)
+### Fase 2: Geração de Pins e Interlinking em Background (Automações 3 e 4)
 1. Criar `dashboard/services/post_hooks.py` contendo:
    - `trigger_post_publish_tasks(slug, post_id)` executado em background thread.
    - Tarefa 1: `generate_pins_for_slug(slug)`
    - Tarefa 2: `recalc_internal_links(slug)`
 2. Exibir status de progresso das tarefas no Dashboard.
 
-### Fase 3: Piloto Automático no Scheduler (Automação 5)
+### Fase 3: Motor de Auto-Publicação no Pinterest (Automação 6)
+1. Criar `dashboard/services/pinterest_queue.py`:
+   - Gestão da fila de Pins (`list_pending()`, `mark_published()`).
+   - `publish_next_pin()`: upload da imagem para o WP + post na API v5 com Safe Bridge.
+   - `export_pinterest_csv()`: exporta planilha oficial para agendamento em lote nativo no Pinterest Business.
+2. Conectar a tarefa diária no agendador (`scheduler.py`) para disparar 1 Pin às 11:00 e 1 Pin às 17:00.
+3. Exibir a galeria de Pins pendentes/publicados na interface `/pinterest` do painel com botão de "Publicar Agora".
+
+### Fase 4: Piloto Automático Geral no Scheduler (Automação 5)
 1. Integrar o workflow de 1-clique em [`dashboard/routes/scheduler.py`](file:///home/helton/blog-dolar/dashboard/routes/scheduler.py).
 2. Adicionar botão "Executar Ciclo Completo de Monetização" no dashboard.
 
@@ -118,9 +144,11 @@ Quando formos implementar essas automações:
 ## 4. Arquivos Envolvidos e Referências
 
 - [`scripts/affiliate_manager.py`](file:///home/helton/blog-dolar/scripts/affiliate_manager.py): Gestor de cartões, Quick Picks e tags.
-- [`scripts/generate_pin_variations.py`](file:///home/helton/blog-dolar/scripts/generate_pin_variations.py): Motor multi-pin vertical.
+- [`scripts/generate_pin_variations.py`](file:///home/helton/blog-dolar/scripts/generate_pin_variations.py): Motor multi-pin vertical com text overlay.
+- [`scripts/pinterest_publish.py`](file:///home/helton/blog-dolar/scripts/pinterest_publish.py): Cliente da API v5 do Pinterest com refresh de token.
+- [`dashboard/routes/pinterest.py`](file:///home/helton/blog-dolar/dashboard/routes/pinterest.py): Rotas da interface e API do Pinterest.
 - [`scripts/internal_links.py`](file:///home/helton/blog-dolar/scripts/internal_links.py): Motor de interlinking com delay anti-rate limit.
-- [`dashboard/services/wordpress.py`](file:///home/helton/blog-dolar/dashboard/services/wordpress.py): Publicação via REST com bypass de anti-bot.
+- [`dashboard/services/wordpress.py`](file:///home/helton/blog-dolar/dashboard/services/wordpress.py): Publicação via REST e upload de imagens para WP media.
 - [`dashboard/routes/ideas.py`](file:///home/helton/blog-dolar/dashboard/routes/ideas.py): Gerador de ideias com filtro de Buyer Intent.
 - [`dashboard/templates/ideas.html`](file:///home/helton/blog-dolar/dashboard/templates/ideas.html): Interface com botão de Buyer Intent.
 - [`docs/PLANO_ACAO_AMAZON_2026.md`](file:///home/helton/blog-dolar/docs/PLANO_ACAO_AMAZON_2026.md): Diagnóstico e estratégia de comissões em dólar.
