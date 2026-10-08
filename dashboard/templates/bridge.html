@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -315,7 +315,7 @@
                 <div class="brand-icon">⚡</div>
                 <span>{{ article.site_name }}</span>
             </a>
-            <span class="brand-badge">✓ Verificado</span>
+            <span class="brand-badge">✓ Verified</span>
         </div>
 
         <!-- Main Card -->
@@ -331,7 +331,7 @@
                     {% for tag in article.tags[:2] %}
                     <span class="tag-pill">{{ tag }}</span>
                     {% endfor %}
-                    <span class="reading-pill">⏱️ {{ article.reading_time }} de leitura</span>
+                    <span class="reading-pill">⏱️ {{ article.reading_time }} read</span>
                 </div>
 
                 <h1 class="article-title">{{ article.title }}</h1>
@@ -339,7 +339,7 @@
 
                 {% if article.highlights %}
                 <div class="highlights-box">
-                    <div class="highlights-title">📌 Neste guia prático:</div>
+                    <div class="highlights-title">📌 In this buyer's guide:</div>
                     <ul class="highlights-list">
                         {% for item in article.highlights %}
                         <li><span class="check-icon">✓</span> <span>{{ item }}</span></li>
@@ -351,18 +351,18 @@
                 <!-- Call to Action -->
                 <div class="cta-container">
                     <a id="btn-read-full" href="{{ article.post_url }}" class="cta-btn" rel="noopener">
-                        <span>Acessar Artigo Completo</span>
+                        <span>Read Full Guide & Top Picks</span>
                         <span>➜</span>
                     </a>
 
                     {% if article.redirect_seconds and article.redirect_seconds > 0 %}
                     <div class="countdown-notice" id="countdown-wrap">
-                        Redirecionando automaticamente em <strong id="timer">{{ article.redirect_seconds }}</strong>s...
+                        Redirecting automatically in <strong id="timer">{{ article.redirect_seconds }}</strong>s...
                     </div>
                     {% endif %}
 
                     <a href="{{ article.post_url }}" class="cta-btn-alt" rel="noopener">
-                        Abrir diretamente no site oficial
+                        Open directly on official website
                     </a>
                 </div>
             </div>
@@ -370,8 +370,8 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p>© 2026 {{ article.site_name }}. Conteúdo editorial independente.</p>
-            <p style="margin-top: 4px;">Dica: Salve este pin no Pinterest para consultar mais tarde.</p>
+            <p>© 2026 {{ article.site_name }}. Independent editorial tech reviews.</p>
+            <p style="margin-top: 4px;">Tip: Save this pin on Pinterest to revisit anytime.</p>
         </footer>
     </div>
 

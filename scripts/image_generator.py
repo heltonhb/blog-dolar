@@ -49,7 +49,7 @@ ASPECT_RATIOS = {
 
 # Dimensions for Pollinations fallback (which uses width/height, not aspect ratio)
 DIMENSIONS = {
-    "pinterest": (1000, 1500),
+    "pinterest": (768, 1152),
     "featured": (1200, 675),
     "inline": (800, 450),
     "square": (1024, 1024),
@@ -422,24 +422,27 @@ def generate_image_pollinations(
     # Enhance prompt for better quality
     enhanced = f"professional, high quality, detailed, sharp focus, 4k, {prompt}"
     encoded_prompt = urllib.parse.quote(enhanced)
-    url_flux = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
+    url_turbo = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=turbo"
     url_base = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
+    url_flux = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
 
-    with httpx.Client(timeout=120, follow_redirects=True) as client:
-        try:
-            resp = client.get(url_flux)
-            resp.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code in (402, 404, 500, 502, 503):
-                resp = client.get(url_base)
-                resp.raise_for_status()
-            else:
-                raise
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
 
-    if len(resp.content) < 5000:
-        raise ValueError(f"Pollinations returned too-small image ({len(resp.content)} bytes)")
+    with httpx.Client(headers=headers, timeout=120, follow_redirects=True) as client:
+        for attempt in range(3):
+            for candidate_url in (url_turbo, url_base, url_flux):
+                try:
+                    resp = client.get(candidate_url)
+                    if resp.status_code == 200 and len(resp.content) >= 5000:
+                        return resp.content
+                except Exception:
+                    continue
+            if attempt < 2:
+                time.sleep(3)
 
-    return resp.content
+    raise ValueError(f"Pollinations returned invalid or too-small image")
 
 
 def generate_image_together(

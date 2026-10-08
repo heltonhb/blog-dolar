@@ -152,13 +152,13 @@ def resolve_article_for_bridge(slug: str) -> dict:
         excerpt = meta_desc
     if not highlights:
         highlights = [
-            f"Principais diretrizes e fundamentos práticos sobre {title}",
-            "Técnicas modernas recomendadas por especialistas da área",
-            "Otimizações essenciais de performance e usabilidade",
-            "Dicas passo a passo para aplicar no seu fluxo de trabalho",
+            f"Key takeaways and core buying factors for {title}",
+            "Tested recommendations and performance benchmarks",
+            "Budget vs premium comparisons and top value picks",
+            "Step-by-step setup and real-world buyer tips",
         ]
     if not tags:
-        tags = ["Tecnologia", "Web Design", "Dicas", "Tutorial"]
+        tags = ["Technology", "Gadgets", "Reviews", "Hardware Guide"]
 
     # Image fallback if not found
     if not image_url:

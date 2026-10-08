@@ -33,7 +33,8 @@ def test_bridge_page_renders_with_fallback_slug(client):
     assert 'property="og:image"' in html
     assert 'name="p:domain_verify"' in html
     assert "https://techtips.dpdns.org/responsive-web-design-best-practices-2024/" in html
-    assert "Acessar Artigo Completo" in html
+    assert "Read Full Guide & Top Picks" in html
+    assert "Verified" in html
 
 
 def test_bridge_page_renders_with_existing_article(client):
@@ -43,7 +44,7 @@ def test_bridge_page_renders_with_existing_article(client):
     html = resp.get_data(as_text=True)
     assert "Power Banks" in html
     assert 'rel="canonical"' in html
-    assert "Acessar Artigo Completo" in html
+    assert "Read Full Guide & Top Picks" in html
 
 
 def test_bridge_route_alias(client):
