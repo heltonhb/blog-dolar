@@ -90,10 +90,14 @@ function loadIdeas() {
                     <td><span class="${statusBadgeClass}">${escHtml(i.status)}</span></td>
                     <td>
                         <div class="actions">
-                            <button class="btn btn-green" onclick="generateFromIdea('${escAttr(i.keyword)}')" title="Gerar artigo com IA">
+                            ${isPending ? `
+                            <button class="btn btn-green" onclick="autopilotIdea(${i.id || i.idea_id})" title="Executar ciclo completo de 1-clique (Piloto Automático)" style="padding: 6px 10px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-bolt"></i> 1-Clique
+                            </button>` : ''}
+                            <button class="btn btn-blue" onclick="generateFromIdea('${escAttr(i.keyword)}')" title="Gerar artigo com IA" style="padding: 6px 10px; font-size: 0.8rem;">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar
                             </button>
-                            <button class="btn-icon-danger" onclick="deleteIdea(${i.idea_id})" title="Excluir ideia">
+                            <button class="btn-icon-danger" onclick="deleteIdea(${i.idea_id || i.id})" title="Excluir ideia">
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
                         </div>
@@ -196,6 +200,26 @@ function deleteIdea(id) {
     fetch('/api/ideas/delete/' + id, {method: 'POST'})
         .then(r => r.json())
         .then(() => loadIdeas());
+}
+
+function autopilotIdea(id) {
+    if (!confirm('Executar ciclo completo de monetização (1-Clique) para esta pauta?')) return;
+    alert('Iniciando Piloto Automático em segundo plano. O processo seleciona produtos da Amazon, publica no WordPress e gera pins.');
+    fetch('/api/scheduler/autopilot', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ idea_id: id, async: true })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('🚀 Piloto Automático disparado com sucesso! Atualizando status...');
+            loadIdeas();
+        } else {
+            alert('❌ Erro: ' + (data.error || 'Falha ao iniciar'));
+        }
+    })
+    .catch(err => alert('Erro de rede: ' + err));
 }
 
 function generateFromIdea(keyword) {

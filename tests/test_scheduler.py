@@ -131,3 +131,59 @@ def test_remove_job_clears_persisted_entry(client, scheduler_on):
     resp = client.delete("/api/scheduler/remove/pipeline_ghost_0900")
     assert resp.status_code == 200
     assert _load_json("scheduler_jobs.json", []) == []
+
+
+def test_scheduler_autopilot_endpoint(client):
+    """Test /api/scheduler/autopilot endpoint."""
+    from unittest.mock import patch
+
+    mock_res = {
+        "success": True,
+        "autopilot": True,
+        "title": "Top 5 Ergonomic Chairs",
+        "post_url": "https://techtips.dpdns.org/chairs",
+    }
+    with patch("dashboard.services.pipeline.run_autopilot_cycle", return_value=mock_res):
+        # Synchronous
+        resp = client.post("/api/scheduler/autopilot", json={"category": "buyer_intent"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert data["title"] == "Top 5 Ergonomic Chairs"
+
+        # Asynchronous
+        resp_async = client.post("/api/scheduler/autopilot", json={"category": "buyer_intent", "async": True})
+        assert resp_async.status_code == 200
+        data_async = resp_async.get_json()
+        assert data_async["success"] is True
+        assert data_async.get("async") is True
+
+
+def test_scheduler_add_autopilot(client, scheduler_on):
+    """Test scheduling an autopilot cron job and executing run_now."""
+    from unittest.mock import patch
+
+    add_resp = client.post("/api/scheduler/add_autopilot", json={
+        "hour": 9,
+        "minute": 15,
+        "days_of_week": "mon-sun",
+        "category": "buyer_intent",
+    })
+    assert add_resp.status_code == 200
+    add_data = add_resp.get_json()
+    assert add_data["success"] is True
+    job_id = add_data["job_id"]
+    assert job_id == "autopilot_0915"
+
+    # Trigger run now with mocked job execution
+    with patch("dashboard.services.pipeline._scheduled_autopilot_job", return_value={"success": True}):
+        run_resp = client.post(f"/api/scheduler/run_now/{job_id}")
+        assert run_resp.status_code == 200
+        assert run_resp.get_json()["success"] is True
+
+    # Remove scheduled job
+    del_resp = client.delete(f"/api/scheduler/remove/{job_id}")
+    assert del_resp.status_code == 200
+    assert del_resp.get_json()["success"] is True
+
+

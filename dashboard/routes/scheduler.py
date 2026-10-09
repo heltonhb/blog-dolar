@@ -169,6 +169,112 @@ def api_scheduler_add_drip():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@scheduler_bp.route("/autopilot", methods=["POST"])
+@login_required
+def api_scheduler_autopilot():
+    """Execute a 1-click end-to-end monetization cycle now."""
+    try:
+        data = request.json or {}
+        idea_id = data.get("idea_id")
+        category = data.get("category", "buyer_intent")
+        skip_publish = bool(data.get("skip_publish", False))
+        skip_pinterest = bool(data.get("skip_pinterest", False))
+        force_restart = bool(data.get("force_restart", False))
+        async_run = bool(data.get("async", False))
+
+        from dashboard.services.pipeline import run_autopilot_cycle
+
+        if async_run:
+            import threading
+
+            thread = threading.Thread(
+                target=run_autopilot_cycle,
+                kwargs={
+                    "idea_id": idea_id,
+                    "category_filter": category,
+                    "skip_publish": skip_publish,
+                    "skip_pinterest": skip_pinterest,
+                    "force_restart": force_restart,
+                },
+                daemon=True,
+            )
+            thread.start()
+            return jsonify({
+                "success": True,
+                "message": "Ciclo de Piloto Automático iniciado em segundo plano.",
+                "async": True,
+            })
+
+        result = run_autopilot_cycle(
+            idea_id=idea_id,
+            category_filter=category,
+            skip_publish=skip_publish,
+            skip_pinterest=skip_pinterest,
+            force_restart=force_restart,
+        )
+        status_code = 200 if result.get("success") else 500
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@scheduler_bp.route("/add_autopilot", methods=["POST"])
+@login_required
+def api_scheduler_add_autopilot():
+    """Add a recurring scheduled autopilot cron job."""
+    sched = get_scheduler()
+    if sched is None:
+        return jsonify({"success": False, "error": _DISABLED_MSG}), 503
+
+    try:
+        data = request.json or {}
+        hour = int(data.get("hour", 9))
+        minute = int(data.get("minute", 0))
+        days = data.get("days_of_week", "mon-sun")
+        category = data.get("category", "buyer_intent").strip() or "buyer_intent"
+
+        job_id = f"autopilot_{hour:02d}{minute:02d}"
+
+        try:
+            sched.remove_job(job_id)
+        except Exception:
+            pass
+
+        from dashboard.services.pipeline import _scheduled_autopilot_job
+
+        sched.add_job(
+            _scheduled_autopilot_job,
+            trigger=CronTrigger(day_of_week=days, hour=hour, minute=minute),
+            args=[category],
+            id=job_id,
+            name=f"Piloto Automático ({hour:02d}:{minute:02d})",
+            replace_existing=True,
+        )
+
+        sched_data = _load_json("scheduler_jobs.json", [])
+        sched_data = [j for j in sched_data if j.get("id") != job_id]
+        sched_data.append({
+            "id": job_id,
+            "type": "autopilot",
+            "hour": hour,
+            "minute": minute,
+            "days": days,
+            "category": category,
+            "name": f"Piloto Automático ({hour:02d}:{minute:02d})",
+            "created_at": datetime.now().isoformat(),
+        })
+        _save_json("scheduler_jobs.json", sched_data)
+
+        job = sched.get_job(job_id)
+        return jsonify({
+            "success": True,
+            "job_id": job_id,
+            "next_run": str(job.next_run_time) if job and job.next_run_time else None,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @scheduler_bp.route("/run_now/<job_id>", methods=["POST"])
 @login_required
 def api_scheduler_run_now(job_id):
@@ -183,7 +289,15 @@ def api_scheduler_run_now(job_id):
         if not job_cfg:
             return jsonify({"success": False, "error": "Job não encontrado"}), 404
 
-        job_type = job_cfg.get("type") or ("pinterest_drip" if str(job_cfg.get("id", "")).startswith("pinterest_drip") else "pipeline")
+        job_type = job_cfg.get("type") or (
+            "pinterest_drip"
+            if str(job_cfg.get("id", "")).startswith("pinterest_drip")
+            else (
+                "autopilot"
+                if str(job_cfg.get("id", "")).startswith("autopilot")
+                else "pipeline"
+            )
+        )
         if job_type == "pinterest_drip":
             from dashboard.services.pipeline import _scheduled_pinterest_drip_job
 
@@ -191,9 +305,20 @@ def api_scheduler_run_now(job_id):
                 _scheduled_pinterest_drip_job,
                 args=[job_cfg.get("board_id", "")],
                 id=f"{job_id}_manual_{int(datetime.now().timestamp())}",
-                name=f"Manual: Pinterest Drip",
+                name="Manual: Pinterest Drip",
             )
             return jsonify({"success": True, "message": "Executando agora: Pinterest Drip"})
+
+        if job_type == "autopilot":
+            from dashboard.services.pipeline import _scheduled_autopilot_job
+
+            sched.add_job(
+                _scheduled_autopilot_job,
+                args=[job_cfg.get("category", "buyer_intent")],
+                id=f"{job_id}_manual_{int(datetime.now().timestamp())}",
+                name="Manual: Piloto Automático",
+            )
+            return jsonify({"success": True, "message": "Executando agora: Piloto Automático"})
 
         sched.add_job(
             _scheduled_pipeline_job,
@@ -204,3 +329,4 @@ def api_scheduler_run_now(job_id):
         return jsonify({"success": True, "message": f"Executando agora: {job_cfg.get('keyword', '')}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+

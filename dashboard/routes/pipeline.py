@@ -7,6 +7,7 @@ from dashboard.services.pipeline import (
     _clear_checkpoint,
     _load_checkpoints,
     _run_pipeline_logic,
+    run_autopilot_cycle,
 )
 from db import delete_pipeline_history_by_index, get_pipeline_history
 
@@ -33,6 +34,25 @@ def api_pipeline():
             force_restart=data.get("force_restart", False),
         )
         return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pipeline_bp.route("/autopilot", methods=["POST"])
+@login_required
+def api_pipeline_autopilot():
+    """Trigger an automated 1-click monetization cycle from Buyer Intent ideas."""
+    try:
+        data = request.json or {}
+        result = run_autopilot_cycle(
+            idea_id=data.get("idea_id"),
+            category_filter=data.get("category", "buyer_intent"),
+            skip_publish=data.get("skip_publish", False),
+            skip_pinterest=data.get("skip_pinterest", False),
+            force_restart=data.get("force_restart", False),
+        )
+        status_code = 200 if result.get("success") else 500
+        return jsonify(result), status_code
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

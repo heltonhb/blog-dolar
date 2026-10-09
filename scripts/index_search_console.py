@@ -3,8 +3,10 @@
 import sys
 from pathlib import Path
 
-# Adicionar path do dashboard para importar o google_auth compartilhado
-sys.path.insert(0, str(Path(__file__).parent.parent / "dashboard"))
+# Adicionar path do projeto e dashboard para importar módulos
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "dashboard"))
 
 from google_auth import get_access_token, SEARCH_CONSOLE_SCOPE  # noqa: E402
 

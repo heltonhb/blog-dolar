@@ -27,22 +27,57 @@
     </div>
 </div>
 
+<!-- Piloto Automático Card (1-Clique) -->
+<div class="stat-card" style="margin-top: 20px; border: 1px solid var(--accent-green); background: rgba(34, 197, 94, 0.05); padding: 22px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h2 style="font-size: 1.25rem; color: var(--accent-green); margin-bottom: 6px;">
+                <i class="fa-solid fa-bolt"></i> Piloto Automático: Ciclo Completo de Monetização
+            </h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0;">
+                Executa o ciclo end-to-end de 1-clique: Seleciona próxima ideia <strong>Buyer Intent</strong> → Gera artigo comercial com IA → Extrai produtos Amazon US → Injeta monetização e Quick Recommendations → Publica no WordPress → Cria 3 Pins e Interlinks.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-green" id="btn-run-autopilot" onclick="runAutopilot()" style="padding: 12px 24px; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-play"></i> Executar 1 Ciclo Agora
+            </button>
+            <button class="btn btn-outline" id="btn-schedule-autopilot" onclick="scheduleAutopilotDaily()" style="padding: 12px 18px; font-size: 0.9rem;" title="Agendar execução diária às 09:00">
+                <i class="fa-solid fa-calendar-plus"></i> Agendar Diário (09:00)
+            </button>
+        </div>
+    </div>
+
+    <!-- Status / Result Box for Autopilot -->
+    <div id="autopilot-result-box" style="display: none; margin-top: 18px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 8px; border-left: 4px solid var(--accent-green);">
+        <div id="autopilot-result-content"></div>
+    </div>
+</div>
+
 <!-- Add job form -->
-<div class="add-idea-form" style="margin-top: 0;">
+<div class="add-idea-form" style="margin-top: 20px;">
     <h2 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--accent-green);">
         <i class="fa-solid fa-plus-circle"></i> Novo Agendamento
     </h2>
-    <div class="scheduler-form-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 15px; align-items: end;">
+    <div class="scheduler-form-grid" style="display: grid; grid-template-columns: 1.5fr 2fr 1fr 1fr 1fr; gap: 12px; align-items: end;">
         <div class="form-group">
-            <label>Palavra-chave / Tópico</label>
+            <label>Tipo de Tarefa</label>
+            <select id="sch-type" class="form-control" onchange="toggleJobType()" style="appearance: none;">
+                <option value="autopilot">⚡ Piloto Automático (Buyer Intent)</option>
+                <option value="pipeline">📝 Palavra-chave Específica</option>
+                <option value="drip">📌 Pinterest Drip-Feed</option>
+            </select>
+        </div>
+        <div class="form-group" id="group-sch-keyword">
+            <label id="lbl-sch-keyword">Categoria / Fonte</label>
             <input type="text" id="sch-keyword" class="form-control"
-                   placeholder="Ex: best gaming monitors 2026">
+                   placeholder="buyer_intent (automático)" value="buyer_intent" disabled>
         </div>
         <div class="form-group">
             <label>Horário (hora)</label>
             <select id="sch-hour" class="form-control" style="appearance: none;">
                 {% for h in range(24) %}
-                <option value="{{ h }}" {% if h == 8 %}selected{% endif %}>{{ "%02d"|format(h) }}:00</option>
+                <option value="{{ h }}" {% if h == 9 %}selected{% endif %}>{{ "%02d"|format(h) }}:00</option>
                 {% endfor %}
             </select>
         </div>
@@ -67,8 +102,8 @@
         </div>
     </div>
     <button class="btn btn-green" id="btn-add-job" onclick="addJob()"
-            style="font-weight: bold; padding: 10px 22px; margin-top: 5px;">
-        <i class="fa-solid fa-calendar-plus"></i> Agendar Pipeline
+            style="font-weight: bold; padding: 10px 22px; margin-top: 10px;">
+        <i class="fa-solid fa-calendar-plus"></i> Agendar Tarefa
     </button>
     <span id="add-job-status" style="margin-left: 15px; color: var(--text-secondary);"></span>
 </div>
@@ -153,9 +188,134 @@ function renderJobs(jobs) {
     `).join('');
 }
 
+function toggleJobType() {
+    const type = document.getElementById('sch-type').value;
+    const input = document.getElementById('sch-keyword');
+    const label = document.getElementById('lbl-sch-keyword');
+
+    if (type === 'autopilot') {
+        label.textContent = 'Categoria / Filtro';
+        input.placeholder = 'buyer_intent (automático)';
+        input.value = 'buyer_intent';
+        input.disabled = true;
+    } else if (type === 'drip') {
+        label.textContent = 'Board ID (opcional)';
+        input.placeholder = 'ID do board do Pinterest (vazio = padrão)';
+        input.value = '';
+        input.disabled = false;
+    } else {
+        label.textContent = 'Palavra-chave / Tópico';
+        input.placeholder = 'Ex: best gaming monitors 2026';
+        input.value = '';
+        input.disabled = false;
+    }
+}
+
+function runAutopilot() {
+    if (!confirm('Iniciar ciclo completo de monetização com a próxima ideia de Buyer Intent?')) return;
+    const btn = document.getElementById('btn-run-autopilot');
+    const resultBox = document.getElementById('autopilot-result-box');
+    const resultContent = document.getElementById('autopilot-result-content');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Executando Ciclo...';
+    resultBox.style.display = 'block';
+    resultBox.style.borderLeftColor = 'var(--info)';
+    resultContent.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; color: var(--info);">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span><strong>Piloto Automático em andamento:</strong> Selecionando pauta, gerando artigo comercial, extraindo produtos Amazon US, monetizando e publicando no WordPress...</span>
+        </div>
+    `;
+
+    fetch('/api/scheduler/autopilot', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ category: 'buyer_intent' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Executar 1 Ciclo Agora';
+        if (data.success) {
+            resultBox.style.borderLeftColor = 'var(--accent-green)';
+            resultContent.innerHTML = `
+                <div style="color: var(--accent-green); margin-bottom: 8px;">
+                    <i class="fa-solid fa-circle-check"></i> <strong>Ciclo concluído com sucesso!</strong>
+                </div>
+                <div style="font-size: 0.95rem; line-height: 1.6;">
+                    <div><strong>Artigo:</strong> ${esc(data.title || data.article)}</div>
+                    <div><strong>Palavra-chave:</strong> <code>${esc(data.keyword || '')}</code></div>
+                    ${data.post_url ? `<div><strong>Post no Ar:</strong> <a href="${esc(data.post_url)}" target="_blank" style="color:var(--accent-green); text-decoration:underline;">${esc(data.post_url)}</a></div>` : ''}
+                    ${data.bridge_url ? `<div><strong>Safe Bridge:</strong> <a href="${esc(data.bridge_url)}" target="_blank" style="color:var(--info); text-decoration:underline;">${esc(data.bridge_url)}</a></div>` : ''}
+                    <div style="margin-top: 6px; font-size: 0.85rem; color: var(--text-secondary);">
+                        Pins verticais gerados e enfileirados no Drip-Feed do Pinterest. Interlinking cruzado atualizado.
+                    </div>
+                </div>
+            `;
+            showToast('Ciclo de monetização concluído com sucesso!');
+            loadStatus();
+        } else {
+            resultBox.style.borderLeftColor = 'var(--danger)';
+            resultContent.innerHTML = `
+                <div style="color: var(--danger);">
+                    <i class="fa-solid fa-circle-xmark"></i> <strong>Falha no ciclo:</strong> ${esc(data.error || 'Erro desconhecido')}
+                </div>
+            `;
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Executar 1 Ciclo Agora';
+        resultBox.style.borderLeftColor = 'var(--danger)';
+        resultContent.innerHTML = `<div style="color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Erro de rede: ${esc(err)}</div>`;
+    });
+}
+
+function scheduleAutopilotDaily() {
+    if (!confirm('Agendar Piloto Automático diário às 09:00?')) return;
+    fetch('/api/scheduler/add_autopilot', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            hour: 9,
+            minute: 0,
+            days_of_week: 'mon-sun',
+            category: 'buyer_intent'
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Piloto Automático diário agendado para às 09:00!');
+            loadStatus();
+        } else {
+            alert('Erro ao agendar: ' + (data.error || 'Erro'));
+        }
+    })
+    .catch(err => alert('Erro: ' + err));
+}
+
 function addJob() {
-    const keyword = document.getElementById('sch-keyword').value.trim();
-    if (!keyword) { alert('Digite uma palavra-chave'); return; }
+    const type = document.getElementById('sch-type').value;
+    const inputVal = document.getElementById('sch-keyword').value.trim();
+    const hour = parseInt(document.getElementById('sch-hour').value);
+    const minute = parseInt(document.getElementById('sch-minute').value);
+    const days = document.getElementById('sch-days').value;
+
+    let url = '/api/scheduler/add';
+    let payload = { hour, minute, days_of_week: days };
+
+    if (type === 'autopilot') {
+        url = '/api/scheduler/add_autopilot';
+        payload.category = inputVal || 'buyer_intent';
+    } else if (type === 'drip') {
+        url = '/api/scheduler/add_drip';
+        payload.board_id = inputVal;
+    } else {
+        if (!inputVal) { alert('Digite uma palavra-chave'); return; }
+        payload.keyword = inputVal;
+    }
 
     const btn = document.getElementById('btn-add-job');
     const status = document.getElementById('add-job-status');
@@ -163,24 +323,19 @@ function addJob() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Agendando...';
     status.textContent = '';
 
-    fetch('/api/scheduler/add', {
+    fetch(url, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            keyword,
-            hour: parseInt(document.getElementById('sch-hour').value),
-            minute: parseInt(document.getElementById('sch-minute').value),
-            days_of_week: document.getElementById('sch-days').value,
-        })
+        body: JSON.stringify(payload)
     })
     .then(r => r.json())
     .then(data => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Agendar Pipeline';
+        btn.innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Agendar Tarefa';
         if (data.success) {
             status.textContent = '✅ Agendado! Próxima execução: ' + (data.next_run || '—');
             status.style.color = 'var(--accent-green)';
-            document.getElementById('sch-keyword').value = '';
+            if (type === 'pipeline') document.getElementById('sch-keyword').value = '';
             loadStatus();
         } else {
             status.textContent = '❌ ' + data.error;
@@ -189,7 +344,7 @@ function addJob() {
     })
     .catch(err => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Agendar Pipeline';
+        btn.innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Agendar Tarefa';
         status.textContent = 'Erro: ' + err;
     });
 }

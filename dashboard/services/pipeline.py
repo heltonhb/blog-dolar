@@ -144,6 +144,18 @@ def _scheduled_pinterest_drip_job(board_id: str = ""):
         return {"success": False, "error": str(e)}
 
 
+def _scheduled_autopilot_job(category: str = "buyer_intent"):
+    """Run an automated monetization autopilot cycle (called by APScheduler)."""
+    try:
+        log.info("Iniciando scheduled autopilot job (category=%s)", category)
+        res = run_autopilot_cycle(category_filter=category)
+        log.info("Scheduled autopilot job finalizado: success=%s", res.get("success"))
+        return res
+    except Exception as e:
+        log.exception("Scheduled autopilot job falhou: %s", e)
+        return {"success": False, "error": str(e)}
+
+
 # ---------------------------------------------------------------------------
 #  Core Pipeline Logic
 # ---------------------------------------------------------------------------
@@ -202,6 +214,7 @@ Requirements:
 - Use bullet points for readability
 - Conversational, engaging tone
 - Include a meta description (150 chars)
+- Recommend 3 to 5 real, popular products from Amazon US relevant to this topic for reader recommendations
 
 Return ONLY JSON:
 {{
@@ -209,7 +222,17 @@ Return ONLY JSON:
   "slug": "url-friendly-slug",
   "meta_description": "...",
   "content": "Full HTML article with <h2>, <h3>, <p>, <ul>, <table> tags",
-  "tags": ["tag1", "tag2", "tag3"]
+  "tags": ["tag1", "tag2", "tag3"],
+  "products": [
+    {{
+      "title": "Exact Product Name",
+      "subtitle": "Short 1-sentence value proposition or why it is recommended",
+      "search_query": "Amazon search query for this product",
+      "badge": "e.g. BEST OVERALL, BEST VALUE, or TOP PICK",
+      "after_heading": "Exact heading or phrase in the article where this product belongs",
+      "specs": ["Key feature 1", "Key feature 2", "Key feature 3"]
+    }}
+  ]
 }}"""
             result = _gemini_call(prompt)
             article = _parse_json(result)
@@ -219,16 +242,39 @@ Return ONLY JSON:
             slug = article.get("slug", "untitled")
             article_filename = f"{date_str}_{slug}.md"
             filepath = articles_dir / article_filename
+
+            products = article.get("products", [])
+            if products and isinstance(products, list):
+                try:
+                    from scripts.affiliate_manager import save_custom_products
+                except ImportError:
+                    try:
+                        from affiliate_manager import save_custom_products
+                    except Exception:
+                        save_custom_products = None
+                if save_custom_products:
+                    try:
+                        save_custom_products(slug, products)
+                    except Exception:
+                        pass
+
+            products_yaml = f"\nproducts: {json.dumps(products)}" if products else ""
             file_content = (
                 f"---\ntitle: {article.get('title', 'Untitled')}\ndate: {date_str}\n"
                 f"slug: {slug}\nmeta_description: {article.get('meta_description', '')}\n"
-                f"tags: {json.dumps(article.get('tags', []))}\n---\n\n{article.get('content', '')}\n"
+                f"tags: {json.dumps(article.get('tags', []))}{products_yaml}\n---\n\n{article.get('content', '')}\n"
             )
             filepath.write_text(file_content, encoding="utf-8")
             title = article.get("title", keyword)
             meta_desc = article.get("meta_description", "")
             _save_checkpoint(pipeline_slug, "article", article_filename)
-            steps[-1] = {"step": "article", "status": "ok", "filename": article_filename, "title": title}
+            steps[-1] = {
+                "step": "article",
+                "status": "ok",
+                "filename": article_filename,
+                "title": title,
+                "products_count": len(products) if isinstance(products, list) else 0,
+            }
 
     # ---- Step 2: Image ----
     image_slug = extract_slug_from_filename(article_filename)
@@ -390,8 +436,12 @@ Return ONLY JSON:
                 access_token = _env("PINTEREST_ACCESS_TOKEN") or get_config("pinterest_config", {}).get("access_token", "")
                 board_id = _env("PINTEREST_BOARD_ID") or get_config("pinterest_config", {}).get("board_id", "")
                 if not access_token or not board_id:
-                    steps[-1] = {"step": "pinterest", "status": "error",
-                                 "error": "Pinterest não configurado (ACCESS_TOKEN ou BOARD_ID ausente)"}
+                    steps[-1] = {
+                        "step": "pinterest",
+                        "status": "ok",
+                        "queued": True,
+                        "message": "Pins salvos na fila Drip-Feed (API v5 direta não configurada)",
+                    }
                 else:
                     image_step = next((s for s in steps if s.get("step") == "image"), {})
                     pin_files = image_step.get("files", [pin_filename])
@@ -442,8 +492,9 @@ Return ONLY JSON:
                         if resp_pin.status_code in (401, 403):
                             steps[-1] = {
                                 "step": "pinterest",
-                                "status": "error",
-                                "error": f"Token expirado ({resp_pin.status_code}). Configure PINTEREST_ACCESS_TOKEN.",
+                                "status": "ok",
+                                "queued": True,
+                                "warning": f"Token Pinterest expirado ({resp_pin.status_code}). Pins salvos na fila Drip-Feed para agendamento.",
                             }
                             break
                         if resp_pin.status_code in (200, 201):
@@ -505,4 +556,134 @@ Return ONLY JSON:
         "bridge_url": bridge_url,
         "steps": steps,
     }
+
+
+def run_autopilot_cycle(
+    idea_id: int | None = None,
+    category_filter: str = "buyer_intent",
+    skip_publish: bool = False,
+    skip_pinterest: bool = False,
+    force_restart: bool = False,
+) -> dict:
+    """Run an automated monetization autopilot cycle (Automação 5 / Fase 4).
+
+    1. Selects the next pending buyer_intent idea (or specific idea_id).
+    2. Writes commercial article with Gemini, extracting Amazon products.
+    3. Injects Quick Recommendations + Amazon affiliate cards (heltonhb-20).
+    4. Publishes to WordPress with featured image.
+    5. Triggers post-hooks: 3 vertical Pinterest pins + cross-interlinking.
+    6. Syncs pins to Pinterest drip-feed queue.
+    7. Updates idea status to 'published' and saves pipeline history.
+    """
+    selected_idea = None
+    all_ideas = []
+    try:
+        from db import get_ideas, save_idea, update_idea_status
+
+        all_ideas = get_ideas()
+    except Exception as e:
+        log.warning("Erro ao buscar ideias no banco para autopilot: %s", e)
+
+    if idea_id is not None:
+        for item in all_ideas:
+            if (item.get("idea_id") == idea_id) or (item.get("id") == idea_id):
+                selected_idea = item
+                break
+    else:
+        # First priority: pending ideas matching category_filter (e.g. buyer_intent)
+        if category_filter:
+            for item in all_ideas:
+                cat = str(item.get("category", "")).lower()
+                src = str(item.get("source", "")).lower()
+                status = str(item.get("status", "")).lower()
+                if status == "pending" and (category_filter in cat or category_filter in src):
+                    selected_idea = item
+                    break
+        # Second priority: any pending idea
+        if not selected_idea:
+            for item in all_ideas:
+                if str(item.get("status", "")).lower() == "pending":
+                    selected_idea = item
+                    break
+        # Fallback: if no pending ideas exist, generate new buyer intent ideas
+        if not selected_idea:
+            try:
+                from dashboard.routes.ideas import _generate_buyer_intent_ideas
+
+                generated = _generate_buyer_intent_ideas()
+                if generated and isinstance(generated, list):
+                    max_id = max((i.get("idea_id") or i.get("id") or 0 for i in all_ideas), default=0)
+                    for idx, idea in enumerate(generated):
+                        idea["idea_id"] = max_id + idx + 1
+                        idea["status"] = "pending"
+                        idea["created_at"] = datetime.now().isoformat()
+                        idea["source"] = "buyer_intent"
+                        try:
+                            save_idea(idea)
+                        except Exception:
+                            pass
+                    selected_idea = generated[0]
+            except Exception as e:
+                log.warning("Erro ao gerar ideias de fallback no autopilot: %s", e)
+
+    if not selected_idea:
+        return {
+            "success": False,
+            "error": "Nenhuma pauta pendente disponível para o Piloto Automático.",
+        }
+
+    target_id = selected_idea.get("idea_id") or selected_idea.get("id")
+    keyword = (selected_idea.get("keyword") or selected_idea.get("title") or "").strip()
+    if not keyword:
+        return {"success": False, "error": "Ideia selecionada sem palavra-chave ou título válido."}
+
+    # Mark as in_progress
+    if target_id:
+        try:
+            update_idea_status(target_id, "in_progress")
+        except Exception:
+            pass
+
+    log.info("Autopilot iniciando ciclo para pauta '%s' (id=%s)", keyword, target_id)
+    pipeline_res = _run_pipeline_logic(
+        keyword=keyword,
+        skip_publish=skip_publish,
+        skip_pinterest=skip_pinterest,
+        force_restart=force_restart,
+    )
+
+    if pipeline_res.get("success"):
+        if target_id:
+            try:
+                update_idea_status(target_id, "published")
+            except Exception:
+                pass
+        return {
+            "success": True,
+            "autopilot": True,
+            "idea": selected_idea,
+            "keyword": keyword,
+            "title": pipeline_res.get("title"),
+            "article": pipeline_res.get("article"),
+            "post_url": pipeline_res.get("post_url"),
+            "bridge_url": pipeline_res.get("bridge_url"),
+            "image_url": pipeline_res.get("image_url"),
+            "steps": pipeline_res.get("steps", []),
+        }
+    else:
+        # Revert status so it can be retried
+        if target_id:
+            try:
+                update_idea_status(target_id, "pending")
+            except Exception:
+                pass
+        return {
+            "success": False,
+            "autopilot": True,
+            "idea": selected_idea,
+            "keyword": keyword,
+            "error": pipeline_res.get("error") or "Falha ao executar etapas do pipeline",
+            "steps": pipeline_res.get("steps", []),
+        }
+
 

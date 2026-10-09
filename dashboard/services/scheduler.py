@@ -127,14 +127,25 @@ def _restore_scheduler_jobs():
     sched = get_scheduler()
     if sched is None:
         return
-    from dashboard.services.helpers import _load_json
-    from dashboard.services.pipeline import _scheduled_pipeline_job, _scheduled_pinterest_drip_job
+    from dashboard.services.pipeline import (
+        _scheduled_autopilot_job,
+        _scheduled_pipeline_job,
+        _scheduled_pinterest_drip_job,
+    )
     sched_data = _load_json("scheduler_jobs.json", [])
     for job_cfg in sched_data:
         try:
             from apscheduler.triggers.cron import CronTrigger
 
-            job_type = job_cfg.get("type") or ("pinterest_drip" if str(job_cfg.get("id", "")).startswith("pinterest_drip") else "pipeline")
+            job_type = job_cfg.get("type") or (
+                "pinterest_drip"
+                if str(job_cfg.get("id", "")).startswith("pinterest_drip")
+                else (
+                    "autopilot"
+                    if str(job_cfg.get("id", "")).startswith("autopilot")
+                    else "pipeline"
+                )
+            )
             if job_type == "pinterest_drip":
                 sched.add_job(
                     _scheduled_pinterest_drip_job,
@@ -146,6 +157,19 @@ def _restore_scheduler_jobs():
                     args=[job_cfg.get("board_id", "")],
                     id=job_cfg["id"],
                     name=job_cfg.get("name", f"Pinterest Drip ({job_cfg.get('hour', 11):02d}:{job_cfg.get('minute', 0):02d})"),
+                    replace_existing=True,
+                )
+            elif job_type == "autopilot":
+                sched.add_job(
+                    _scheduled_autopilot_job,
+                    trigger=CronTrigger(
+                        day_of_week=job_cfg.get("days", "mon-sun"),
+                        hour=int(job_cfg.get("hour", 9)),
+                        minute=int(job_cfg.get("minute", 0)),
+                    ),
+                    args=[job_cfg.get("category", "buyer_intent")],
+                    id=job_cfg["id"],
+                    name=job_cfg.get("name", f"Piloto Automático ({job_cfg.get('hour', 9):02d}:{job_cfg.get('minute', 0):02d})"),
                     replace_existing=True,
                 )
             else:

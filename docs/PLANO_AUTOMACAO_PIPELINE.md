@@ -137,9 +137,22 @@ Quando formos implementar essas automações:
    - Botões "Publicar Próximo Pin Agora", "Exportar CSV Pinterest Business" e "Sincronizar Fila", além de badges de status e ações por card.
 - [x] 4. Criar testes unitários em `tests/test_pinterest_queue.py` (156 testes passando).
 
-### Fase 4: Piloto Automático Geral no Scheduler (Automação 5)
-1. Integrar o workflow de 1-clique em [`dashboard/routes/scheduler.py`](file:///home/helton/blog-dolar/dashboard/routes/scheduler.py).
-2. Adicionar botão "Executar Ciclo Completo de Monetização" no dashboard.
+### Fase 4: Piloto Automático Geral no Scheduler (Automação 5) — CONCLUÍDA (09/10/2026)
+- [x] 1. Criar serviço [`run_autopilot_cycle`](file:///home/helton/blog-dolar/dashboard/services/pipeline.py) em [`dashboard/services/pipeline.py`](file:///home/helton/blog-dolar/dashboard/services/pipeline.py):
+   - Seleção inteligente da próxima pauta da fila de Buyer Intent (com fallback automático de geração se vazia).
+   - Prompt com extração dinâmica de produtos da Amazon US e persistência no catálogo.
+   - Injeção obrigatória de monetização (`heltonhb-20`) e tabela Quick Recommendations no topo via `_wp_publish`.
+   - Disparo dos post-hooks assíncronos: geração de 3 Pins verticais, enfileiramento no Drip-Feed do Pinterest e recálculo da malha de interlinks.
+   - Atualização do status da ideia para `published` e persistência do histórico.
+- [x] 2. Integrar rotas e agendamento em [`dashboard/routes/scheduler.py`](file:///home/helton/blog-dolar/dashboard/routes/scheduler.py) e [`dashboard/services/scheduler.py`](file:///home/helton/blog-dolar/dashboard/services/scheduler.py):
+   - Endpoints `/api/scheduler/autopilot` (síncrono ou async) e `/api/scheduler/add_autopilot`.
+   - Suporte a agendamentos recorrentes do tipo `autopilot` persistidos em `scheduler_jobs.json` e restaurados no boot.
+   - Suporte a execução imediata via `/run_now/<job_id>`.
+- [x] 3. Interface web com botão de 1-Clique e agendamento:
+   - Adicionado card do **Piloto Automático: Ciclo Completo de Monetização** no [`dashboard/templates/scheduler.html`](file:///home/helton/blog-dolar/dashboard/templates/scheduler.html) com botão "Executar 1 Ciclo Agora", "Agendar Diário (09:00)" e feedback dinâmico.
+   - Seletor de Tipo de Tarefa no formulário do agendador (Piloto Automático, Palavra-chave, Pinterest Drip).
+   - Botão **"⚡ 1-Clique"** adicionado diretamente na listagem de ideias pendentes em [`dashboard/templates/ideas.html`](file:///home/helton/blog-dolar/dashboard/templates/ideas.html).
+- [x] 4. Criar testes unitários em `tests/test_pipeline.py` e `tests/test_scheduler.py` (**160 testes passando**).
 
 ---
 
