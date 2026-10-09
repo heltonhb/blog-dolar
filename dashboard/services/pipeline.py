@@ -348,6 +348,11 @@ Return ONLY JSON:
                         "image_url": public_image_url,
                     })
                     steps[-1] = {"step": "publish", "status": "ok", "post_id": pub_result.get("id"), "url": post_url}
+                    try:
+                        from dashboard.services.post_hooks import trigger_post_publish_tasks
+                        trigger_post_publish_tasks(article_data["slug"], post_id=pub_result.get("id"))
+                    except Exception:
+                        pass
                 else:
                     steps[-1] = {"step": "publish", "status": "error", "error": pub_result.get("error", "Erro ao publicar")}
             except Exception as e:

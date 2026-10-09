@@ -132,3 +132,96 @@ def test_frontmatter_kept_on_top():
 def test_legacy_format_refused():
     with pytest.raises(ValueError):
         am.apply_affiliate_content("<!-- Affiliate Product Card Start -->x", SLUG, TAG)
+
+
+def test_dynamic_catalog_save_and_load(monkeypatch, tmp_path):
+    monkeypatch.setattr(am, "PROJECT_ROOT", tmp_path)
+    custom_slug = "best-mechanical-keyboards-2026"
+    products = [
+        {
+            "title": "Keychron K2 Wireless Mechanical Keyboard",
+            "subtitle": "Compact 75% layout with hot-swappable switches and Bluetooth connectivity.",
+            "search_query": "Keychron K2 Mechanical Keyboard",
+            "badge": "BEST WIRELESS KEYBOARD",
+            "after_heading": "Keychron K2",
+            "specs": ["Bluetooth & Wired", "Hot-swappable", "Mac & Windows layout"],
+        },
+        {
+            "title": "Logitech MX Mechanical Mini",
+            "subtitle": "Low-profile mechanical switches for quiet and ergonomic typing.",
+            "search_query": "Logitech MX Mechanical Mini",
+            "badge": "BEST LOW PROFILE",
+            "after_heading": "Logitech MX Mechanical",
+            "specs": ["Tactile quiet switches", "Smart illumination", "Multi-device flow"],
+        },
+    ]
+
+    am.save_custom_products(custom_slug, products)
+    catalog = am.load_custom_products()
+    assert custom_slug in catalog
+    assert len(catalog[custom_slug]) == 2
+    assert catalog[custom_slug][0]["title"] == "Keychron K2 Wireless Mechanical Keyboard"
+
+    loaded_products = am.get_products_for_slug(custom_slug)
+    assert len(loaded_products) == 2
+    assert loaded_products[0]["search_query"] == "Keychron K2 Mechanical Keyboard"
+
+
+def test_dynamic_catalog_prioritizes_custom_over_static(monkeypatch, tmp_path):
+    monkeypatch.setattr(am, "PROJECT_ROOT", tmp_path)
+    # SLUG is normally in static PRODUCTS, but dynamic catalog should take precedence if set
+    custom_product = [
+        {
+            "title": "Custom Overridden Laptop",
+            "subtitle": "Custom override description",
+            "search_query": "Custom Laptop Search",
+            "badge": "CUSTOM PICK",
+            "after_heading": "Acer Aspire 5",
+            "specs": ["Custom spec"],
+        }
+    ]
+    am.save_custom_products(SLUG, custom_product)
+    prods = am.get_products_for_slug(SLUG)
+    assert len(prods) == 1
+    assert prods[0]["title"] == "Custom Overridden Laptop"
+
+
+def test_apply_affiliate_content_with_dynamic_products(monkeypatch, tmp_path):
+    monkeypatch.setattr(am, "PROJECT_ROOT", tmp_path)
+    custom_slug = "smart-home-devices-2026"
+    products = [
+        {
+            "title": "Echo Dot 5th Gen Smart Speaker",
+            "subtitle": "Vibrant sound and Alexa voice control for any room.",
+            "search_query": "Echo Dot 5th Gen",
+            "badge": "BEST SMART SPEAKER",
+            "after_heading": "1. Echo Dot",
+            "specs": ["Alexa built-in", "Clear vocals", "Motion detection"],
+        },
+        {
+            "title": "Kasa Smart Plug Mini",
+            "subtitle": "Reliable Wi-Fi smart outlet with energy monitoring.",
+            "search_query": "Kasa Smart Plug Mini",
+            "badge": "BEST BUDGET PLUG",
+            "after_heading": "2. Kasa Smart Plug",
+            "specs": ["No hub required", "Voice control", "Timer scheduling"],
+        },
+    ]
+    am.save_custom_products(custom_slug, products)
+
+    post_content = """<p>Smart home intro.</p>
+<h2>1. Echo Dot (5th Gen)</h2>
+<p>Alexa review.</p>
+<h2>2. Kasa Smart Plug</h2>
+<p>Kasa plug review.</p>
+<h2>Conclusion</h2>
+<p>Final verdict.</p>
+"""
+    out, warnings = am.apply_affiliate_content(post_content, custom_slug, TAG, include_quick_picks=True)
+    assert warnings == []
+    assert 'class="tech-quick-picks"' in out
+    assert 'Echo Dot 5th Gen' in out
+    assert 'Kasa Smart Plug Mini' in out
+    assert f"tag={TAG}" in out
+    assert out.count('tech-affiliate-card') == 2
+

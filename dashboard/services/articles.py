@@ -11,6 +11,7 @@ def _extract_article_info(filepath: Path) -> dict:
     meta_desc = ""
     slug = filepath.stem
     tags = []
+    products = []
     body_text = ""
 
     if content.startswith("---"):
@@ -27,6 +28,13 @@ def _extract_article_info(filepath: Path) -> dict:
                 elif line.startswith("tags:"):
                     tags_str = line.split(":", 1)[1].strip()
                     tags = [t.strip().strip('"') for t in tags_str.strip("[]").split(",")]
+                elif line.startswith("products:"):
+                    try:
+                        import json
+                        products_raw = line.split(":", 1)[1].strip()
+                        products = json.loads(products_raw)
+                    except Exception:
+                        products = []
             body_text = parts[2].strip()
         else:
             body_text = content
@@ -45,6 +53,7 @@ def _extract_article_info(filepath: Path) -> dict:
         "meta_description": meta_desc,
         "slug": slug,
         "tags": tags,
+        "products": products,
         "excerpt": excerpt,
         "keywords": keywords,
         "body_length": len(body_clean.split()),

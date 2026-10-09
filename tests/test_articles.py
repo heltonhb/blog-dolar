@@ -86,3 +86,42 @@ def test_generate_and_verify_article_mocked(client):
             # Clean up generated test file
             del_resp = client.delete(f"/api/articles/delete/{filename}")
             assert del_resp.status_code == 200
+
+
+def test_generate_article_with_dynamic_products(client):
+    """Test generating an article with dynamic products extracts and saves them."""
+    import scripts.affiliate_manager as am
+
+    mock_article = {
+        "title": "Top 3 Wireless Earbuds 2026",
+        "slug": "top-3-wireless-earbuds-2026",
+        "meta_description": "Best earbuds tested.",
+        "content": "<h2>Sony WF-1000XM5</h2><p>Top pick</p><h2>Conclusion</h2><p>End</p>",
+        "tags": ["audio", "earbuds"],
+        "products": [
+            {
+                "title": "Sony WF-1000XM5 True Wireless Earbuds",
+                "subtitle": "Industry-leading noise canceling with crystal-clear call quality.",
+                "search_query": "Sony WF-1000XM5",
+                "badge": "BEST OVERALL",
+                "after_heading": "Sony WF-1000XM5",
+                "specs": ["Active Noise Cancellation", "Hi-Res Audio LDAC", "Multipoint connection"],
+            }
+        ],
+    }
+
+    with patch("dashboard.routes.articles._gemini_call", return_value=json.dumps(mock_article)):
+        resp = client.post("/api/generate", json={"keyword": "best wireless earbuds 2026"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert data["products_count"] == 1
+        filename = data["filename"]
+
+        try:
+            catalog = am.load_custom_products()
+            assert "top-3-wireless-earbuds-2026" in catalog
+            assert catalog["top-3-wireless-earbuds-2026"][0]["title"] == "Sony WF-1000XM5 True Wireless Earbuds"
+        finally:
+            client.delete(f"/api/articles/delete/{filename}")
+

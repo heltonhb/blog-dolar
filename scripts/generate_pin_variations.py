@@ -22,7 +22,7 @@ import sys
 import time
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(os.environ.get("BLOG_DOLAR_ROOT") or Path(__file__).resolve().parent.parent)
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
@@ -36,9 +36,11 @@ if "IMAGE_PROVIDER" not in os.environ:
 from image_generator import generate_image, add_pin_text_overlay
 from dashboard.services.bridge import get_bridge_url
 
+ARTICLES_DIR = PROJECT_ROOT / "articles"
 STATIC_IMAGES_DIR = PROJECT_ROOT / "dashboard" / "static" / "images"
 DATA_DIR = PROJECT_ROOT / "dashboard" / "data"
 OUTPUT_REGISTRY = DATA_DIR / "pin_variations.json"
+
 
 # Definições curadas para os 3 artigos de maior tração comercial
 TOP_TRACTION_PINS = {
@@ -164,12 +166,55 @@ def save_registry(data: dict):
 
 
 def generate_pins_for_slug(slug: str, api_key: str = "", force: bool = False) -> list[dict]:
-    """Generates all pin variations for a given slug."""
-    if slug not in TOP_TRACTION_PINS:
-        print(f"❌ Slug '{slug}' não encontrado nas definições curadas.")
-        return []
+    """Generates all pin variations for a given slug (curated or dynamically synthesized)."""
+    import re
+    item = TOP_TRACTION_PINS.get(slug)
+    if not item:
+        # Fallback dinâmico para qualquer novo artigo do blog
+        article_file = None
+        for f in ARTICLES_DIR.glob("*.md"):
+            if slug in f.stem:
+                article_file = f
+                break
 
-    item = TOP_TRACTION_PINS[slug]
+        title = slug.replace("-", " ").title()
+        if article_file and article_file.exists():
+            try:
+                from dashboard.services.articles import _extract_article_info
+                info = _extract_article_info(article_file)
+                title = info.get("title", title)
+            except Exception:
+                pass
+
+        clean_title = re.sub(r"[^A-Za-z0-9\s]", "", title).strip().upper()
+        words = clean_title.split()
+        short_headline = " ".join(words[:6]) if len(words) > 6 else (clean_title or "TOP TECH PICKS")
+
+        variations = [
+            {
+                "variation": 1,
+                "headline": short_headline,
+                "prompt": f"Modern aesthetic high-end tech photography showing {title}, clean minimalist lighting, vertical 2:3",
+                "pin_title": f"{title} (Buyer's Guide 2026)",
+                "description": f"Everything you need to know about {title}. Read our full breakdown and top tested recommendations on Amazon! #Tech #BuyerGuide #AmazonFinds",
+            },
+            {
+                "variation": 2,
+                "headline": f"TOP RATED: {short_headline[:24]}",
+                "prompt": f"Minimalist desk setup with premium hardware related to {title}, soft cinematic lighting, vertical 2:3",
+                "pin_title": f"The Ultimate {title} Guide",
+                "description": f"Don't buy before checking our tested top picks for {title}. See full review! #TechTips #Gadgets #AmazonDeals",
+            },
+            {
+                "variation": 3,
+                "headline": "BEST BUDGET & VALUE PICKS",
+                "prompt": f"Close-up detailed professional product photography related to {title}, vertical 2:3",
+                "pin_title": f"Best {title} for Your Setup",
+                "description": f"Discover top-tier performance on a budget. Full guide and direct Amazon links inside! #TechMustHaves #ShoppingGuide",
+            },
+        ]
+        item = {"article_title": title, "variations": variations}
+
     variations = item["variations"]
     STATIC_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 

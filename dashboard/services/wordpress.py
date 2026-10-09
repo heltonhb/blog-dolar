@@ -232,9 +232,9 @@ _byethost_session = _antibot_session
 def _wp_publish(article: dict, status: str = "publish") -> dict:
     """Publish via WordPress REST API. Returns {success, id, link, error}."""
     env = _load_env_dict()
-    site_url = env.get("SITE_URL") or _env("SITE_URL", "https://techtips.dpdns.org")
-    wp_user = env.get("WP_USER") or _env("WP_USER", "")
-    wp_pass = env.get("WP_APP_PASSWORD") or _env("WP_APP_PASSWORD", "")
+    site_url = _env("SITE_URL") or env.get("SITE_URL", "https://techtips.dpdns.org")
+    wp_user = _env("WP_USER") or env.get("WP_USER", "")
+    wp_pass = _env("WP_APP_PASSWORD") or env.get("WP_APP_PASSWORD", "")
 
     if not wp_user or not wp_pass:
         return {"success": False, "error": "Configure WP_USER e WP_APP_PASSWORD nas configurações"}
@@ -248,14 +248,28 @@ def _wp_publish(article: dict, status: str = "publish") -> dict:
     article_content = article.get("content", "")
     if "<head>" in article_content:
         article_content = article_content.replace("<head>", f"<head>\n{hreflang_tag}")
-    # Auto-apply affiliate cards and disclosure if mapped and configured
-    amazon_tag = env.get("AMAZON_ASSOCIATE_TAG") or _env("AMAZON_ASSOCIATE_TAG", "")
+    # Auto-apply affiliate cards, quick recommendations, and disclosure if mapped and configured
+    amazon_tag = _env("AMAZON_ASSOCIATE_TAG") or env.get("AMAZON_ASSOCIATE_TAG", "")
     if amazon_tag and slug:
         try:
-            from affiliate_manager import apply_affiliate_content, get_products_for_slug
+            from affiliate_manager import (
+                apply_affiliate_content,
+                get_products_for_slug,
+                save_custom_products,
+            )
 
-            if get_products_for_slug(slug) and "tech-affiliate-card" not in article_content:
-                article_content, _ = apply_affiliate_content(article_content, slug, amazon_tag)
+            # If article payload provided products, persist to dynamic catalog
+            if article.get("products") and isinstance(article["products"], list):
+                save_custom_products(slug, article["products"])
+
+            has_cards = "tech-affiliate-card" in article_content
+            has_quick = "tech-quick-picks" in article_content
+            if (not has_cards or not has_quick) and get_products_for_slug(slug):
+                new_content, _ = apply_affiliate_content(
+                    article_content, slug, amazon_tag, include_quick_picks=True
+                )
+                if new_content:
+                    article_content = new_content
         except Exception:
             pass
 

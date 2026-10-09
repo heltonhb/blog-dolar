@@ -37,9 +37,63 @@ import time
 from pathlib import Path
 from urllib.parse import quote_plus
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(os.environ.get("BLOG_DOLAR_ROOT") or Path(__file__).resolve().parent.parent)
 ARTICLES_DIR = PROJECT_ROOT / "articles"
 BACKUP_DIR = PROJECT_ROOT / "cache" / "affiliate_backups"
+
+
+def _catalog_path() -> Path:
+    """Retorna o caminho do catálogo dinâmico de produtos (respeita monkeypatching de PROJECT_ROOT)."""
+    root = globals().get("PROJECT_ROOT") or Path(
+        os.environ.get("BLOG_DOLAR_ROOT") or Path(__file__).resolve().parent.parent
+    )
+    return Path(root) / "dashboard" / "data" / "products_catalog.json"
+
+
+def load_custom_products() -> dict[str, list[dict]]:
+    """Carrega catálogo dinâmico de produtos mapeados em dashboard/data/products_catalog.json."""
+    p = _catalog_path()
+    if not p.exists():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return {}
+
+
+def save_custom_products(slug: str, products_list: list[dict]) -> None:
+    """Salva ou atualiza a lista de produtos de um slug no catálogo dinâmico JSON."""
+    if not slug or not isinstance(products_list, list):
+        return
+
+    cleaned = []
+    for prod in products_list:
+        if not isinstance(prod, dict) or not prod.get("title"):
+            continue
+        cleaned.append({
+            "title": str(prod.get("title", "")).strip(),
+            "subtitle": str(prod.get("subtitle", "")).strip(),
+            "search_query": str(prod.get("search_query") or prod.get("title", "")).strip(),
+            "badge": str(prod.get("badge", "TOP PICK")).strip(),
+            "after_heading": prod.get("after_heading", "") or prod.get("title", ""),
+            "specs": [str(s).strip() for s in prod.get("specs", []) if str(s).strip()]
+            if isinstance(prod.get("specs"), list)
+            else [],
+        })
+    if not cleaned:
+        return
+
+    p = _catalog_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    catalog = load_custom_products()
+    catalog[slug] = cleaned
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(catalog, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(p)
+
 
 # Tags da Amazon US terminam em -20 (ex.: heltonhb-20).
 TAG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*-2\d$")
@@ -634,9 +688,16 @@ PRODUCTS["how-to-fix-high-ping-and-packet-loss"] = PRODUCTS["how-to-fix-slow-wif
 
 def get_products_for_slug(slug: str) -> list[dict]:
     """Retorna produtos mapeados diretamente pelo slug ou por tópico/palavras-chave."""
+    # 1. Catálogo dinâmico gerado por IA/customizado
+    custom = load_custom_products()
+    if slug in custom:
+        return custom[slug]
+
+    # 2. Catálogo estático codificado
     if slug in PRODUCTS:
         return PRODUCTS[slug]
 
+    # 3. Heurísticas baseadas em palavras-chave no slug
     slug_lower = slug.lower()
     if any(k in slug_lower for k in ("headphone", "audio", "earbuds", "noise-cancelling")):
         return PRODUCTS.get("best-noise-cancelling-headphones-2026", [])
@@ -673,13 +734,18 @@ def _insert_after_section(content: str, heading_text: str | list[str] | tuple[st
     """Insere `block` no fim da seção do heading que contém `heading_text` (ou lista de candidatos)."""
     candidates = [heading_text] if isinstance(heading_text, str) else list(heading_text)
     for cand in candidates:
-        cand_lower = cand.lower()
+        if not cand or not isinstance(cand, str):
+            continue
+        cand_lower = cand.lower().strip()
+        if not cand_lower:
+            continue
         for m in _HEADING_RE.finditer(content):
             close = content.find("</h", m.end())
             if close == -1:
                 continue
             inner = re.sub(r"<[^>]+>", "", content[m.end():close])
-            if cand_lower in html.unescape(inner).lower():
+            inner_clean = html.unescape(inner).lower().strip()
+            if cand_lower in inner_clean or (len(inner_clean) >= 6 and inner_clean in cand_lower):
                 head_end = content.find(">", close) + 1
                 stop = _SECTION_STOP_RE.search(content, head_end)
                 pos = stop.start() if stop else len(content.rstrip())
@@ -694,19 +760,20 @@ def _insert_after_section(content: str, heading_text: str | list[str] | tuple[st
     return content, False
 
 
-def build_blocks(slug: str, tag: str) -> tuple[list[tuple[str, str]], list[str]]:
+def build_blocks(slug: str, tag: str) -> tuple[list[tuple[str | list[str], str]], list[str]]:
     """[(after_heading, html)] para o slug, + avisos (itens pulados)."""
     blocks, warnings = [], []
     products = get_products_for_slug(slug)
     for product in products:
+        after = product.get("after_heading") or product.get("title") or ""
         if product.get("type") == "vpn":
             url = _env("NORDVPN_AFFILIATE_URL")
             if not url:
                 warnings.append(f"VPN ({product.get('provider')}) pulado: NORDVPN_AFFILIATE_URL não configurado")
                 continue
-            blocks.append((product["after_heading"], render_vpn_card(product, url)))
+            blocks.append((after, render_vpn_card(product, url)))
         else:
-            blocks.append((product["after_heading"], render_amazon_card(product, tag)))
+            blocks.append((after, render_amazon_card(product, tag)))
     return blocks, warnings
 
 
@@ -784,7 +851,7 @@ def scan_articles() -> list[dict]:
         out.append({
             "filename": path.name,
             "slug": slug,
-            "mapped": len(PRODUCTS.get(slug, [])),
+            "mapped": len(get_products_for_slug(slug)),
             "cards": content.count("tech-affiliate-card"),
         })
     return out
@@ -792,7 +859,7 @@ def scan_articles() -> list[dict]:
 
 def inject_local(path: Path, tag: str, dry_run: bool = False) -> bool:
     slug = _slug_of(path)
-    if slug not in PRODUCTS:
+    if not get_products_for_slug(slug):
         print(f"[!] sem mapeamento para {path.name} (slug={slug})")
         return False
     original = path.read_text(encoding="utf-8")

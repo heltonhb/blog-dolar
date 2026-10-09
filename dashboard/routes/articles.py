@@ -40,6 +40,7 @@ Requirements:
 - Use bullet points for readability
 - Conversational, engaging tone
 - Include a meta description (150 chars)
+- Recommend 3 to 5 real, popular products from Amazon US relevant to this topic for reader recommendations
 
 Return ONLY JSON:
 {{
@@ -47,7 +48,17 @@ Return ONLY JSON:
   "slug": "url-friendly-slug",
   "meta_description": "...",
   "content": "Full HTML article with <h2>, <h3>, <p>, <ul>, <table> tags",
-  "tags": ["tag1", "tag2", "tag3"]
+  "tags": ["tag1", "tag2", "tag3"],
+  "products": [
+    {{
+      "title": "Exact Product Name",
+      "subtitle": "Short 1-sentence value proposition or why it is recommended",
+      "search_query": "Amazon search query for this product",
+      "badge": "e.g. BEST OVERALL, BEST VALUE, or TOP PICK",
+      "after_heading": "Exact heading or phrase in the article where this product belongs",
+      "specs": ["Key feature 1", "Key feature 2", "Key feature 3"]
+    }}
+  ]
 }}"""
 
         result = _gemini_call(prompt)
@@ -59,10 +70,21 @@ Return ONLY JSON:
         slug = article.get("slug", "untitled")
         filename = f"{date_str}_{slug}.md"
         filepath = articles_dir / filename
+
+        products = article.get("products", [])
+        if products and isinstance(products, list):
+            try:
+                from affiliate_manager import save_custom_products
+                save_custom_products(slug, products)
+            except Exception:
+                pass
+
+        products_yaml = f"\nproducts: {json.dumps(products)}" if products else ""
+
         content = (
             f"---\ntitle: {article.get('title', 'Untitled')}\ndate: {date_str}\n"
             f"slug: {slug}\nmeta_description: {article.get('meta_description', '')}\n"
-            f"tags: {json.dumps(article.get('tags', []))}\n---\n\n{article.get('content', 'No content')}\n"
+            f"tags: {json.dumps(article.get('tags', []))}{products_yaml}\n---\n\n{article.get('content', 'No content')}\n"
         )
         filepath.write_text(content, encoding="utf-8")
 
@@ -72,6 +94,7 @@ Return ONLY JSON:
             "title": article.get("title"),
             "slug": slug,
             "word_count": len(article.get("content", "").split()),
+            "products_count": len(products) if isinstance(products, list) else 0,
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

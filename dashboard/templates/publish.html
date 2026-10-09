@@ -97,6 +97,10 @@ function publishArticle() {
             if (data.url) log('URL: ' + data.url);
             result.innerHTML = '<div class="stat-card" style="border-color: var(--accent-green);"><h3 style="color: var(--accent-green);"><i class="fa-solid fa-check-circle"></i> Publicado!</h3><p>' + (data.url || 'Verifique o site') + '</p></div>';
             result.style.display = 'block';
+
+            if (data.slug) {
+                pollHooksStatus(data.slug);
+            }
         } else {
             log('❌ ' + (data.error || 'Falha'));
             result.innerHTML = '<div class="stat-card" style="border-color: var(--danger);"><h3 style="color: var(--danger);">Erro</h3><p>' + esc(data.error) + '</p></div>';
@@ -109,6 +113,37 @@ function publishArticle() {
         loading.style.display = 'none';
         log('❌ Erro de conexão: ' + err);
     });
+}
+
+function pollHooksStatus(slug) {
+    log('⚡ Disparando tarefas em segundo plano (Pins + Interlinking)...');
+    let attempts = 0;
+    const interval = setInterval(() => {
+        attempts++;
+        if (attempts > 30) {
+            clearInterval(interval);
+            return;
+        }
+        fetch('/api/publish/hooks-status/' + encodeURIComponent(slug))
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success || !res.status) return;
+                const st = res.status;
+                if (st.pins_status === 'completed' && !st._pins_logged) {
+                    st._pins_logged = true;
+                    log('📌 Multi-Pin: ' + (st.pins_count || 3) + ' Pins gerados e salvos com sucesso!');
+                }
+                if (st.interlinking_status === 'completed' && !st._links_logged) {
+                    st._links_logged = true;
+                    log('🔗 Interlinking: Malha de links internos atualizada (' + (st.interlinking_updated || 0) + ' posts)!');
+                }
+                if (st.status === 'completed' || st.status === 'partial_error') {
+                    clearInterval(interval);
+                    log('🎯 Todas as tarefas de pós-publicação foram finalizadas!');
+                }
+            })
+            .catch(() => {});
+    }, 2000);
 }
 
 function esc(s) {

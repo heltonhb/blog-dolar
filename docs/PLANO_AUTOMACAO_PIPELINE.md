@@ -114,18 +114,17 @@ O objetivo agora é transformar tarefas manuais de terminal em fluxos integrados
 
 Quando formos implementar essas automações:
 
-### Fase 1: Backend de Produtos Dinâmicos & Auto-Inject (Automações 1 e 2)
-1. Modificar [`scripts/gerar_artigos.py`](file:///home/helton/blog-dolar/scripts/gerar_artigos.py) e o endpoint `/api/generate` para solicitar a lista `products` no mesmo JSON da geração de texto.
-2. Criar função `save_custom_products(slug, products_list)` no [`scripts/affiliate_manager.py`](file:///home/helton/blog-dolar/scripts/affiliate_manager.py).
-3. Integrar no `_wp_publish` em [`dashboard/services/wordpress.py`](file:///home/helton/blog-dolar/dashboard/services/wordpress.py) a chamada obrigatória do `apply_affiliate_content`.
-4. Criar testes unitários em `tests/test_affiliate_manager.py` e `tests/test_publish.py`.
+### Fase 1: Backend de Produtos Dinâmicos & Auto-Inject (Automações 1 e 2) — CONCLUÍDA (08/10/2026)
+- [x] 1. Modificar [`scripts/gerar_artigos.py`](file:///home/helton/blog-dolar/scripts/gerar_artigos.py) e o endpoint `/api/generate` para solicitar a lista `products` no mesmo JSON da geração de texto.
+- [x] 2. Criar função `save_custom_products(slug, products_list)` no [`scripts/affiliate_manager.py`](file:///home/helton/blog-dolar/scripts/affiliate_manager.py) com catálogo JSON dinâmico `products_catalog.json`.
+- [x] 3. Integrar no `_wp_publish` em [`dashboard/services/wordpress.py`](file:///home/helton/blog-dolar/dashboard/services/wordpress.py) a chamada obrigatória do `apply_affiliate_content(include_quick_picks=True)`.
+- [x] 4. Criar testes unitários em `tests/test_affiliate_manager.py`, `tests/test_articles.py` e `tests/test_publish.py` (141 testes passando).
 
-### Fase 2: Geração de Pins e Interlinking em Background (Automações 3 e 4)
-1. Criar `dashboard/services/post_hooks.py` contendo:
-   - `trigger_post_publish_tasks(slug, post_id)` executado em background thread.
-   - Tarefa 1: `generate_pins_for_slug(slug)`
-   - Tarefa 2: `recalc_internal_links(slug)`
-2. Exibir status de progresso das tarefas no Dashboard.
+### Fase 2: Geração de Pins e Interlinking em Background (Automações 3 e 4) — CONCLUÍDA (08/10/2026)
+- [x] 1. Criar `dashboard/services/post_hooks.py` com `trigger_post_publish_tasks(slug, post_id)` executado em background thread.
+- [x] 2. Tarefa 1: `generate_pins_for_slug(slug)` com suporte dinâmico a qualquer novo post e persistência em `pin_variations.json`.
+- [x] 3. Tarefa 2: `recalc_internal_links(slug)` com recálculo de similaridade e PUT com delay anti-rate limit.
+- [x] 4. Exibir status de progresso das tarefas no Dashboard via polling do endpoint `/api/publish/hooks-status/<slug>` e log interativo na interface web (147 testes passando).
 
 ### Fase 3: Motor de Auto-Publicação no Pinterest (Automação 6)
 1. Criar `dashboard/services/pinterest_queue.py`:

@@ -45,7 +45,7 @@ No markdown, just pure JSON."""
         return self._parse_json(response)
     
     def generate_article(self, topic: dict, keyword: str) -> dict:
-        """Gera artigo completo otimizado para SEO"""
+        """Gera artigo completo otimizado para SEO com produtos para monetização"""
         prompt = f"""Write a comprehensive blog post about: {topic['title']}
 
 Target keyword: {keyword}
@@ -59,6 +59,7 @@ Requirements:
 - Use bullet points for readability
 - Conversational, engaging tone
 - Include a meta description (150 chars)
+- Recommend 3 to 5 real, popular products from Amazon US relevant to this topic for reader recommendations
 
 Return ONLY JSON:
 {{
@@ -66,7 +67,17 @@ Return ONLY JSON:
   "slug": "url-friendly-slug",
   "meta_description": "...",
   "content": "Full HTML article with <h2>, <h3>, <p>, <ul>, <table> tags",
-  "tags": ["tag1", "tag2", "tag3"]
+  "tags": ["tag1", "tag2", "tag3"],
+  "products": [
+    {{
+      "title": "Exact Product Name",
+      "subtitle": "Short 1-sentence value proposition or why it is recommended",
+      "search_query": "Amazon search query for this product",
+      "badge": "e.g. BEST OVERALL, BEST VALUE, or TOP PICK",
+      "after_heading": "Exact heading or phrase in the article where this product belongs",
+      "specs": ["Key feature 1", "Key feature 2", "Key feature 3"]
+    }}
+  ]
 }}"""
 
         response = self._call_api(prompt)
@@ -113,17 +124,31 @@ Return ONLY JSON:
 
 
 def save_article(article: dict, output_dir: Path):
-    """Salva artigo em arquivo markdown"""
+    """Salva artigo em arquivo markdown e registra produtos no catalogo"""
     date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f"{date_str}_{article.get('slug', 'untitled')}.md"
+    slug = article.get('slug', 'untitled')
+    filename = f"{date_str}_{slug}.md"
     filepath = output_dir / filename
     
+    products = article.get("products", [])
+    if products and isinstance(products, list):
+        try:
+            sys_path_root = Path(__file__).resolve().parent.parent
+            if str(sys_path_root / "scripts") not in sys.path:
+                sys.path.insert(0, str(sys_path_root / "scripts"))
+            from affiliate_manager import save_custom_products
+            save_custom_products(slug, products)
+        except Exception as e:
+            print(f"  [!] Aviso ao salvar catalogo de produtos: {e}")
+
+    products_yaml = f"\nproducts: {json.dumps(products)}" if products else ""
+
     content = f"""---
 title: {article.get('title', 'Untitled')}
 date: {date_str}
-slug: {article.get('slug', '')}
+slug: {slug}
 meta_description: {article.get('meta_description', '')}
-tags: {json.dumps(article.get('tags', []))}
+tags: {json.dumps(article.get('tags', []))}{products_yaml}
 ---
 
 {article.get('content', 'No content')}

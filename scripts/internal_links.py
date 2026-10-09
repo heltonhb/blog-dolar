@@ -210,6 +210,19 @@ def aplicar(plano: dict[str, list[dict]]) -> None:
             print(f"  ✗ falhou: {slug}")
 
     print(f"\n{atualizados} post(s) atualizado(s) com links internos")
+    return atualizados
+
+
+def recalc_internal_links(slug: str | None = None) -> int:
+    """Recalcula e aplica o plano de links internos nos posts."""
+    plano = montar_plano()
+    if slug and slug in plano:
+        focado = {slug: plano[slug]}
+        for other_slug, rels in plano.items():
+            if any(r.get("slug") == slug for r in rels):
+                focado[other_slug] = rels
+        return aplicar(focado)
+    return aplicar(plano)
 
 
 def main():
