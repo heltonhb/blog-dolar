@@ -112,6 +112,63 @@ def api_scheduler_remove(job_id):
     return jsonify({"success": True, "removed": len(sched_data) - len(remaining)})
 
 
+@scheduler_bp.route("/add_drip", methods=["POST"])
+@login_required
+def api_scheduler_add_drip():
+    """Add a scheduled Pinterest drip-feed cron job."""
+    sched = get_scheduler()
+    if sched is None:
+        return jsonify({"success": False, "error": _DISABLED_MSG}), 503
+
+    try:
+        data = request.json or {}
+        hour = int(data.get("hour", 11))
+        minute = int(data.get("minute", 0))
+        days = data.get("days_of_week", "mon-sun")
+        board_id = data.get("board_id", "").strip()
+
+        job_id = f"pinterest_drip_{hour:02d}{minute:02d}"
+
+        try:
+            sched.remove_job(job_id)
+        except Exception:
+            pass
+
+        from dashboard.services.pipeline import _scheduled_pinterest_drip_job
+
+        sched.add_job(
+            _scheduled_pinterest_drip_job,
+            trigger=CronTrigger(day_of_week=days, hour=hour, minute=minute),
+            args=[board_id],
+            id=job_id,
+            name=f"Pinterest Drip ({hour:02d}:{minute:02d})",
+            replace_existing=True,
+        )
+
+        sched_data = _load_json("scheduler_jobs.json", [])
+        sched_data = [j for j in sched_data if j.get("id") != job_id]
+        sched_data.append({
+            "id": job_id,
+            "type": "pinterest_drip",
+            "hour": hour,
+            "minute": minute,
+            "days": days,
+            "board_id": board_id,
+            "name": f"Pinterest Drip ({hour:02d}:{minute:02d})",
+            "created_at": datetime.now().isoformat(),
+        })
+        _save_json("scheduler_jobs.json", sched_data)
+
+        job = sched.get_job(job_id)
+        return jsonify({
+            "success": True,
+            "job_id": job_id,
+            "next_run": str(job.next_run_time) if job and job.next_run_time else None,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @scheduler_bp.route("/run_now/<job_id>", methods=["POST"])
 @login_required
 def api_scheduler_run_now(job_id):
@@ -126,12 +183,24 @@ def api_scheduler_run_now(job_id):
         if not job_cfg:
             return jsonify({"success": False, "error": "Job não encontrado"}), 404
 
+        job_type = job_cfg.get("type") or ("pinterest_drip" if str(job_cfg.get("id", "")).startswith("pinterest_drip") else "pipeline")
+        if job_type == "pinterest_drip":
+            from dashboard.services.pipeline import _scheduled_pinterest_drip_job
+
+            sched.add_job(
+                _scheduled_pinterest_drip_job,
+                args=[job_cfg.get("board_id", "")],
+                id=f"{job_id}_manual_{int(datetime.now().timestamp())}",
+                name=f"Manual: Pinterest Drip",
+            )
+            return jsonify({"success": True, "message": "Executando agora: Pinterest Drip"})
+
         sched.add_job(
             _scheduled_pipeline_job,
-            args=[job_cfg["keyword"]],
+            args=[job_cfg.get("keyword", "")],
             id=f"{job_id}_manual_{int(datetime.now().timestamp())}",
-            name=f"Manual: {job_cfg['keyword'][:40]}",
+            name=f"Manual: {job_cfg.get('keyword', '')[:40]}",
         )
-        return jsonify({"success": True, "message": f"Executando agora: {job_cfg['keyword']}"})
+        return jsonify({"success": True, "message": f"Executando agora: {job_cfg.get('keyword', '')}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

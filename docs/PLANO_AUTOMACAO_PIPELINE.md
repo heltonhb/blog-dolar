@@ -126,13 +126,16 @@ Quando formos implementar essas automações:
 - [x] 3. Tarefa 2: `recalc_internal_links(slug)` com recálculo de similaridade e PUT com delay anti-rate limit.
 - [x] 4. Exibir status de progresso das tarefas no Dashboard via polling do endpoint `/api/publish/hooks-status/<slug>` e log interativo na interface web (147 testes passando).
 
-### Fase 3: Motor de Auto-Publicação no Pinterest (Automação 6)
-1. Criar `dashboard/services/pinterest_queue.py`:
-   - Gestão da fila de Pins (`list_pending()`, `mark_published()`).
-   - `publish_next_pin()`: upload da imagem para o WP + post na API v5 com Safe Bridge.
-   - `export_pinterest_csv()`: exporta planilha oficial para agendamento em lote nativo no Pinterest Business.
-2. Conectar a tarefa diária no agendador (`scheduler.py`) para disparar 1 Pin às 11:00 e 1 Pin às 17:00.
-3. Exibir a galeria de Pins pendentes/publicados na interface `/pinterest` do painel com botão de "Publicar Agora".
+### Fase 3: Motor de Auto-Publicação no Pinterest (Automação 6) — CONCLUÍDA (09/10/2026)
+- [x] 1. Criar `dashboard/services/pinterest_queue.py`:
+   - Gestão da fila de Pins (`list_pending(interleaved=True)`, `mark_published()`, `get_queue_stats()`).
+   - `publish_next_pin()` e `publish_pin()`: upload da imagem para WP Media (`_wp_upload_media`) + post na API v5 com Safe Bridge em inglês (`/p/{slug}`).
+   - `export_pinterest_csv()`: exporta planilha oficial para agendamento em lote nativo no Pinterest Business com timestamps espaçados (11h e 17h).
+- [x] 2. Conectar a tarefa diária no agendador (`scheduler.py` e `pipeline.py`):
+   - Criado `_scheduled_pinterest_drip_job` e endpoint `/api/scheduler/add_drip` com suporte a restauração no reboot.
+- [x] 3. Exibir a galeria de Pins pendentes/publicados e toolbar de ações na interface `/pinterest` do painel (`pinterest.html`):
+   - Botões "Publicar Próximo Pin Agora", "Exportar CSV Pinterest Business" e "Sincronizar Fila", além de badges de status e ações por card.
+- [x] 4. Criar testes unitários em `tests/test_pinterest_queue.py` (156 testes passando).
 
 ### Fase 4: Piloto Automático Geral no Scheduler (Automação 5)
 1. Integrar o workflow de 1-clique em [`dashboard/routes/scheduler.py`](file:///home/helton/blog-dolar/dashboard/routes/scheduler.py).

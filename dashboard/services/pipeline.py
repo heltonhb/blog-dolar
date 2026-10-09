@@ -131,6 +131,19 @@ def _scheduled_pipeline_job(keyword: str):
         })
 
 
+def _scheduled_pinterest_drip_job(board_id: str = ""):
+    """Publish the next pending pin in the drip-feed queue (called by APScheduler)."""
+    try:
+        from dashboard.services.pinterest_queue import publish_next_pin
+
+        res = publish_next_pin(board_id=board_id or None)
+        log.info("Pinterest drip-feed job concluído: %s", res)
+        return res
+    except Exception as e:
+        log.exception("Pinterest drip-feed job falhou: %s", e)
+        return {"success": False, "error": str(e)}
+
+
 # ---------------------------------------------------------------------------
 #  Core Pipeline Logic
 # ---------------------------------------------------------------------------

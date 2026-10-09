@@ -87,3 +87,125 @@ def api_pinterest_create():
 def api_pinterest_list():
     """Return Pinterest configuration and published pins history."""
     return jsonify(get_config("pinterest_config", {}))
+
+
+@pinterest_bp.route("/queue", methods=["GET"])
+@login_required
+def api_pinterest_queue():
+    """Return Pinterest queue items and status."""
+    try:
+        from dashboard.services.pinterest_queue import (
+            get_pending_pins,
+            get_queue_stats,
+            list_queue,
+        )
+
+        status_filter = request.args.get("status")
+        queue = list_queue(status=status_filter)
+        pending = get_pending_pins(interleaved=True)
+        stats = get_queue_stats()
+        return jsonify({
+            "success": True,
+            "stats": stats,
+            "queue": queue,
+            "pending_count": len(pending),
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pinterest_bp.route("/queue/sync", methods=["POST"])
+@login_required
+def api_pinterest_queue_sync():
+    """Resynchronize queue from pin variations."""
+    try:
+        from dashboard.services.pinterest_queue import get_queue_stats, sync_queue
+
+        queue = sync_queue()
+        stats = get_queue_stats()
+        return jsonify({
+            "success": True,
+            "count": len(queue),
+            "stats": stats,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pinterest_bp.route("/publish-next", methods=["POST"])
+@login_required
+def api_pinterest_publish_next():
+    """Publish next pending pin in the drip-feed queue."""
+    try:
+        from dashboard.services.pinterest_queue import publish_next_pin
+
+        data = request.json or {}
+        board_id = data.get("board_id")
+        res = publish_next_pin(board_id=board_id)
+        status_code = 200 if res.get("success") else (400 if "Nenhum pin" in res.get("message", "") else 500)
+        return jsonify(res), status_code
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pinterest_bp.route("/publish-pin", methods=["POST"])
+@login_required
+def api_pinterest_publish_pin():
+    """Publish a specific pin by identifier."""
+    try:
+        from dashboard.services.pinterest_queue import publish_pin
+
+        data = request.json or {}
+        pin_id = data.get("id") or data.get("pin_id") or data.get("filename")
+        if not pin_id:
+            return jsonify({"success": False, "error": "ID ou nome de arquivo do pin é obrigatório"}), 400
+        board_id = data.get("board_id")
+        res = publish_pin(pin_id, board_id=board_id)
+        return jsonify(res), (200 if res.get("success") else 500)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pinterest_bp.route("/queue/mark", methods=["POST"])
+@login_required
+def api_pinterest_queue_mark():
+    """Update status of a pin manually."""
+    try:
+        from dashboard.services.pinterest_queue import mark_pin_status
+
+        data = request.json or {}
+        pin_id = data.get("id") or data.get("filename")
+        status = data.get("status", "published")
+        remote_pin_id = data.get("pin_id", "")
+        if not pin_id:
+            return jsonify({"success": False, "error": "ID do pin é obrigatório"}), 400
+
+        item = mark_pin_status(pin_id, status=status, pin_id=remote_pin_id)
+        if not item:
+            return jsonify({"success": False, "error": "Pin não encontrado"}), 404
+        return jsonify({"success": True, "pin": item})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pinterest_bp.route("/export-csv", methods=["GET"])
+@login_required
+def api_pinterest_export_csv():
+    """Export pins as CSV for Pinterest Business Bulk Upload."""
+    try:
+        from flask import Response
+        from dashboard.services.pinterest_queue import export_pinterest_csv
+
+        board_name = request.args.get("board_name")
+        all_pins = request.args.get("all") == "1"
+        csv_content = export_pinterest_csv(
+            board_name=board_name,
+            only_pending=not all_pins,
+        )
+        return Response(
+            csv_content,
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment; filename=pinterest_schedule.csv"},
+        )
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

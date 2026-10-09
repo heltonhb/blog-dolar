@@ -80,6 +80,11 @@ def run_post_publish_tasks(slug: str, post_id: int | None = None) -> dict:
     try:
         from generate_pin_variations import generate_pins_for_slug
         pins = generate_pins_for_slug(slug)
+        try:
+            from dashboard.services.pinterest_queue import sync_queue
+            sync_queue()
+        except Exception:
+            pass
         _save_hook_status(slug, {
             "pins_status": "completed",
             "pins_count": len(pins),
