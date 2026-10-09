@@ -73,10 +73,13 @@ def test_scheduler_add_and_remove(client, scheduler_on):
     assert add_data["success"] is True
     job_id = add_data["job_id"]
 
-    # Trigger run now
-    run_resp = client.post(f"/api/scheduler/run_now/{job_id}")
-    assert run_resp.status_code == 200
-    assert run_resp.get_json()["success"] is True
+    # Trigger run now with mocked job execution
+    from unittest.mock import patch
+    with patch("dashboard.services.pipeline._scheduled_pipeline_job", return_value={"success": True}), \
+         patch("dashboard.routes.scheduler._scheduled_pipeline_job", return_value={"success": True}):
+        run_resp = client.post(f"/api/scheduler/run_now/{job_id}")
+        assert run_resp.status_code == 200
+        assert run_resp.get_json()["success"] is True
 
     # Remove scheduled job
     del_resp = client.delete(f"/api/scheduler/remove/{job_id}")

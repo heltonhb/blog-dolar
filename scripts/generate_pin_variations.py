@@ -243,11 +243,21 @@ def generate_pins_for_slug(slug: str, api_key: str = "", force: bool = False) ->
             provider = "cached-local"
         else:
             print(f"  🧠 Prompt: {var['prompt'][:80]}...")
-            raw_bytes, provider = generate_image(
-                prompt=var["prompt"],
-                api_key=api_key,
-                usage="pinterest",
-            )
+            try:
+                raw_bytes, provider = generate_image(
+                    prompt=var["prompt"],
+                    api_key=api_key,
+                    usage="pinterest",
+                )
+            except Exception as e:
+                print(f"  ⚠️ Falha ao gerar imagem nova para variação #{v_num}: {e}")
+                base_pin = STATIC_IMAGES_DIR / f"pin-{slug}.png"
+                if base_pin.exists():
+                    print(f"  🔄 Reutilizando imagem base de {base_pin.name} com overlay da variação #{v_num}...")
+                    raw_bytes = base_pin.read_bytes()
+                    provider = "fallback-base"
+                else:
+                    raise
             print(f"  ✍️ Adicionando overlay de texto...")
             image_bytes = add_pin_text_overlay(raw_bytes, var["headline"])
             filepath.write_bytes(image_bytes)

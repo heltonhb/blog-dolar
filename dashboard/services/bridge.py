@@ -38,9 +38,9 @@ def get_bridge_base_url() -> str:
         except Exception:
             base = ""
 
-    # 4. Fallback default
+    # 4. Fallback default: production Render dashboard or localhost
     if not base:
-        base = "http://localhost:5000"
+        base = "https://blog-dolar-dashboard.onrender.com"
 
     return base.rstrip("/")
 

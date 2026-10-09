@@ -320,6 +320,8 @@ def api_scheduler_run_now(job_id):
             )
             return jsonify({"success": True, "message": "Executando agora: Piloto Automático"})
 
+        from dashboard.services.pipeline import _scheduled_pipeline_job
+
         sched.add_job(
             _scheduled_pipeline_job,
             args=[job_cfg.get("keyword", "")],
