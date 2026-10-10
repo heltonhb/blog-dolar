@@ -36,6 +36,7 @@ cache/
 # Dashboard data (keep structure, ignore content)
 dashboard/data/*.json
 dashboard/static/images/*.png
+!dashboard/static/images/pin-*.png
 dashboard/data/dashboard.db
 dashboard/data/.env
 dashboard/data/flask_secret_key
@@ -63,4 +64,5 @@ google_urls.txt
 new_site_urls.txt
 *.png
 !dashboard/static/icon*.png
+!dashboard/static/images/pin-*.png
 board.html

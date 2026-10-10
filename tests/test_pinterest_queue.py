@@ -178,7 +178,14 @@ def test_export_pinterest_csv():
     assert row_v2[1] == "CONSIDERATION"
     assert row_v2[3] == "Tech Tips - Test Tech Board"
     assert row_v2[4] == "PAUSED"  # Campaign PAUSED
+    assert row_v2[6] == "10"  # Campaign Daily Spend Limit
+    assert row_v2[9] == "YES"  # Campaign Budget (CBO enabled)
+    assert row_v2[10].startswith("[20")  # Campaign Start Date required for CBO
+    assert row_v2[11].startswith("[")  # Campaign Start Time required for CBO
+    assert row_v2[24] == ""  # Ad Group Budget must be empty for CBO
+    assert row_v2[26] == "CBO"  # Ad Group Budget Type must be CBO
     assert row_v2[27] == "PAUSED"  # Ad Group PAUSED
+    assert row_v2[51] == ""  # No invalid clear commands
     assert row_v2[80] == "NO"  # Organic public Pin
     assert row_v2[81] == "PAUSED"  # Promoted Pin PAUSED
     assert row_v2[74].startswith("http")  # Image media URL

@@ -444,16 +444,8 @@ def export_pinterest_csv(
             title = (pin.get("title") or "Tech Buying Guide")[:100]
             desc = (pin.get("description") or title)[:500]
 
-            media_url = pin.get("wp_media_url")
-            if not media_url:
-                try:
-                    up_res = upload_pin_image_to_wp(pin)
-                    if up_res.get("success"):
-                        media_url = up_res.get("url")
-                except Exception:
-                    pass
-            if not media_url:
-                media_url = f"{site_url}/wp-content/uploads/{pin.get('filename')}"
+            bridge_base = _env("BRIDGE_BASE_URL", "https://blog-dolar-dashboard.onrender.com").rstrip("/")
+            media_url = f"{bridge_base}/static/images/{pin.get('filename')}"
 
             link = get_bridge_url(pin.get("slug", ""))
             publish_date_str = current_date.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -500,16 +492,9 @@ def export_pinterest_csv(
         title = (pin.get("title") or "Tech Buying Guide")[:100]
         desc = (pin.get("description") or title)[:500]
 
-        media_url = pin.get("wp_media_url")
-        if not media_url:
-            try:
-                up_res = upload_pin_image_to_wp(pin)
-                if up_res.get("success"):
-                    media_url = up_res.get("url")
-            except Exception:
-                pass
-        if not media_url:
-            media_url = f"{site_url}/wp-content/uploads/{pin.get('filename')}"
+        bridge_base = _env("BRIDGE_BASE_URL", "https://blog-dolar-dashboard.onrender.com").rstrip("/")
+        # Serve via Render static endpoint with globally trusted Cloudflare TLS certificate
+        media_url = f"{bridge_base}/static/images/{pin.get('filename')}"
 
         link = get_bridge_url(pin.get("slug", ""))
 
@@ -528,13 +513,15 @@ def export_pinterest_csv(
         row[3] = f"Tech Tips - {default_board}"
         row[4] = "PAUSED"
         row[6] = "10"
-        row[9] = "NO"
+        row[9] = "YES"
+        row[10] = f"[{start_date.strftime('%Y-%m-%d')}]"
+        row[11] = f"[{start_date.strftime('%H:%M')}]"
         # Each Pin gets a distinct Ad Group so that scheduled date/time and keywords do not collide across rows
         row[19] = f"{title[:100]} ({current_date.strftime('%Y-%m-%d %H:%M')})"
         row[20] = f"[{current_date.strftime('%Y-%m-%d')}]"
         row[21] = f"[{current_date.strftime('%H:%M')}]"
-        row[24] = "10"
-        row[26] = "DAILY"
+        row[24] = ""
+        row[26] = "CBO"
         row[27] = "PAUSED"
         row[30] = "0.3"
         row[51] = ""
