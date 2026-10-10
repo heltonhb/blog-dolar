@@ -527,6 +527,8 @@ def export_pinterest_csv(
         row[2] = "STANDARD_AD"
         row[3] = f"Tech Tips - {default_board}"
         row[4] = "PAUSED"
+        row[6] = "10"
+        row[9] = "NO"
         # Each Pin gets a distinct Ad Group so that scheduled date/time and keywords do not collide across rows
         row[19] = f"{title[:100]} ({current_date.strftime('%Y-%m-%d %H:%M')})"
         row[20] = f"[{current_date.strftime('%Y-%m-%d')}]"
@@ -535,7 +537,7 @@ def export_pinterest_csv(
         row[26] = "DAILY"
         row[27] = "PAUSED"
         row[30] = "0.3"
-        row[51] = "[]"
+        row[51] = ""
         row[52] = "ALL"
         row[56] = "ALL"
         row[57] = "ALL"
