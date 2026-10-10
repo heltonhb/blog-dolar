@@ -404,8 +404,13 @@ def export_pinterest_csv(
     """
     if only_pending:
         pins = get_pending_pins(interleaved=True)
+        if not pins:
+            sync_queue()
+            pins = get_pending_pins(interleaved=True)
     else:
         pins = list_queue()
+        if not pins:
+            pins = sync_queue()
 
     default_board = board_name or _env("PINTEREST_BOARD_NAME") or "Tech Tips & Buying Guides"
     site_url = _env("SITE_URL", "https://techtips.dpdns.org").rstrip("/")
@@ -522,7 +527,8 @@ def export_pinterest_csv(
         row[2] = "STANDARD_AD"
         row[3] = f"Tech Tips - {default_board}"
         row[4] = "PAUSED"
-        row[19] = f"Tech Tips - {default_board} Group"
+        # Each Pin gets a distinct Ad Group so that scheduled date/time and keywords do not collide across rows
+        row[19] = f"{title[:100]} ({current_date.strftime('%Y-%m-%d %H:%M')})"
         row[20] = f"[{current_date.strftime('%Y-%m-%d')}]"
         row[21] = f"[{current_date.strftime('%H:%M')}]"
         row[24] = "10"
@@ -545,8 +551,7 @@ def export_pinterest_csv(
         row[81] = "PAUSED"
         row[83] = "STATIC"
         row[84] = title[:128]
-        row[158] = "PGR12345678911"
-        row[159] = f"Tech Tips {default_board}"
+        # Col 158/159 (Product Groups) deliberately empty: standard ad pins do not use catalog product groups
 
         writer.writerow(row)
 

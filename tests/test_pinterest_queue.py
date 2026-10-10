@@ -183,6 +183,9 @@ def test_export_pinterest_csv():
     assert row_v2[81] == "PAUSED"  # Promoted Pin PAUSED
     assert row_v2[74].startswith("http")  # Image media URL
     assert "/bridge/" in row_v2[77] or "/p/" in row_v2[77]  # Destination URL
+    assert row_v2[158] == ""  # No product group for standard pins
+    assert row_v2[159] == ""
+    assert reader_v2[3][19] != reader_v2[4][19]  # Unique Ad Group names per pin
 
     # 2. Test standard 8-column format
     csv_std = export_pinterest_csv(board_name="Test Tech Board", format_type="standard")
