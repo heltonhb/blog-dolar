@@ -7,7 +7,7 @@
 - `PINTEREST_REFRESH_TOKEN`, `CLIENT_ID`, `CLIENT_SECRET` -> **ausentes** no `.env`.
 - `PINTEREST_BOARD_ID` -> **vazio** (`.env` e `dashboard/data/pinterest_config.json`).
 - `published_pins` / `pinterest_published.json` -> **vazio**.
-- Trial do app (ID 1607290): **PENDENTE** — confirmado no painel em 2026-09-15.
+- Trial do app (ID 1621913): **PENDENTE** — criado para substituir o app anterior.
 
 ### ✔️ Correções aplicadas em 2026-09-15 (aprovadas pelo usuário)
 1. **URL da imagem -> URL direta do arquivo.** `get_pin_image_url()` no `pinterest_publish.py`

@@ -168,12 +168,28 @@ def test_publish_next_pin_when_empty():
 
 def test_export_pinterest_csv():
     sync_queue()
-    csv_text = export_pinterest_csv(board_name="Test Tech Board")
-    assert csv_text.startswith("Title,Media URL,Pinterest board")
 
-    reader = list(csv.reader(io.StringIO(csv_text)))
-    assert len(reader) == 5  # Header + 4 pins
-    header = reader[0]
+    # 1. Test official V2 format (170 columns, all ads PAUSED)
+    csv_v2 = export_pinterest_csv(board_name="Test Tech Board", format_type="v2")
+    reader_v2 = list(csv.reader(io.StringIO(csv_v2)))
+    assert len(reader_v2) == 7  # 3 header/instruction rows + 4 pins
+    assert len(reader_v2[0]) == 170
+    row_v2 = reader_v2[3]
+    assert row_v2[1] == "CONSIDERATION"
+    assert row_v2[3] == "Tech Tips - Test Tech Board"
+    assert row_v2[4] == "PAUSED"  # Campaign PAUSED
+    assert row_v2[27] == "PAUSED"  # Ad Group PAUSED
+    assert row_v2[80] == "NO"  # Organic public Pin
+    assert row_v2[81] == "PAUSED"  # Promoted Pin PAUSED
+    assert row_v2[74].startswith("http")  # Image media URL
+    assert "/bridge/" in row_v2[77] or "/p/" in row_v2[77]  # Destination URL
+
+    # 2. Test standard 8-column format
+    csv_std = export_pinterest_csv(board_name="Test Tech Board", format_type="standard")
+    assert csv_std.startswith("Title,Media URL,Pinterest board")
+    reader_std = list(csv.reader(io.StringIO(csv_std)))
+    assert len(reader_std) == 5  # Header + 4 pins
+    header = reader_std[0]
     assert header == [
         "Title",
         "Media URL",
@@ -185,10 +201,10 @@ def test_export_pinterest_csv():
         "Keywords",
     ]
 
-    row1 = reader[1]
+    row1 = reader_std[1]
     assert row1[2] == "Test Tech Board"
-    assert "/p/" in row1[5]  # Safe Bridge link
-    assert "T" in row1[6] and row1[6].endswith("Z")  # ISO 8601 publish date
+    assert "/p/" in row1[5] or "/bridge/" in row1[5]
+    assert "T" in row1[6] and row1[6].endswith("Z")
 
 
 def test_api_pinterest_queue_endpoints(client):
@@ -217,12 +233,18 @@ def test_api_pinterest_queue_endpoints(client):
     assert resp_mark.status_code == 200
     assert resp_mark.get_json()["pin"]["status"] == "published"
 
-    # GET export-csv
+    # GET export-csv (default V2)
     resp_csv = client.get("/api/pinterest/export-csv")
     assert resp_csv.status_code == 200
     assert "text/csv" in resp_csv.headers.get("Content-Type", "")
-    assert "pinterest_schedule.csv" in resp_csv.headers.get("Content-Disposition", "")
-    assert b"Title,Media URL" in resp_csv.data
+    assert "pinterest_bulk_editor_v2.csv" in resp_csv.headers.get("Content-Disposition", "")
+    assert b"Campaign ID" in resp_csv.data
+
+    # GET export-csv (standard 8-columns)
+    resp_std = client.get("/api/pinterest/export-csv?format=standard")
+    assert resp_std.status_code == 200
+    assert "pinterest_schedule.csv" in resp_std.headers.get("Content-Disposition", "")
+    assert b"Title,Media URL" in resp_std.data
 
 
 def test_api_scheduler_add_drip(client):

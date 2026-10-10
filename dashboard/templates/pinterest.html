@@ -36,8 +36,11 @@
         <button id="btn-publish-next" class="btn btn-green" onclick="publishNextPin()" style="font-size: 0.85rem; padding: 8px 16px;">
             <i class="fa-solid fa-paper-plane"></i> Publicar Próximo Pin Agora
         </button>
-        <a href="/api/pinterest/export-csv" class="btn btn-blue" style="font-size: 0.85rem; padding: 8px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;" title="Baixar planilha CSV com títulos, links da ponte e datas de agendamento">
-            <i class="fa-solid fa-file-csv"></i> Exportar CSV Pinterest Business
+        <a href="/api/pinterest/export-csv?format=v2" class="btn btn-blue" style="font-size: 0.85rem; padding: 8px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;" title="Baixar planilha oficial no formato V2 aceito pelo Editor em Massa do Pinterest">
+            <i class="fa-solid fa-file-csv"></i> Exportar CSV Pinterest Bulk V2
+        </a>
+        <a href="/api/pinterest/export-csv?format=standard" class="btn btn-sm" style="font-size: 0.75rem; padding: 8px 12px; background: var(--bg-hover); color: var(--text-secondary); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Baixar CSV simples de 8 colunas">
+            <i class="fa-solid fa-table"></i> CSV Simples
         </a>
         <button class="btn btn-orange" onclick="syncQueue()" style="font-size: 0.85rem; padding: 8px 14px;" title="Ressincronizar variações salvas com a fila">
             <i class="fa-solid fa-rotate"></i> Sincronizar Fila

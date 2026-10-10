@@ -21,6 +21,7 @@ from dashboard.services.helpers import (
     _env,
     _images_dir,
     _load_json,
+    _project_root,
     _save_json,
     _scripts_dir,
 )
@@ -366,16 +367,38 @@ def publish_next_pin(board_id: str | None = None) -> dict:
     return publish_pin(pin.get("id", pin["filename"]), board_id=board_id)
 
 
+def _load_bulk_v2_template() -> tuple[list[str], list[str], list[str]]:
+    """Load official Pinterest Bulk Editor V2 template headers and instruction rows."""
+    template_path = _project_root() / "config" / "bulk_editor_template_v2.csv"
+    if template_path.exists():
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                r = csv.reader(f)
+                h = next(r)
+                l1 = next(r)
+                l2 = next(r)
+                if len(h) == 170:
+                    return h, l1, l2
+        except Exception as e:
+            logger.warning("Falha ao ler bulk_editor_template_v2.csv: %s", e)
+
+    # Fallback structure if file is missing
+    h = ["Campaign ID"] + [""] * 169
+    return h, [""] * 170, [""] * 170
+
+
 def export_pinterest_csv(
     board_name: str | None = None,
     pins_per_day: int = 2,
     start_date: datetime | None = None,
     only_pending: bool = True,
+    format_type: str = "v2",
 ) -> str:
     """Export pins to official Pinterest Business Bulk Upload CSV format.
 
-    Headers:
-        Title, Media URL, Pinterest board, Thumbnail, Description, Link, Publish date, Keywords
+    Supports:
+      - "v2": Official Pinterest Ads Bulk Editor V2 format (170 columns, all campaigns/ads PAUSED, zero cost)
+      - "standard": Simpler organic pins CSV format (8 columns)
 
     Schedules pins spaced according to drip-feed intervals (default: 2 pins/day at 11:00 and 17:00).
     """
@@ -394,36 +417,97 @@ def export_pinterest_csv(
 
     output = io.StringIO()
     writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
-    headers = [
-        "Title",
-        "Media URL",
-        "Pinterest board",
-        "Thumbnail",
-        "Description",
-        "Link",
-        "Publish date",
-        "Keywords",
-    ]
-    writer.writerow(headers)
+
+    # 1. Standard 8-column format
+    if format_type.lower() == "standard":
+        headers = [
+            "Title",
+            "Media URL",
+            "Pinterest board",
+            "Thumbnail",
+            "Description",
+            "Link",
+            "Publish date",
+            "Keywords",
+        ]
+        writer.writerow(headers)
+
+        current_date = start_date
+        slot = 0  # 0 -> 11:00, 1 -> 17:00
+
+        for pin in pins:
+            title = (pin.get("title") or "Tech Buying Guide")[:100]
+            desc = (pin.get("description") or title)[:500]
+
+            media_url = pin.get("wp_media_url")
+            if not media_url:
+                try:
+                    up_res = upload_pin_image_to_wp(pin)
+                    if up_res.get("success"):
+                        media_url = up_res.get("url")
+                except Exception:
+                    pass
+            if not media_url:
+                media_url = f"{site_url}/wp-content/uploads/{pin.get('filename')}"
+
+            link = get_bridge_url(pin.get("slug", ""))
+            publish_date_str = current_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            raw_keywords = [
+                tag.strip("#, ")
+                for tag in desc.split()
+                if tag.startswith("#") and len(tag) > 1
+            ]
+            if not raw_keywords and pin.get("headline"):
+                raw_keywords = [w.strip() for w in pin["headline"].split() if len(w) > 3][:5]
+            keywords_str = ", ".join(raw_keywords[:10])
+
+            writer.writerow([
+                title,
+                media_url,
+                default_board,
+                "",  # Thumbnail is empty for image pins
+                desc,
+                link,
+                publish_date_str,
+                keywords_str,
+            ])
+
+            if slot == 0 and pins_per_day >= 2:
+                current_date = current_date.replace(hour=17)
+                slot = 1
+            else:
+                current_date = (current_date + timedelta(days=1)).replace(hour=11)
+                slot = 0
+
+        return output.getvalue()
+
+    # 2. Official Pinterest Bulk Editor V2 format (170 columns, PAUSED ads for zero cost)
+    h, l1, l2 = _load_bulk_v2_template()
+    writer.writerow(h)
+    writer.writerow(l1)
+    writer.writerow(l2)
 
     current_date = start_date
-    slot = 0  # 0 -> 11:00, 1 -> 17:00
+    slot = 0
 
     for pin in pins:
         title = (pin.get("title") or "Tech Buying Guide")[:100]
         desc = (pin.get("description") or title)[:500]
 
-        # Public image URL
         media_url = pin.get("wp_media_url")
+        if not media_url:
+            try:
+                up_res = upload_pin_image_to_wp(pin)
+                if up_res.get("success"):
+                    media_url = up_res.get("url")
+            except Exception:
+                pass
         if not media_url:
             media_url = f"{site_url}/wp-content/uploads/{pin.get('filename')}"
 
         link = get_bridge_url(pin.get("slug", ""))
 
-        # Publish date in ISO 8601
-        publish_date_str = current_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        # Keywords from hashtags or headline
         raw_keywords = [
             tag.strip("#, ")
             for tag in desc.split()
@@ -433,18 +517,39 @@ def export_pinterest_csv(
             raw_keywords = [w.strip() for w in pin["headline"].split() if len(w) > 3][:5]
         keywords_str = ", ".join(raw_keywords[:10])
 
-        writer.writerow([
-            title,
-            media_url,
-            default_board,
-            "",  # Thumbnail is empty for image pins
-            desc,
-            link,
-            publish_date_str,
-            keywords_str,
-        ])
+        row = [""] * len(h)
+        row[1] = "CONSIDERATION"
+        row[2] = "STANDARD_AD"
+        row[3] = f"Tech Tips - {default_board}"
+        row[4] = "PAUSED"
+        row[19] = f"Tech Tips - {default_board} Group"
+        row[20] = f"[{current_date.strftime('%Y-%m-%d')}]"
+        row[21] = f"[{current_date.strftime('%H:%M')}]"
+        row[24] = "10"
+        row[26] = "DAILY"
+        row[27] = "PAUSED"
+        row[30] = "0.3"
+        row[51] = "[]"
+        row[52] = "ALL"
+        row[56] = "ALL"
+        row[57] = "ALL"
+        row[60] = "ALL"
+        row[61] = "ALL"
+        if keywords_str:
+            row[68] = keywords_str
+        row[74] = media_url
+        row[75] = title
+        row[76] = desc
+        row[77] = link
+        row[80] = "NO"
+        row[81] = "PAUSED"
+        row[83] = "STATIC"
+        row[84] = title[:128]
+        row[158] = "PGR12345678911"
+        row[159] = f"Tech Tips {default_board}"
 
-        # Increment schedule slot
+        writer.writerow(row)
+
         if slot == 0 and pins_per_day >= 2:
             current_date = current_date.replace(hour=17)
             slot = 1

@@ -2,23 +2,23 @@
 
 ## Situação atual
 
-- **App ID**: 1607290
+- **App ID**: 1621913
 - **Status**: Trial pendente (aguardando aprovação)
 - **Client Secret**: Indisponível até aprovação
-- **Permissões atuais**: Só leitura (pins:read, boards:read)
+- **Permissões atuais**: Só leitura ou pendente
 - **Token atual**: Expirado
 
-## Quando o trial for aprovado:
+## Quando o trial for aprovado (ou se o Client Secret estiver visível):
 
 ### 1. Copiar o Client Secret
 1. Vá em: https://developers.pinterest.com/apps/
-2. Clique no app "Blog em Dolar"
-3. Copie o **Client Secret** (agora estará disponível)
+2. Clique no app (ID 1621913)
+3. Copie o **Client Secret** (se estiver disponível)
 
 ### 2. Gerar token com permissões de escrita
-Abra no navegador (substitua SEU_CLIENT_ID pelo Client ID 1607290):
+Abra no navegador (com o Client ID 1621913):
 ```
-https://www.pinterest.com/oauth/authorize/?client_id=1607290&response_type=code&redirect_uri=https://localhost&scope=boards:read,pins:read,pins:write,board_pins:write
+https://www.pinterest.com/oauth/authorize/?client_id=1621913&response_type=code&redirect_uri=https://localhost&scope=boards:read,pins:read,pins:write,board_pins:write
 ```
 
 3. Autorize o app
@@ -31,14 +31,14 @@ curl -X POST https://api.pinterest.com/v5/oauth/token \
   -d "grant_type=authorization_code" \
   -d "code=SEU_CODE" \
   -d "redirect_uri=https://localhost" \
-  -u "1607290:SEU_CLIENT_SECRET"
+  -u "1621913:SEU_CLIENT_SECRET"
 ```
 
 ### 4. Salvar no .env
 ```
 PINTEREST_ACCESS_TOKEN=pina_...
 PINTEREST_REFRESH_TOKEN=pinr_...
-PINTEREST_CLIENT_ID=1607290
+PINTEREST_CLIENT_ID=1621913
 PINTEREST_CLIENT_SECRET=...
 ```
 

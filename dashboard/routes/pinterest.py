@@ -198,14 +198,17 @@ def api_pinterest_export_csv():
 
         board_name = request.args.get("board_name")
         all_pins = request.args.get("all") == "1"
+        fmt = request.args.get("format", "v2").strip().lower()
         csv_content = export_pinterest_csv(
             board_name=board_name,
             only_pending=not all_pins,
+            format_type=fmt,
         )
+        filename = "pinterest_bulk_editor_v2.csv" if fmt == "v2" else "pinterest_schedule.csv"
         return Response(
             csv_content,
             mimetype="text/csv",
-            headers={"Content-Disposition": "attachment; filename=pinterest_schedule.csv"},
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
