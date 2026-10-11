@@ -17,6 +17,7 @@ from pathlib import Path
 
 from dashboard.services.bridge import get_bridge_url
 from dashboard.services.helpers import (
+    _dashboard_dir,
     _data_path,
     _env,
     _images_dir,
@@ -124,12 +125,15 @@ def sync_queue() -> list[dict]:
                 seen_keys.add(item_id)
                 seen_keys.add(filename)
 
-        # Retain any extra custom items from existing queue
+        # Retain any extra custom items from existing queue only if their image exists
+        static_img_dir = _dashboard_dir() / "static" / "images"
         for item in existing_queue:
             q_id = item.get("id") or item.get("filename")
+            fn = item.get("filename")
             if q_id and q_id not in seen_keys:
-                updated_queue.append(item)
-                seen_keys.add(q_id)
+                if fn and (static_img_dir / fn).exists():
+                    updated_queue.append(item)
+                    seen_keys.add(q_id)
 
         _save_json(_QUEUE_FILE, updated_queue)
         return updated_queue
@@ -487,6 +491,7 @@ def export_pinterest_csv(
 
     current_date = start_date
     slot = 0
+    target_locations = _env("PINTEREST_TARGET_LOCATIONS") or _env("PINTEREST_LOCATIONS") or "US"
 
     for pin in pins:
         title = (pin.get("title") or "Tech Buying Guide")[:100]
@@ -525,14 +530,15 @@ def export_pinterest_csv(
         row[27] = "PAUSED"
         row[30] = "0.3"
         row[51] = ""
-        row[52] = "ALL"
+        row[52] = target_locations.strip()
         row[56] = "ALL"
         row[57] = "ALL"
         row[60] = "ALL"
         row[61] = "ALL"
         if keywords_str:
             row[68] = keywords_str
-        row[74] = media_url
+        use_filename = _env("PINTEREST_V2_USE_FILENAME", "true").lower() in ("true", "1", "yes")
+        row[74] = pin.get("filename") if use_filename else media_url
         row[75] = title
         row[76] = desc
         row[77] = link

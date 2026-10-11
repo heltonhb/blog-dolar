@@ -426,15 +426,27 @@ def generate_image_pollinations(
     url_base = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
     url_flux = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
 
+    pollinations_key = kwargs.get("api_key") or env_value("POLLINATIONS_API_KEY", "")
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
+    if pollinations_key:
+        headers["Authorization"] = f"Bearer {pollinations_key}"
 
+    url_sana = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}&model=sana"
+    url_gen = f"https://gen.pollinations.ai/image/{encoded_prompt}?width={width}&height={height}&seed={seed}"
+    if pollinations_key:
+        candidate_urls = (url_gen, url_base, url_sana, url_turbo, url_flux)
+    else:
+        candidate_urls = (url_base, url_sana, url_turbo, url_flux)
+
+    last_status = None
     with httpx.Client(headers=headers, timeout=120, follow_redirects=True) as client:
         for attempt in range(3):
-            for candidate_url in (url_turbo, url_base, url_flux):
+            for candidate_url in candidate_urls:
                 try:
                     resp = client.get(candidate_url)
+                    last_status = resp.status_code
                     if resp.status_code == 200 and len(resp.content) >= 5000:
                         return resp.content
                 except Exception:
@@ -442,7 +454,11 @@ def generate_image_pollinations(
             if attempt < 2:
                 time.sleep(3)
 
-    raise ValueError(f"Pollinations returned invalid or too-small image")
+    if last_status == 402:
+        raise ValueError(
+            "Pollinations retornou 402 (Payment/Pollen Required). Crie uma chave gratuita em enter.pollinations.ai e configure POLLINATIONS_API_KEY no .env, ou use TOGETHER_API_KEY / HF_TOKEN."
+        )
+    raise ValueError(f"Pollinations returned invalid or too-small image (status={last_status})")
 
 
 def generate_image_together(
@@ -545,7 +561,7 @@ def generate_image_huggingface(
 # ---------------------------------------------------------------------------
 
 # Providers tried (in order) when IMAGE_PROVIDER is unset or "auto".
-AUTO_ORDER = ("together-flux", "gemini-imagen", "pollinations")
+AUTO_ORDER = ("together-flux", "gemini-imagen", "pollinations", "huggingface")
 
 # Accepted IMAGE_PROVIDER spellings -> canonical provider name.
 PROVIDER_ALIASES = {

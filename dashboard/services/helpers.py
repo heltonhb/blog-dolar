@@ -31,7 +31,7 @@ def _project_root() -> Path:
 
 def _dashboard_dir() -> Path:
     """Return the dashboard/ directory."""
-    return Path(__file__).resolve().parent.parent
+    return _project_root() / "dashboard"
 
 
 def _env(key: str, default: str = "") -> str:

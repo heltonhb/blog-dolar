@@ -24,7 +24,13 @@ from dashboard.services.pinterest_queue import (
 
 @pytest.fixture(autouse=True)
 def setup_test_queue():
-    """Setup disposable pin variations and queue in sandbox."""
+    """Setup disposable pin variations and queue in sandbox, restoring original files afterwards."""
+    from dashboard.services.helpers import _load_json
+    orig_variations = _load_json("pin_variations.json", {})
+    orig_queue = _load_json("pinterest_queue.json", [])
+    orig_published = _load_json("pinterest_published.json", [])
+    orig_cfg = _load_json("pinterest_config.json", {})
+
     variations_mock = {
         "gadget-test-1": {
             "article_title": "Top 5 Gadgets 2026",
@@ -78,6 +84,16 @@ def setup_test_queue():
     _save_json("pin_variations.json", variations_mock)
     _save_json("pinterest_queue.json", [])
     _save_json("pinterest_published.json", [])
+    test_cfg = dict(orig_cfg)
+    test_cfg["published_pins"] = []
+    _save_json("pinterest_config.json", test_cfg)
+
+    yield
+
+    _save_json("pin_variations.json", orig_variations)
+    _save_json("pinterest_queue.json", orig_queue)
+    _save_json("pinterest_published.json", orig_published)
+    _save_json("pinterest_config.json", orig_cfg)
 
 
 def test_sync_queue_populates_items():
@@ -186,9 +202,10 @@ def test_export_pinterest_csv():
     assert row_v2[26] == "CBO"  # Ad Group Budget Type must be CBO
     assert row_v2[27] == "PAUSED"  # Ad Group PAUSED
     assert row_v2[51] == ""  # No invalid clear commands
+    assert row_v2[52] == "US"  # Valid country code targeting (fixes Pinterest error 2993)
     assert row_v2[80] == "NO"  # Organic public Pin
     assert row_v2[81] == "PAUSED"  # Promoted Pin PAUSED
-    assert row_v2[74].startswith("http")  # Image media URL
+    assert row_v2[74].endswith(".png")  # Image media filename
     assert "/bridge/" in row_v2[77] or "/p/" in row_v2[77]  # Destination URL
     assert row_v2[158] == ""  # No product group for standard pins
     assert row_v2[159] == ""
