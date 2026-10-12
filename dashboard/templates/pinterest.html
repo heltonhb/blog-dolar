@@ -24,6 +24,56 @@
         <div class="stat-card-header"><span>Status API</span><i class="fa-solid fa-circle-info"></i></div>
         <p id="pin-config-status" style="color: var(--text-secondary); margin-top: 5px;">Carregando...</p>
     </div>
+<!-- Frequência de Postagem & Instruções de Envio -->
+<div style="background: var(--card-bg); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-bullhorn" style="color: var(--danger);"></i> Diretrizes de Frequência & Cadência de Publicação
+        </h3>
+        <span style="font-size: 0.8rem; background: rgba(239, 68, 68, 0.15); color: var(--danger); padding: 4px 12px; border-radius: 20px; font-weight: 600;">
+            <i class="fa-solid fa-shield-halved"></i> Anti-Spam Ativo
+        </span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+        <!-- Card 1: Frequência Pinterest -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="fa-brands fa-pinterest" style="color: var(--danger); font-size: 1.2rem;"></i>
+                <strong style="color: var(--text-primary); font-size: 0.95rem;">Pinterest (2 Pins / dia)</strong>
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                <li><strong>1º Pin:</strong> 11:00 UTC (08:00 no horário de Brasília / 07:00 EDT)</li>
+                <li><strong>2º Pin:</strong> 17:00 UTC (14:00 no horário de Brasília / 13:00 EDT)</li>
+                <li><strong>Anti-Spam Intercalado:</strong> O sistema gera 3 variações por artigo e as espalha ao longo dos dias, nunca postando o mesmo tema no mesmo dia.</li>
+            </ul>
+        </div>
+
+        <!-- Card 2: Frequência Blog -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="fa-brands fa-wordpress" style="color: var(--accent-green); font-size: 1.2rem;"></i>
+                <strong style="color: var(--text-primary); font-size: 0.95rem;">Blog (1 Artigo / dia)</strong>
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                <li><strong>Horário:</strong> 09:00 BRT pelo Piloto Automático</li>
+                <li><strong>Monetização:</strong> Artigos focados em <em>Buyer Intent</em> com produtos da Amazon US e Quick Recommendations.</li>
+                <li><strong>Gatilho Pós-Post:</strong> Cada publicação gera automaticamente os 3 Pins correspondentes na fila.</li>
+            </ul>
+        </div>
+
+        <!-- Card 3: Como Subir os Pins -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="fa-solid fa-cloud-arrow-up" style="color: var(--accent-blue); font-size: 1.2rem;"></i>
+                <strong style="color: var(--text-primary); font-size: 0.95rem;">Instruções de Upload</strong>
+            </div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                <li><strong style="color: var(--accent-green);">Orgânico (Recomendado):</strong> Baixe o <em>CSV Simples</em> e suba no Pinterest Business em <strong>Criar ➔ Criar Pins em Massa</strong> (imagens baixadas via HTTPS, sem anúncios/custo).</li>
+                <li><strong>Ads Bulk V2:</strong> Baixe o <em>CSV Bulk V2</em> e arraste as imagens <code>.png</code> junto na tela do editor em massa.</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
 <!-- Automation & Drip-Feed Action Toolbar -->
