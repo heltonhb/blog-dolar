@@ -7,9 +7,28 @@ from flask import Blueprint, jsonify, request
 
 from dashboard.services.gemini import _gemini_call
 from dashboard.services.helpers import _parse_json, login_required
+from dashboard.services.year_context import current_year, normalize_year
 from db import delete_idea, get_ideas, save_idea
 
 ideas_bp = Blueprint("ideas", __name__, url_prefix="/api/ideas")
+
+
+def _normalize_ideas(ideas):
+    """Replace any stale year in idea titles/keywords with the current one.
+
+    Buyer-intent keywords are year-bearing by design ("best X in 2026"), so a
+    single stale year poisons every downstream article built from that idea.
+    """
+    if not isinstance(ideas, list):
+        return ideas
+    for idea in ideas:
+        if not isinstance(idea, dict):
+            continue
+        for field in ("title", "keyword"):
+            value = idea.get(field)
+            if isinstance(value, str) and value.strip():
+                idea[field] = normalize_year(value)
+    return ideas
 
 
 def _generate_ideas_from_gemini() -> list:
@@ -22,7 +41,7 @@ def _generate_ideas_from_gemini() -> list:
         "No markdown, pure JSON."
     )
     result = _parse_json(data)
-    return result if isinstance(result, list) else []
+    return _normalize_ideas(result) if isinstance(result, list) else []
 
 
 def _generate_ideas_from_trends() -> list:
@@ -54,16 +73,17 @@ def _generate_ideas_from_trends() -> list:
     if isinstance(ideas, list):
         for idea in ideas:
             idea["source"] = "trends"
-        return ideas
+        return _normalize_ideas(ideas)
     return []
 
 
 def _generate_buyer_intent_ideas() -> list:
     """Generate 10 high-converting commercial buyer-intent tech ideas for Amazon Associates monetization."""
+    year = current_year()
     data = _gemini_call(
-        "Generate 10 high-converting buyer-intent technology and gadget blog post ideas designed for Amazon affiliate monetization. "
-        "Focus on commercial search intent such as: 'Best [gear] under $[price] in 2026', 'Top 5 Must-Have [accessories]', "
-        "'[Product A] vs [Product B]: Which Should You Buy?', or 'Best Budget [tech category] Upgrades in 2026'. "
+        f"Generate 10 high-converting buyer-intent technology and gadget blog post ideas designed for Amazon affiliate monetization. "
+        f"Focus on commercial search intent such as: 'Best [gear] under $[price] in {year}', 'Top 5 Must-Have [accessories]', "
+        f"'[Product A] vs [Product B]: Which Should You Buy?', or 'Best Budget [tech category] Upgrades in {year}'. "
         "Avoid purely theoretical topics like history of computing or abstract programming concepts.\n"
         "Return ONLY a JSON array:\n"
         '[{"title":"Article title with buyer intent","keyword":"commercial long-tail keyword","cpm_estimate":"$25-45","category":"buyer_intent"}]\n'
@@ -73,7 +93,7 @@ def _generate_buyer_intent_ideas() -> list:
     if isinstance(result, list):
         for idea in result:
             idea["source"] = "buyer_intent"
-        return result
+        return _normalize_ideas(result)
     return []
 
 

@@ -6,6 +6,7 @@ Usa Google Gemini API (free tier) para gerar conteudo evergreen
 
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -16,6 +17,35 @@ except ImportError:
     print("Instalando httpx...")
     os.system(f"{sys.executable} -m pip install httpx -q")
     import httpx
+
+
+def _year_context():
+    """Import the shared date helpers, falling back to a local implementation."""
+    try:
+        root = Path(__file__).resolve().parent.parent
+        if str(root) not in sys.path:
+            sys.path.insert(0, str(root))
+        from dashboard.services.year_context import date_prompt_block, normalize_year
+        return date_prompt_block, normalize_year
+    except ImportError:
+        year_re = re.compile(r"\b(?:19|20)\d{2}\b")
+
+        def normalize_year(text):
+            return year_re.sub(str(datetime.now().year), text) if text else text
+
+        def date_prompt_block():
+            now = datetime.now()
+            return (
+                f"Today's date is {now.strftime('%Y-%m-%d')} (year {now.year}). "
+                "Only reference a year if the target keyword already contains one, and "
+                "then use exactly the year given in the keyword. Never invent, guess or "
+                "reuse a year from your training data."
+            )
+
+        return date_prompt_block, normalize_year
+
+
+_DATE_PROMPT_BLOCK, _NORMALIZE_YEAR = _year_context()
 
 
 class BlogGenerator:
@@ -46,10 +76,13 @@ No markdown, just pure JSON."""
     
     def generate_article(self, topic: dict, keyword: str) -> dict:
         """Gera artigo completo otimizado para SEO com produtos para monetização"""
+        keyword = _NORMALIZE_YEAR(keyword)
         prompt = f"""Write a comprehensive blog post about: {topic['title']}
 
 Target keyword: {keyword}
 Outline to follow: {json.dumps(topic.get('outline', []))}
+
+{_DATE_PROMPT_BLOCK()}
 
 Requirements:
 - 1500-2000 words

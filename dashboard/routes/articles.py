@@ -8,6 +8,7 @@ from flask import Blueprint, jsonify, request
 
 from dashboard.services.articles import _extract_article_info
 from dashboard.services.gemini import _gemini_call
+from dashboard.services.year_context import date_prompt_block, normalize_year
 from dashboard.services.helpers import (
     _articles_dir,
     _env,
@@ -25,12 +26,14 @@ def api_generate_article():
     """Generate a complete Markdown article from a keyword using Gemini AI."""
     try:
         data = request.json or {}
-        keyword = data.get("keyword", "").strip()
+        keyword = normalize_year(data.get("keyword", "").strip())
         if not keyword:
             return jsonify({"success": False, "error": "Palavra-chave obrigatória"}), 400
 
         prompt = f"""Write a comprehensive blog post about: {keyword}
 Target keyword: {keyword}
+
+{date_prompt_block()}
 
 Requirements:
 - 1500-2000 words

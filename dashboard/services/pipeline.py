@@ -20,6 +20,7 @@ from dashboard.services.helpers import (
     _parse_json,
 )
 from dashboard.services.images import _build_pin_prompt
+from dashboard.services.year_context import date_prompt_block, normalize_year
 from dashboard.services.wordpress import _wp_publish, _wp_upload_media
 from db import (
     clear_checkpoints as db_clear_checkpoints,
@@ -165,6 +166,7 @@ def _run_pipeline_logic(keyword: str, pin_prompt: str = "", skip_publish: bool =
                         force_restart: bool = False) -> dict:
     """Execute the full pipeline: Article -> Image -> WordPress -> Pinterest."""
     steps = []
+    keyword = normalize_year(keyword)
     pipeline_slug = re.sub(r'[^a-z0-9-]', '-', keyword.lower().strip())[:60]
     site_url = _env("SITE_URL", "https://techtips.dpdns.org")
 
@@ -205,6 +207,8 @@ def _run_pipeline_logic(keyword: str, pin_prompt: str = "", skip_publish: bool =
             steps.append({"step": "article", "status": "running"})
             prompt = f"""Write a comprehensive blog post about: {keyword}
 Target keyword: {keyword}
+
+{date_prompt_block()}
 
 Requirements:
 - 1500-2000 words
@@ -633,7 +637,7 @@ def run_autopilot_cycle(
         }
 
     target_id = selected_idea.get("idea_id") or selected_idea.get("id")
-    keyword = (selected_idea.get("keyword") or selected_idea.get("title") or "").strip()
+    keyword = normalize_year((selected_idea.get("keyword") or selected_idea.get("title") or "").strip())
     if not keyword:
         return {"success": False, "error": "Ideia selecionada sem palavra-chave ou título válido."}
 
