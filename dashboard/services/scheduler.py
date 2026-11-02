@@ -127,11 +127,14 @@ def _restore_scheduler_jobs():
     sched = get_scheduler()
     if sched is None:
         return
+    from dashboard.services.helpers import _load_json
     from dashboard.services.pipeline import (
         _scheduled_autopilot_job,
         _scheduled_pipeline_job,
         _scheduled_pinterest_drip_job,
     )
+    # Read through the shared helper: it survives a corrupted JSON by falling
+    # back to [], so one bad file cannot take down startup.
     sched_data = _load_json("scheduler_jobs.json", [])
     for job_cfg in sched_data:
         try:

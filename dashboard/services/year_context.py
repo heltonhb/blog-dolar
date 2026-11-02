@@ -21,6 +21,11 @@ from datetime import datetime
 # failure mode since it never silently rewrites a number the user typed.
 _YEAR_RE = re.compile(r"(?<![$-/])\b(?:19|20)\d{2}\b")
 
+# Same thing for title/meta/slug, where "2020-2024" ranges do not occur but
+# "best-headphones-2024" does. _YEAR_RE's "-" exclusion would swallow the
+# whole slug. "$" is still excluded so a price like "$2000" is not a year.
+_TITLE_YEAR_RE = re.compile(r"(?<![$/])\b(?:19|20)\d{2}\b")
+
 
 def current_year() -> int:
     """Return the current calendar year."""
@@ -46,6 +51,21 @@ def normalize_year(text: str) -> str:
         return text
     year = str(current_year())
     return _YEAR_RE.sub(year, text)
+
+
+def stale_years(text: str) -> list[int]:
+    """Return the years in ``text`` that are not the current year, sorted.
+
+    Used as a tripwire on the fields that are read as "current" by a reader:
+    title, meta description, slug. A year there is always a claim about the
+    present ("Top Picks for 2024"), so any value but this year's is a bug.
+    Never apply this to article bodies, which legitimately quote the past.
+    """
+    if not text:
+        return []
+    found = {int(m) for m in _TITLE_YEAR_RE.findall(text)}
+    found.discard(current_year())
+    return sorted(found)
 
 
 def date_prompt_block() -> str:

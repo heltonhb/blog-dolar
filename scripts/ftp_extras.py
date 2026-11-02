@@ -21,16 +21,38 @@ FTP_USER = os.environ.get("FTP_USER", "")
 FTP_PASS = os.environ.get("FTP_PASS", "")
 
 
+def docroot() -> str:
+    """Caminho do docroot que o domínio ao vivo realmente serve.
+
+    O `htdocs/` na raiz do FTP é o WordPress do domínio antigo
+    (tech-tips.ct.ws), que só responde via 301 no .htaccess. O domínio atual
+    é servido de `techtips.dpdns.org/htdocs/`. Escrever no `htdocs/` da raiz
+    não tinha efeito nenhum: era lá que a chave do IndexNow ia parar.
+    """
+    ftp = ftplib.FTP(FTP_HOST, timeout=15)
+    ftp.login(FTP_USER, FTP_PASS)
+    try:
+        entradas = ftp.nlst()
+        if "techtips.dpdns.org" in entradas:
+            try:
+                ftp.cwd("techtips.dpdns.org")
+                sub = ftp.nlst()
+            except ftplib.error_perm:
+                sub = []
+            if "htdocs" in sub:
+                return "techtips.dpdns.org/htdocs"
+        return "htdocs"
+    finally:
+        ftp.quit()
+
+
 def subir_key() -> str:
     key = obter_key()
     ftp = ftplib.FTP(FTP_HOST, timeout=15)
     ftp.login(FTP_USER, FTP_PASS)
 
-    # garante htdocs/.well-known/
-    try:
-        ftp.cwd("htdocs")
-    except ftplib.error_perm:
-        pass
+    raiz = docroot()
+    ftp.cwd(raiz)
     try:
         ftp.mkd(".well-known")
     except ftplib.error_perm:
@@ -42,7 +64,7 @@ def subir_key() -> str:
     import io
 
     ftp.storbinary(f"STOR {key}.txt", io.BytesIO(dados))
-    print(f"✅ key publicada: htdocs/.well-known/{key}.txt")
+    print(f"✅ key publicada: {raiz}/.well-known/{key}.txt")
     ftp.quit()
     return key
 
@@ -51,7 +73,7 @@ def limpar_cache() -> int:
     """Apaga wp-content/cache/page_enhanced/* (WP Super Cache)."""
     ftp = ftplib.FTP(FTP_HOST, timeout=15)
     ftp.login(FTP_USER, FTP_PASS)
-    ftp.cwd("htdocs/wp-content/cache/page_enhanced")
+    ftp.cwd(f"{docroot()}/wp-content/cache/page_enhanced")
 
     removidos = 0
 
@@ -62,6 +84,11 @@ def limpar_cache() -> int:
         except ftplib.error_perm:
             return
         for e in entradas:
+            # nlst(".") devolve "././" e "./../" (o prefixo do path entra no
+            # nome). Comparar a string inteira não pega: sem este skip a
+            # recursão em ".." nunca termina e o script trava.
+            if e.rstrip("/").rsplit("/", 1)[-1] in (".", ".."):
+                continue
             if e.endswith("/") or "/" not in e.rsplit("/", 1)[-1]:
                 # entrada de diretório (subpasta do domínio)
                 try:

@@ -57,10 +57,11 @@ def api_pinterest_create():
                 image_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(data.get('title', 'blog post'))}?width=768&height=1024&nologo=true"
 
         if image_url:
-            payload["image_source_url"] = image_url
+            payload["media_source"] = {"source_type": "image_url", "url": image_url}
 
+        pin_api_base = _env("PINTEREST_API_BASE", "https://api.pinterest.com/v5").rstrip("/")
         resp = httpx.post(
-            "https://api.pinterest.com/v5/pins",
+            f"{pin_api_base}/pins",
             json=payload,
             headers={"Authorization": f"Bearer {access_token}" if not access_token.startswith("Bearer ") else access_token},
             timeout=30,

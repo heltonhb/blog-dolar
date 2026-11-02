@@ -15,6 +15,7 @@ from dashboard.services.year_context import (
     current_year,
     date_prompt_block,
     normalize_year,
+    stale_years,
 )
 
 
@@ -73,6 +74,83 @@ def test_date_prompt_block_contains_today():
     assert today in block
     assert str(current_year()) in block
     assert "Never invent" in block
+
+
+# ---------------------------------------------------------------------------
+#  stale_years
+# ---------------------------------------------------------------------------
+
+def test_stale_years_flags_past_year():
+    """A year other than the current one is reported as stale."""
+    assert stale_years("Best Budget Headphones: Top Picks for 2024") == [2024]
+
+
+def test_stale_years_accepts_current_year():
+    """The current year is not stale, so a clean title reports nothing."""
+    title = f"Best Budget Headphones: Top Picks for {current_year()}"
+    assert stale_years(title) == []
+
+
+def test_stale_years_sorted_and_deduplicated():
+    """Multiple stale years come back sorted, each once."""
+    assert stale_years("2025 and 2024 and 2025") == [2024, 2025]
+
+
+def test_stale_years_ignores_prices():
+    """A price is not a year and must not be reported."""
+    assert stale_years("Best laptop under $1500 for 2027") == [2027]
+    assert stale_years("under $2000") == []
+
+
+def test_stale_years_handles_empty_input():
+    """Empty input reports nothing rather than raising."""
+    assert stale_years("") == []
+    assert stale_years(None) == []
+
+
+# ---------------------------------------------------------------------------
+#  pipeline guard
+# ---------------------------------------------------------------------------
+
+def test_year_warnings_flags_stale_slug_only():
+    """The tripwire reports the stale year so the run is not silent."""
+    from dashboard.services.pipeline import _year_warnings
+
+    warnings = _year_warnings(
+        {
+            "title": f"Best Headphones for {current_year()}",
+            "meta_description": "A guide.",
+            "slug": "responsive-web-design-best-practices-2024",
+        }
+    )
+    assert 2024 in warnings
+
+
+def test_year_warnings_empty_when_clean():
+    """A clean article produces no warning step."""
+    from dashboard.services.pipeline import _year_warnings
+
+    assert _year_warnings(
+        {"title": f"Best Headphones for {current_year()}", "meta_description": "A guide."}
+    ) == []
+
+
+def test_published_fields_are_normalized():
+    """Title and meta description are normalized before reaching WordPress.
+
+    This is the guard that did not exist when three live posts shipped with
+    "2024" in the title.
+    """
+    from dashboard.services.pipeline import _year_warnings
+    from dashboard.services.year_context import normalize_year
+
+    title = "Kindle Paperwhite vs Kobo Clara: Which E-Reader Wins in 2024?"
+    meta = "We compare both e-readers."
+    normalized = {"title": normalize_year(title), "meta_description": normalize_year(meta)}
+
+    assert "2024" not in normalized["title"]
+    assert str(current_year()) in normalized["title"]
+    assert _year_warnings(normalized) == []
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,8 @@
 # Pinterest API — Setup e Automação
 
+> **Token sem escopo de escrita / redirect URI não cadastrado?**
+> Siga o passo a passo atualizado: [`PINTEREST_TOKEN_ESCRITA.md`](PINTEREST_TOKEN_ESCRITA.md)
+
 ## Situação atual
 
 - **App ID**: 1621913

@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from image_generator import generate_pin_title, build_pin_description
+API_BASE = os.environ.get("PINTEREST_API_BASE", "https://api.pinterest.com/v5").rstrip("/")
+
+from image_generator import generate_pin_title, build_pin_description  # noqa: E402
 
 def get_wp_posts():
     """Busca artigos publicados no WordPress."""
@@ -167,12 +169,12 @@ def create_pin(token: str, board_id: str, title: str, description: str,
         "title": title[:100],
         "description": description[:500],
         "link": link,
-        "image_source_url": image_url,
+        "media_source": {"source_type": "image_url", "url": image_url},
     }
 
     def _post(tok: str) -> "httpx.Response":
         return httpx.post(
-            "https://api.pinterest.com/v5/pins",
+            f"{API_BASE}/pins",
             json=payload,
             headers=auth_headers(tok),
             timeout=30,
@@ -230,7 +232,7 @@ def main():
     # Test connection
     import httpx
     resp = httpx.get(
-        "https://api.pinterest.com/v5/user_account",
+        f"{API_BASE}/user_account",
         headers=auth_headers(token),
         timeout=15,
     )
@@ -240,7 +242,7 @@ def main():
         if new_token:
             token = new_token
             resp = httpx.get(
-                "https://api.pinterest.com/v5/user_account",
+                f"{API_BASE}/user_account",
                 headers=auth_headers(token),
                 timeout=15,
             )

@@ -20,7 +20,12 @@ from dashboard.services.helpers import (
     _parse_json,
 )
 from dashboard.services.images import _build_pin_prompt
-from dashboard.services.year_context import date_prompt_block, normalize_year
+from dashboard.services.year_context import (
+    current_year,
+    date_prompt_block,
+    normalize_year,
+    stale_years,
+)
 from dashboard.services.wordpress import _wp_publish, _wp_upload_media
 from db import (
     clear_checkpoints as db_clear_checkpoints,
@@ -155,6 +160,21 @@ def _scheduled_autopilot_job(category: str = "buyer_intent"):
     except Exception as e:
         log.exception("Scheduled autopilot job falhou: %s", e)
         return {"success": False, "error": str(e)}
+
+
+def _year_warnings(article_data: dict) -> list[int]:
+    """Anos não-atuais que sobraram no título, na meta description ou no slug.
+
+    O pipeline já normaliza título e meta description, então o que sobra vem
+    do slug (que vira URL, e URL com ano errado é 301 manual) ou de um
+    frontmatter antigo reidratado de checkpoint. Publica assim mesmo e
+    reporta — travar a publicação aqui tiraria do ar conteúdo bom por causa
+    de um título.
+    """
+    found = stale_years(article_data.get("title", ""))
+    for field in ("meta_description", "slug"):
+        found += [y for y in stale_years(article_data.get(field, "")) if y not in found]
+    return sorted(found)
 
 
 # ---------------------------------------------------------------------------
@@ -360,11 +380,22 @@ Return ONLY JSON:
                         body = parts[2].strip()
 
                 article_data = {
-                    "title": title,
+                    "title": normalize_year(title),
                     "content": body,
                     "slug": slug,
-                    "meta_description": meta_desc,
+                    "meta_description": normalize_year(meta_desc),
                 }
+                # Tripwire, not a gate: the LLM can still invent a year in the
+                # body. Publishing continues, but the run says so loudly.
+                year_warnings = _year_warnings(article_data)
+                if year_warnings:
+                    steps.append({
+                        "step": "year_check",
+                        "status": "warn",
+                        "message": "Ano desatualizado no corpo: "
+                                   + ", ".join(str(y) for y in year_warnings)
+                                   + f" (o ano atual é {current_year()})",
+                    })
 
                 feat_path = images_dir / f"featured-{image_slug}.png"
                 if feat_path.exists():
@@ -483,10 +514,13 @@ Return ONLY JSON:
                             "title": pin_title[:100],
                             "description": pin_desc[:500],
                             "link": pin_target_link,
-                            "image_source_url": pf_url,
+                            "media_source": {"source_type": "image_url", "url": pf_url},
                         }
+                        pin_api_base = _env(
+                            "PINTEREST_API_BASE", "https://api.pinterest.com/v5"
+                        ).rstrip("/")
                         resp_pin = httpx.post(
-                            "https://api.pinterest.com/v5/pins",
+                            f"{pin_api_base}/pins",
                             json=pin_payload,
                             headers=({"Authorization": f"Bearer {access_token}"}
                                      if not access_token.startswith("Bearer ")
