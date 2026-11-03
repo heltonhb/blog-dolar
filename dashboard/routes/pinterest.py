@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Pinterest API routes."""
+import json
 import urllib.parse
 from datetime import datetime
 
@@ -68,6 +69,7 @@ def api_pinterest_create():
         )
         if resp.status_code in (200, 201):
             pin = resp.json()
+            # Espelhar config em todas as 3 fontes
             config = get_config("pinterest_config", {})
             published = config.get("published_pins", [])
             published.append({
@@ -76,7 +78,20 @@ def api_pinterest_create():
                 "created_at": datetime.now().isoformat(),
             })
             config["published_pins"] = published[-50:]
+            # Salvaguarda: preservar access_token do .env se não houver um no PostgreSQL
+            env_token = _env("PINTEREST_ACCESS_TOKEN", "")
+            if env_token and not config.get("access_token"):
+                config["access_token"] = env_token
+
+            # Salvar no PostgreSQL
             save_config("pinterest_config", config)
+
+            # Espelhar em arquivo JSON dashboard/data/pinterest_config.json
+            from dashboard.services.helpers import _data_path
+            cfg_path = _data_path("pinterest_config.json")
+            cfg_path.parent.mkdir(parents=True, exist_ok=True)
+            cfg_path.write_text(json.dumps(config, indent=2, default=str))
+
             return jsonify({"success": True, "pin_id": pin.get("id"), "url": pin.get("link")})
         return jsonify({"success": False, "error": f"Erro Pinterest API: {resp.status_code} - {resp.text[:200]}"}), 500
     except Exception as e:
@@ -143,6 +158,35 @@ def api_pinterest_publish_next():
         data = request.json or {}
         board_id = data.get("board_id")
         res = publish_next_pin(board_id=board_id)
+        status_code = 200 if res.get("success") else (400 if "Nenhum pin" in res.get("message", "") else 500)
+        return jsonify(res), status_code
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@pinterest_bp.route("/publish-batch", methods=["POST"])
+@login_required
+def api_pinterest_publish_batch():
+    """Publish one pin now and schedule the next ones at fixed intervals."""
+    try:
+        from dashboard.services.pinterest_queue import publish_batch
+        from dashboard.services.scheduler import scheduler_enabled
+
+        data = request.json or {}
+        try:
+            count = int(data.get("count", 3))
+            interval_hours = float(data.get("interval_hours", 8))
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "count/interval_hours inválidos."}), 400
+        if count < 1 or interval_hours <= 0:
+            return jsonify({"success": False, "error": "count deve ser >= 1 e interval_hours > 0."}), 400
+
+        res = publish_batch(count=count, interval_hours=interval_hours, board_id=data.get("board_id"))
+        if res.get("scheduled") and not scheduler_enabled():
+            res["warning"] = (
+                "Agendador desativado (ENABLE_SCHEDULER=1 no Render): os pins agendados "
+                "só serão publicados quando o agendador estiver ativo."
+            )
         status_code = 200 if res.get("success") else (400 if "Nenhum pin" in res.get("message", "") else 500)
         return jsonify(res), status_code
     except Exception as e:

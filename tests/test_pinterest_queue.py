@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,13 +11,18 @@ import pytest
 from dashboard.services.helpers import _data_path, _save_json
 from dashboard.services.pinterest_queue import (
     export_pinterest_csv,
+    get_due_pins,
     get_next_pending_pin,
     get_pending_pins,
     get_queue_stats,
+    get_scheduled_pins,
     list_queue,
     mark_pin_status,
+    publish_batch,
+    publish_due_pins,
     publish_next_pin,
     publish_pin,
+    schedule_pin,
     sync_queue,
     upload_pin_image_to_wp,
 )
@@ -180,6 +186,153 @@ def test_publish_next_pin_when_empty():
     res = publish_next_pin()
     assert res["success"] is False
     assert "Nenhum pin pendente" in res["message"]
+
+
+def test_schedule_pin_hides_future_pins_from_due_queue():
+    sync_queue()
+    pin = get_next_pending_pin()
+    assert pin is not None
+
+    scheduled = schedule_pin(pin["id"], datetime.now() + timedelta(hours=8))
+    assert scheduled is not None
+    assert scheduled["scheduled_for"]
+    assert scheduled["status"] == "pending"
+
+    # Not publishable yet, but still counted as pending in stats/CSV.
+    assert pin["id"] not in [p["id"] for p in get_due_pins()]
+    assert len(get_scheduled_pins()) == 1
+    stats = get_queue_stats()
+    assert stats["pending"] == 4
+    assert stats["scheduled"] == 1
+    assert stats["next_scheduled"]["id"] == pin["id"]
+    assert get_next_pending_pin()["id"] != pin["id"]
+
+    # Past schedule => due again.
+    schedule_pin(pin["id"], datetime.now() - timedelta(minutes=1))
+    assert pin["id"] in [p["id"] for p in get_due_pins()]
+    assert get_scheduled_pins() == []
+    assert get_queue_stats()["scheduled"] == 0
+
+
+def test_publish_batch_publishes_one_and_schedules_rest(monkeypatch):
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "mock_token")
+    monkeypatch.setenv("PINTEREST_BOARD_ID", "mock_board_123")
+    sync_queue()
+
+    with patch("dashboard.services.pinterest_queue.upload_pin_image_to_wp") as mock_upload, \
+         patch("dashboard.services.pinterest_queue._call_create_pin") as mock_create_pin:
+        mock_upload.return_value = {"success": True, "url": "https://techtips.dpdns.org/wp-content/uploads/t.png", "id": 1}
+        mock_create_pin.return_value = {"success": True, "pin_id": "pin_batch_1"}
+
+        res = publish_batch(count=3, interval_hours=8)
+
+    assert res["success"] is True
+    assert len(res["published"]) == 1
+    assert len(res["scheduled"]) == 2
+    assert res["published"][0]["pin_id"] == "pin_batch_1"
+
+    # First scheduled at +8h, second at +16h (relative to publish time).
+    times = [datetime.fromisoformat(s["scheduled_for"]) for s in res["scheduled"]]
+    assert 7.5 <= (times[0] - datetime.now()).total_seconds() / 3600 <= 8.1
+    assert 15.5 <= (times[1] - datetime.now()).total_seconds() / 3600 <= 16.1
+    assert (times[1] - times[0]).total_seconds() == pytest.approx(8 * 3600, abs=5)
+
+    stats = get_queue_stats()
+    assert stats["published"] == 1
+    assert stats["scheduled"] == 2
+    # The 4th queue item was untouched and is still due.
+    assert get_next_pending_pin() is not None
+    assert get_next_pending_pin()["id"] not in [s["id"] for s in res["scheduled"]]
+
+
+def test_publish_batch_aborts_when_first_pin_fails(monkeypatch):
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "mock_token")
+    monkeypatch.setenv("PINTEREST_BOARD_ID", "mock_board_123")
+    sync_queue()
+
+    with patch("dashboard.services.pinterest_queue.upload_pin_image_to_wp") as mock_upload, \
+         patch("dashboard.services.pinterest_queue._call_create_pin") as mock_create_pin:
+        mock_upload.return_value = {"success": True, "url": "https://techtips.dpdns.org/wp-content/uploads/t.png", "id": 1}
+        mock_create_pin.return_value = {"success": False, "error": "boom"}
+
+        res = publish_batch(count=3, interval_hours=8)
+
+    assert res["success"] is False
+    assert res["scheduled"] == []
+    assert get_queue_stats()["scheduled"] == 0
+
+
+def test_publish_due_pins_skips_future_schedules(monkeypatch):
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "mock_token")
+    monkeypatch.setenv("PINTEREST_BOARD_ID", "mock_board_123")
+    sync_queue()
+
+    queue = list_queue()
+    # Park two pins in the future, leave the other two due.
+    schedule_pin(queue[0]["id"], datetime.now() + timedelta(hours=8))
+    schedule_pin(queue[1]["id"], datetime.now() + timedelta(hours=16))
+
+    with patch("dashboard.services.pinterest_queue.upload_pin_image_to_wp") as mock_upload, \
+         patch("dashboard.services.pinterest_queue._call_create_pin") as mock_create_pin:
+        mock_upload.return_value = {"success": True, "url": "https://techtips.dpdns.org/wp-content/uploads/t.png", "id": 1}
+        mock_create_pin.return_value = {"success": True, "pin_id": "pin_due_1"}
+
+        res = publish_due_pins(max_per_run=1)
+
+    assert res["success"] is True
+    assert len(res["published"]) == 1
+
+    # Future pins keep their schedule and stay pending.
+    scheduled = get_scheduled_pins()
+    assert len(scheduled) == 2
+    assert all(s["status"] == "pending" for s in scheduled)
+    assert get_queue_stats()["published"] == 1
+
+
+def test_publish_due_pins_stops_on_failure(monkeypatch):
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "mock_token")
+    monkeypatch.setenv("PINTEREST_BOARD_ID", "mock_board_123")
+    sync_queue()
+
+    with patch("dashboard.services.pinterest_queue.upload_pin_image_to_wp") as mock_upload, \
+         patch("dashboard.services.pinterest_queue._call_create_pin") as mock_create_pin:
+        mock_upload.return_value = {"success": True, "url": "https://techtips.dpdns.org/wp-content/uploads/t.png", "id": 1}
+        mock_create_pin.return_value = {"success": False, "error": "quota exceeded"}
+
+        res = publish_due_pins(max_per_run=3)
+
+    assert res["success"] is False
+    assert res["published"] == []
+    assert len(res["errors"]) == 1
+    assert "quota exceeded" in res["errors"][0]
+
+
+def test_api_pinterest_publish_batch(client, monkeypatch):
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "mock_token")
+    monkeypatch.setenv("PINTEREST_BOARD_ID", "mock_board_123")
+    sync_queue()
+
+    with patch("dashboard.services.pinterest_queue.upload_pin_image_to_wp") as mock_upload, \
+         patch("dashboard.services.pinterest_queue._call_create_pin") as mock_create_pin:
+        mock_upload.return_value = {"success": True, "url": "https://techtips.dpdns.org/wp-content/uploads/t.png", "id": 1}
+        mock_create_pin.return_value = {"success": True, "pin_id": "pin_api_batch"}
+
+        resp = client.post("/api/pinterest/publish-batch", json={"count": 3, "interval_hours": 8})
+
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["success"] is True
+    assert len(data["published"]) == 1
+    assert len(data["scheduled"]) == 2
+    assert all(s.get("scheduled_for") for s in data["scheduled"])
+
+    # Queue endpoint reports the schedule.
+    queue_data = client.get("/api/pinterest/queue").get_json()
+    assert queue_data["stats"]["scheduled"] == 2
+
+    # Invalid payload is rejected.
+    bad = client.post("/api/pinterest/publish-batch", json={"count": 0, "interval_hours": 8})
+    assert bad.status_code == 400
 
 
 def test_export_pinterest_csv():

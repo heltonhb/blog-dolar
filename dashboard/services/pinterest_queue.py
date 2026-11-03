@@ -119,6 +119,7 @@ def sync_queue() -> list[dict]:
                     "created_at": existing.get("created_at") or datetime.now().isoformat(),
                     "published_at": published_at,
                     "pin_id": pin_id,
+                    "scheduled_for": existing.get("scheduled_for"),
                     "error": existing.get("error"),
                 }
                 updated_queue.append(item)
@@ -149,20 +150,16 @@ def list_queue(status: str | None = None) -> list[dict]:
     return queue
 
 
-def get_pending_pins(interleaved: bool = True) -> list[dict]:
-    """Return all pending pins.
+def _interleave_by_slug(items: list[dict]) -> list[dict]:
+    """Round-robin items by slug (Slug A v1, Slug B v1, ..., Slug A v2...).
 
-    When `interleaved=True` (default), groups pins by slug and yields them
-    in round-robin fashion (Slug A v1, Slug B v1, Slug C v1, then Slug A v2...).
-    This prevents posting 3 pins for the same article in a row.
+    Prevents publishing 3 pins for the same article in a row.
     """
-    queue = list_queue()
-    pending = [item for item in queue if item.get("status") in ("pending", "failed")]
-    if not interleaved or not pending:
-        return pending
+    if not items:
+        return []
 
     by_slug: dict[str, list[dict]] = {}
-    for item in pending:
+    for item in items:
         slug = item.get("slug", "default")
         by_slug.setdefault(slug, []).append(item)
 
@@ -176,10 +173,70 @@ def get_pending_pins(interleaved: bool = True) -> list[dict]:
     return interleaved_list
 
 
+def get_pending_pins(interleaved: bool = True) -> list[dict]:
+    """Return all pending pins.
+
+    When `interleaved=True` (default), groups pins by slug and yields them
+    in round-robin fashion (Slug A v1, Slug B v1, Slug C v1, then Slug A v2...).
+    This prevents posting 3 pins for the same article in a row.
+    """
+    queue = list_queue()
+    pending = [item for item in queue if item.get("status") in ("pending", "failed")]
+    if not interleaved or not pending:
+        return pending
+    return _interleave_by_slug(pending)
+
+
+def _is_due(item: dict) -> bool:
+    """True when a pin has no schedule or its scheduled time has already passed."""
+    when = item.get("scheduled_for")
+    if not when:
+        return True
+    try:
+        return datetime.fromisoformat(str(when)) <= datetime.now()
+    except Exception:
+        # Unparsable schedule: treat as due rather than silently parking the pin.
+        return True
+
+
+def get_due_pins(interleaved: bool = True) -> list[dict]:
+    """Return pending pins that are due now (no schedule, or schedule elapsed).
+
+    A pin scheduled for the future stays `pending` in the queue but is not
+    eligible for publication until its `scheduled_for` arrives.
+    """
+    pending = [p for p in get_pending_pins(interleaved=False) if _is_due(p)]
+    if not interleaved or not pending:
+        return pending
+    return _interleave_by_slug(pending)
+
+
+def get_scheduled_pins() -> list[dict]:
+    """Return pending pins waiting for a future `scheduled_for`."""
+    return [
+        p for p in get_pending_pins(interleaved=False)
+        if p.get("scheduled_for") and not _is_due(p)
+    ]
+
+
 def get_next_pending_pin() -> dict | None:
-    """Return the next pending pin to publish, or None if queue is empty."""
-    pending = get_pending_pins(interleaved=True)
+    """Return the next DUE pin to publish, or None if nothing is due."""
+    pending = get_due_pins(interleaved=True)
     return pending[0] if pending else None
+
+
+def schedule_pin(pin_identifier: str, scheduled_for: datetime) -> dict | None:
+    """Set (or clear, with `scheduled_for=None`) a publication time for a pin."""
+    with _QUEUE_LOCK:
+        queue = _load_json(_QUEUE_FILE, [])
+        for item in queue:
+            if item.get("id") == pin_identifier or item.get("filename") == pin_identifier:
+                item["scheduled_for"] = scheduled_for.isoformat() if scheduled_for else None
+                if scheduled_for and item.get("status") not in ("published", "failed"):
+                    item["status"] = "pending"
+                _save_json(_QUEUE_FILE, queue)
+                return item
+        return None
 
 
 def mark_pin_status(
@@ -199,12 +256,17 @@ def mark_pin_status(
                 if status == "published":
                     item["published_at"] = datetime.now().isoformat()
                     item["error"] = None
+                    item["scheduled_for"] = None
                     if pin_id:
                         item["pin_id"] = pin_id
                 elif status == "failed":
                     item["error"] = error
+                    item["scheduled_for"] = None
                 elif status == "pending":
                     item["error"] = None
+                    # Manual "reopen" means publish it as soon as possible.
+                    if not extra or "scheduled_for" not in extra:
+                        item["scheduled_for"] = None
 
                 if extra:
                     item.update(extra)
@@ -369,6 +431,95 @@ def publish_next_pin(board_id: str | None = None) -> dict:
     if not pin:
         return {"success": False, "message": "Nenhum pin pendente na fila."}
     return publish_pin(pin.get("id", pin["filename"]), board_id=board_id)
+
+
+def publish_batch(
+    count: int = 3,
+    interval_hours: float = 8.0,
+    board_id: str | None = None,
+) -> dict:
+    """Publish the first due pin now and schedule the next ones at fixed intervals.
+
+    Example (count=3, interval_hours=8): #1 now, #2 at +8h, #3 at +16h.
+    """
+    count = max(1, int(count))
+    interval_hours = float(interval_hours)
+
+    ready = get_due_pins(interleaved=True)
+    if not ready:
+        return {"success": False, "message": "Nenhum pin pendente na fila."}
+
+    batch = ready[:count]
+    now = datetime.now()
+    results: list[dict] = []
+
+    first = batch[0]
+    first_id = first.get("id", first["filename"])
+    published = publish_pin(first_id, board_id=board_id)
+    if not published.get("success"):
+        return {
+            "success": False,
+            "error": published.get("error") or published.get("message") or "Falha ao publicar o primeiro pin.",
+            "published": [],
+            "scheduled": [],
+        }
+    results.append({
+        "id": first_id,
+        "title": first.get("title"),
+        "status": "published",
+        "pin_id": published.get("pin_id"),
+        "published_at": datetime.now().isoformat(),
+    })
+
+    scheduled: list[dict] = []
+    for idx, item in enumerate(batch[1:], start=1):
+        item_id = item.get("id", item["filename"])
+        when = now + timedelta(hours=interval_hours * idx)
+        updated = schedule_pin(item_id, when)
+        scheduled.append({
+            "id": item_id,
+            "title": item.get("title"),
+            "status": "scheduled",
+            "scheduled_for": when.isoformat(),
+            "pin": updated,
+        })
+
+    return {
+        "success": True,
+        "published": results,
+        "scheduled": scheduled,
+        "interval_hours": interval_hours,
+        "count": len(results) + len(scheduled),
+    }
+
+
+def publish_due_pins(board_id: str | None = None, max_per_run: int = 3) -> dict:
+    """Publish every scheduled pin whose time has arrived (interval job).
+
+    Stops on the first failure so a broken pin is not retried in a tight loop.
+    """
+    published: list[dict] = []
+    errors: list[str] = []
+    max_per_run = max(1, int(max_per_run))
+
+    while len(published) < max_per_run:
+        pin = get_next_pending_pin()
+        if not pin:
+            break
+        pin_id = pin.get("id", pin["filename"])
+        res = publish_pin(pin_id, board_id=board_id)
+        if res.get("success"):
+            published.append({
+                "id": pin_id,
+                "title": pin.get("title"),
+                "pin_id": res.get("pin_id"),
+                "published_at": datetime.now().isoformat(),
+            })
+        else:
+            errors.append(f"{pin_id}: {res.get('error') or res.get('message') or 'falha'}")
+            break
+
+    return {"success": not errors, "published": published, "errors": errors}
 
 
 def _load_bulk_v2_template() -> tuple[list[str], list[str], list[str]]:
@@ -566,13 +717,16 @@ def get_queue_stats() -> dict:
     pending = [p for p in queue if p.get("status") in ("pending", "failed")]
     published = [p for p in queue if p.get("status") == "published"]
     failed = [p for p in queue if p.get("status") == "failed"]
+    scheduled = get_scheduled_pins()
     next_pin = get_next_pending_pin()
+    next_scheduled = min(scheduled, key=lambda p: str(p.get("scheduled_for")), default=None)
 
     return {
         "total": len(queue),
         "pending": len(pending),
         "published": len(published),
         "failed": len(failed),
+        "scheduled": len(scheduled),
         "next_pin": {
             "id": next_pin.get("id"),
             "title": next_pin.get("title"),
@@ -581,5 +735,12 @@ def get_queue_stats() -> dict:
             "filename": next_pin.get("filename"),
         }
         if next_pin
+        else None,
+        "next_scheduled": {
+            "id": next_scheduled.get("id"),
+            "title": next_scheduled.get("title"),
+            "scheduled_for": next_scheduled.get("scheduled_for"),
+        }
+        if next_scheduled
         else None,
     }

@@ -131,8 +131,27 @@ def _restore_scheduler_jobs():
     from dashboard.services.pipeline import (
         _scheduled_autopilot_job,
         _scheduled_pipeline_job,
+        _scheduled_pinterest_due_pins_job,
         _scheduled_pinterest_drip_job,
     )
+
+    # Built-in job: publishes queue pins whose `scheduled_for` has arrived.
+    # Runs every 10 minutes so a batch (now / +8h / +16h) keeps flowing even
+    # when no user-created cron job exists. Source of truth stays the queue
+    # file, so a restart never loses a scheduled publication.
+    try:
+        from apscheduler.triggers.interval import IntervalTrigger
+
+        sched.add_job(
+            _scheduled_pinterest_due_pins_job,
+            trigger=IntervalTrigger(minutes=10),
+            id="pinterest_due_pins",
+            name="Pinterest: publica pins agendados (a cada 10 min)",
+            replace_existing=True,
+        )
+    except Exception as e:
+        log.warning("Falha ao registrar job de pins agendados: %s", e)
+
     # Read through the shared helper: it survives a corrupted JSON by falling
     # back to [], so one bad file cannot take down startup.
     sched_data = _load_json("scheduler_jobs.json", [])

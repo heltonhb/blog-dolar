@@ -86,6 +86,9 @@
         <button id="btn-publish-next" class="btn btn-green" onclick="publishNextPin()" style="font-size: 0.85rem; padding: 8px 16px;">
             <i class="fa-solid fa-paper-plane"></i> Publicar Próximo Pin Agora
         </button>
+        <button id="btn-publish-batch" class="btn btn-green" onclick="publishBatch()" style="font-size: 0.85rem; padding: 8px 16px; background: #007600;" title="Publica 1 pin agora e agenda os próximos em +8h e +16h">
+            <i class="fa-solid fa-layer-group"></i> Publicar 3 → agora / +8h / +16h
+        </button>
         <a href="/api/pinterest/export-csv?format=v2" class="btn btn-blue" style="font-size: 0.85rem; padding: 8px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;" title="Baixar planilha oficial no formato V2 aceito pelo Editor em Massa do Pinterest">
             <i class="fa-solid fa-file-csv"></i> Exportar CSV Pinterest Bulk V2
         </a>
@@ -264,8 +267,16 @@ function renderPinGrid() {
         const link = item.link || 'https://techtips.dpdns.org';
         const isPublished = item.status === 'published';
         const isFailed = item.status === 'failed';
+        const scheduledFor = item.scheduled_for ? new Date(item.scheduled_for) : null;
+        const isScheduled = !isPublished && !isFailed && scheduledFor && scheduledFor.getTime() > Date.now();
         const badgeClass = isPublished ? 'pin-badge-published' : (isFailed ? 'pin-badge-failed' : 'pin-badge-pending');
-        const badgeText = isPublished ? '<i class="fa-solid fa-check"></i> Publicado' : (isFailed ? '<i class="fa-solid fa-triangle-exclamation"></i> Falha' : '<i class="fa-solid fa-clock"></i> Na Fila');
+        const badgeText = isPublished
+            ? '<i class="fa-solid fa-check"></i> Publicado'
+            : (isFailed
+                ? '<i class="fa-solid fa-triangle-exclamation"></i> Falha'
+                : (isScheduled
+                    ? '<i class="fa-solid fa-calendar-check"></i> Agendado ' + formatSchedule(item.scheduled_for)
+                    : '<i class="fa-solid fa-clock"></i> Na Fila'));
 
         const pinUrl = item.wp_media_url || ('https://techtips.dpdns.org/wp-content/uploads/' + item.filename);
         const pinterestWebUrl = 'https://www.pinterest.com/pin-creation-tool/?url=' + encodeURIComponent(link) + '&media=' + encodeURIComponent(pinUrl) + '&description=' + encodeURIComponent(title);
@@ -279,6 +290,12 @@ function renderPinGrid() {
             <div class="pin-body">
                 <div class="pin-title">${esc(title)}</div>
                 <div class="pin-desc">${esc(desc)}</div>
+
+                ${isScheduled ? `
+                <div style="margin: 6px 0 10px 0; font-size: 0.8rem; background: var(--bg-card); border: 1px solid var(--accent-green); border-radius: 6px; padding: 6px 10px; color: var(--text-secondary);">
+                    <span style="color: var(--accent-green); font-weight: bold;"><i class="fa-solid fa-calendar-check"></i> Agendado:</span>
+                    ${esc(formatSchedule(item.scheduled_for))} — será publicado automaticamente
+                </div>` : ''}
                 
                 <div style="margin: 6px 0 10px 0; font-size: 0.8rem; background: var(--bg-card); border: 1px solid var(--accent-green); border-radius: 6px; padding: 6px 10px;">
                     <span style="color: var(--accent-green); font-weight: bold;"><i class="fa-solid fa-shield-halved"></i> Safe Bridge (EUA):</span>
@@ -315,6 +332,46 @@ function renderPinGrid() {
             </div>
         </div>`;
     }).join('');
+}
+
+function formatSchedule(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
+}
+
+function publishBatch() {
+    const btn = document.getElementById('btn-publish-batch');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando e agendando...';
+    btn.disabled = true;
+
+    fetch('/api/pinterest/publish-batch', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({count: 3, interval_hours: 8})
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        if (data.success) {
+            const n = (data.scheduled || []).length;
+            const parts = ['1 pin publicado agora'];
+            (data.scheduled || []).forEach(s => parts.push(`1 agendado p/ ${formatSchedule(s.scheduled_for)}`));
+            showToast(`✅ ${parts.join(' • ')}`);
+            if (data.warning) alert(data.warning);
+        } else {
+            alert('Aviso: ' + (data.error || data.message || 'Falha ao publicar lote.'));
+        }
+        loadPins();
+    })
+    .catch(err => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('Erro ao conectar com o servidor: ' + err);
+    });
 }
 
 function publishNextPin() {

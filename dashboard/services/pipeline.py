@@ -150,6 +150,20 @@ def _scheduled_pinterest_drip_job(board_id: str = ""):
         return {"success": False, "error": str(e)}
 
 
+def _scheduled_pinterest_due_pins_job(board_id: str = ""):
+    """Publish every Pinterest pin whose `scheduled_for` has arrived (APScheduler)."""
+    try:
+        from dashboard.services.pinterest_queue import publish_due_pins
+
+        res = publish_due_pins(board_id=board_id or None)
+        if res.get("published") or res.get("errors"):
+            log.info("Pinterest pin agendado job: %s", res)
+        return res
+    except Exception as e:
+        log.exception("Pinterest pin agendado job falhou: %s", e)
+        return {"success": False, "error": str(e)}
+
+
 def _scheduled_autopilot_job(category: str = "buyer_intent"):
     """Run an automated monetization autopilot cycle (called by APScheduler)."""
     try:
