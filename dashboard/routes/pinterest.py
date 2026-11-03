@@ -78,12 +78,19 @@ def api_pinterest_create():
                 "created_at": datetime.now().isoformat(),
             })
             config["published_pins"] = published[-50:]
-            # Salvaguarda: preservar access_token do .env se não houver um no PostgreSQL
+            # Salvaguarda: SEMPRE priorizar access_token do .env
+            # O .env é a fonte autoritária; se houver token lá, use-o independentemente do que haja no PostgreSQL
             env_token = _env("PINTEREST_ACCESS_TOKEN", "")
-            if env_token and not config.get("access_token"):
+            if env_token:
                 config["access_token"] = env_token
+            elif not config.get("access_token"):
+                # Fallback: só grava no PostgreSQL se não houver token no .env
+                pass
+            else:
+                # Remove token inválido do PostgreSQL se .env não tem
+                config.pop("access_token", None)
 
-            # Salvar no PostgreSQL
+            # Salvar no PostgreSQL (com o token correto do .env ou sem token)
             save_config("pinterest_config", config)
 
             # Espelhar em arquivo JSON dashboard/data/pinterest_config.json
