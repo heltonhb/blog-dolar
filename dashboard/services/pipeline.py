@@ -564,6 +564,13 @@ Return ONLY JSON:
                             config["published_pins"] = published[-50:]
                             save_config("pinterest_config", config)
                             _save_checkpoint(pipeline_slug, "pinterest", pin_id)
+                            # Mark the corresponding queue item as published so the
+                            # drip-feed scheduler does not republish the same pin.
+                            try:
+                                from dashboard.services.pinterest_queue import mark_pin_status
+                                mark_pin_status(f"{slug}-v1", "published", pin_id=pin_id)
+                            except Exception:
+                                pass
                             steps[-1] = {"step": "pinterest", "status": "ok", "pin_id": pin_id}
                         else:
                             steps[-1] = {
