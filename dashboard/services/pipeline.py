@@ -492,95 +492,34 @@ Return ONLY JSON:
                         "message": "Pins salvos na fila Drip-Feed (API v5 direta não configurada)",
                     }
                 else:
-                    image_step = next((s for s in steps if s.get("step") == "image"), {})
-                    pin_files = image_step.get("files", [pin_filename])
-
-                    # Ensure public_image_url is on WP domain if possible
-                    if not public_image_url or site_url not in public_image_url:
-                        main_pin_path = images_dir / pin_filename
-                        if main_pin_path.exists():
-                            wp_media = _wp_upload_media(main_pin_path.read_bytes(), pin_filename, alt_text=title)
-                            if wp_media.get("success"):
-                                public_image_url = wp_media["url"]
-
-                    pin_ids = []
-                    for pf in pin_files:
-                        pf_path = images_dir / pf
-                        if not pf_path.exists():
-                            continue
-                        pf_media = _wp_upload_media(pf_path.read_bytes(), pf, alt_text=title)
-                        pf_url = pf_media.get("url", public_image_url) if pf_media.get("success") else public_image_url
-
-                        pin_api_key = _env("GEMINI_API_KEY")
-                        excerpt_clean = re.sub(r'<[^>]+>', '', meta_desc or title)
-                        pin_title = generate_pin_title(pin_api_key, title, excerpt_clean) if pin_api_key else title
-                        pin_desc = build_pin_description(
-                            pin_api_key, title, excerpt_clean,
-                            keywords=article_info.get("keywords") if 'article_info' in locals() else None,
-                            tags=article_info.get("tags") if 'article_info' in locals() else None,
-                        ) if pin_api_key else (meta_desc or f"Read about {title}")
-
-                        bridge_url = get_bridge_url(slug, post_url) if is_bridge_enabled() else ""
-                        pin_target_link = bridge_url or post_url or site_url
-
-                        pin_payload = {
-                            "board_id": board_id,
-                            "title": pin_title[:100],
-                            "description": pin_desc[:500],
-                            "link": pin_target_link,
-                            "media_source": {"source_type": "image_url", "url": pf_url},
-                        }
-                        pin_api_base = _env(
-                            "PINTEREST_API_BASE", "https://api.pinterest.com/v5"
-                        ).rstrip("/")
-                        resp_pin = httpx.post(
-                            f"{pin_api_base}/pins",
-                            json=pin_payload,
-                            headers=({"Authorization": f"Bearer {access_token}"}
-                                     if not access_token.startswith("Bearer ")
-                                     else {"Authorization": access_token}),
-                            timeout=30,
-                        )
-                        if resp_pin.status_code in (401, 403):
+                    # Sync the queue with the newly generated pins, then publish
+                    # ONE pin now and schedule the other two (+8h, +16h) in a
+                    # single batch action. This avoids duplicate simultaneous
+                    # publications and guarantees real scheduling on Pinterest.
+                    try:
+                        from dashboard.services.pinterest_queue import sync_queue, publish_batch
+                        sync_queue()
+                        res = publish_batch(count=3, interval_hours=8, board_id=board_id)
+                        if res.get("success"):
+                            pin_ids = [p.get("pin_id") for p in res.get("published", [])]
                             steps[-1] = {
                                 "step": "pinterest",
                                 "status": "ok",
-                                "queued": True,
-                                "warning": f"Token Pinterest expirado ({resp_pin.status_code}). Pins salvos na fila Drip-Feed para agendamento.",
+                                "pin_ids": pin_ids,
+                                "published": res.get("published", []),
+                                "scheduled": res.get("scheduled", []),
+                                "count": res.get("count", 0),
                             }
-                            break
-                        if resp_pin.status_code in (200, 201):
-                            pin_data = resp_pin.json()
-                            pin_id = pin_data.get("id", "")
-                            pin_ids.append(pin_id)
-                            config = get_config("pinterest_config", {})
-                            published = config.get("published_pins", [])
-                            published.append({
-                                "pin_id": pin_id,
-                                "title": title,
-                                "article": article_filename,
-                                "created_at": datetime.now().isoformat(),
-                            })
-                            config["published_pins"] = published[-50:]
-                            save_config("pinterest_config", config)
-                            _save_checkpoint(pipeline_slug, "pinterest", pin_id)
-                            # Mark the corresponding queue item as published so the
-                            # drip-feed scheduler does not republish the same pin.
-                            try:
-                                from dashboard.services.pinterest_queue import mark_pin_status
-                                mark_pin_status(f"{slug}-v1", "published", pin_id=pin_id)
-                            except Exception:
-                                pass
-                            steps[-1] = {"step": "pinterest", "status": "ok", "pin_id": pin_id}
                         else:
                             steps[-1] = {
                                 "step": "pinterest",
                                 "status": "error",
-                                "error": f"HTTP {resp_pin.status_code}: {resp_pin.text[:200]}",
+                                "error": res.get("error") or res.get("message") or "Falha no lote Pinterest",
                             }
-                            break
-                    if pin_ids:
-                        steps[-1] = {"step": "pinterest", "status": "ok", "pin_ids": pin_ids, "count": len(pin_ids)}
+                    except Exception as e:
+                        steps[-1] = {"step": "pinterest", "status": "error", "error": str(e)}
+            except Exception as e:
+                steps[-1] = {"step": "pinterest", "status": "error", "error": str(e)}
             except Exception as e:
                 steps[-1] = {"step": "pinterest", "status": "error", "error": str(e)}
     else:
